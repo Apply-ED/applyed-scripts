@@ -586,6 +586,16 @@ function updateCurrentChildHeading() {
   } else {
     heading.textContent = `Child ${displayNum}`;
   }
+// Update the section heading
+  const sectionHeading = document.getElementById('child-section-heading');
+  if (sectionHeading) {
+    sectionHeading.textContent = name ? `About ${name}` : 'About';
+  }
+// Update the page heading
+  const pageHeading = document.getElementById('child-page-heading');
+  if (pageHeading) {
+    pageHeading.textContent = name ? `Now tell us about ${name}` : 'Now tell us about your child';
+  }
 
   // Ensure it is visible
   heading.style.display = "";
