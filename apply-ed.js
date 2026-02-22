@@ -2784,6 +2784,7 @@ bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
   
+// Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
 if (cfg) {
   document.querySelectorAll('[data-price-key="products.base_program"]')
@@ -2798,6 +2799,14 @@ if (cfg) {
     .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.expedited_delivery.amount_cents)));
   document.querySelectorAll('[data-price-key="add_ons.expedited_delivery_with_weekly"]')
     .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.expedited_delivery_with_weekly.amount_cents)));
+
+  // Step 0 label text — static per child
+  document.querySelectorAll('.aed-label-weekly-unit')
+    .forEach(el => el.textContent = 'Detailed Weekly Plan Add-On');
+  document.querySelectorAll('.aed-label-expedited-unit')
+    .forEach(el => el.textContent = 'Expedited Delivery Add-On');
+  document.querySelectorAll('.aed-label-travel-unit')
+    .forEach(el => el.textContent = 'Travel Program Add-On');
 }
 
 function refreshAllSelectColours() {
