@@ -2784,9 +2784,12 @@ bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
   
-// Populate static per-child prices in Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
 if (cfg) {
+  document.querySelectorAll('[data-price-key="products.base_program"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.products.base_program.amount_cents)));
+  document.querySelectorAll('[data-price-key="products.additional_child"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.products.additional_child.amount_cents)));
   document.querySelectorAll('[data-price-key="add_ons.detailed_weekly_planning"]')
     .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.detailed_weekly_planning.amount_cents)));
   document.querySelectorAll('[data-price-key="add_ons.travel_program"]')
