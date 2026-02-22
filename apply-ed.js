@@ -1678,28 +1678,7 @@ const result = await postToMakeCreateCheckout(payload);
       e.preventDefault();
     });
   }
-/* =========================
-   APPROACH DRAWER TOGGLE (NEW CODE)
-   ========================= */
-document.addEventListener("click", function (e) {
-  const expandBtn = e.target.closest('.expand-btn');
-  if (!expandBtn) return;
-
-  e.preventDefault();
-  e.stopPropagation();
-
-  const card = expandBtn.closest('.approach-card');
-  const drawer = card ? card.querySelector('.approach-drawer') : null;
-
-  if (drawer) {
-    const isHidden = window.getComputedStyle(drawer).display === "none";
-    drawer.style.display = isHidden ? "block" : "none";
-    
-    // Optional: Rotate the arrow
-    const icon = expandBtn.querySelector('img, svg');
-    if (icon) icon.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
-  }
-});
+ 
  /* =========================
      CLICK HANDLER (existing)
    ========================= */
