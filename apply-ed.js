@@ -330,6 +330,8 @@ function recalcOrderSummaryUIAndHidden() {
   writeHidden("order_total_cents", order.cents.total);
   writeHidden("order_add_ons_json", JSON.stringify(order.add_ons));
   writeHidden("order_line_items_json", JSON.stringify(order.lineItems));
+
+
 }
 
 function bindOrderSummarySync() {
@@ -2782,6 +2784,19 @@ bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
   
+// Populate static per-child prices in Step 0 add-on labels
+const cfg = window.APPLYED_PRICING_CONFIG;
+if (cfg) {
+  document.querySelectorAll('[data-price-key="add_ons.detailed_weekly_planning"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.detailed_weekly_planning.amount_cents)));
+  document.querySelectorAll('[data-price-key="add_ons.travel_program"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.travel_program.amount_cents)));
+  document.querySelectorAll('[data-price-key="add_ons.expedited_delivery"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.expedited_delivery.amount_cents)));
+  document.querySelectorAll('[data-price-key="add_ons.expedited_delivery_with_weekly"]')
+    .forEach(el => el.textContent = aud(centsToDollars(cfg.add_ons.expedited_delivery_with_weekly.amount_cents)));
+}
+
 function refreshAllSelectColours() {
   document.querySelectorAll('select').forEach(select => {
     if (select.value === "") {
