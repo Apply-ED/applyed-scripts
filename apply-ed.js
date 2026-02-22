@@ -1521,7 +1521,6 @@ obj.travel_context = {
 // These lines ensure your specific names are preserved for the AI:
     obj.contact_first_name = obj.contact_first_name || "";
     obj.contact_email = obj.contact_email || "";
-    obj.parent_confidence = obj.parent_confidence || "";
 obj.plan_start_date = obj.plan_start_date || "";
 obj.plan_end_date = obj.plan_end_date || "";
 // Force application_group_id into payload (even if FormData misses it)
@@ -2494,8 +2493,7 @@ function bindCustomValidation() {
   var step0Fields = [
     { name: 'contact_first_name', label: 'Contact First Name' },
     { name: 'contact_email', label: 'Contact Email' },
-    { name: 'parent_confidence', label: 'Parent Confidence' },
-    { name: 'plan_start_date', label: 'Program Start Date' }
+      { name: 'plan_start_date', label: 'Program Start Date' }
   ];
 
   var step1Fields = [
