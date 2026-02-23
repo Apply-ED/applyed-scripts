@@ -2487,9 +2487,14 @@ function bindCustomValidation() {
       { name: 'plan_start_date', label: 'Program Start Date' }
   ];
 
+// Step 1 now only has the child's name
   var step1Fields = [
+    { name: 'student_first_name', label: 'Student First Name' }
+  ];
+
+  // Create a new list for Step 2 (About the Child)
+  var step2Fields = [
     { name: 'student_year_level', label: 'Year Level' },
-    { name: 'student_first_name', label: 'Student First Name' },
     { name: 'student_pronouns', label: 'Student Pronouns' }
   ];
 
@@ -2584,7 +2589,22 @@ function bindCustomValidation() {
       }
     });
   }
-
+// Bind Step 2 next button
+  var step2Btn = document.getElementById('btn-next-step2');
+  if (step2Btn) {
+    step2Btn.addEventListener('click', function(e) {
+      var allValid = true;
+      step2Fields.forEach(function(field) {
+        if (!validateField(field)) allValid = false;
+      });
+      if (!allValid) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var firstError = document.querySelector('[id^="error-"][style*="block"]');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
   // Hide errors as user fills in fields
   document.addEventListener('input', function(e) {
     if (e.target && e.target.name) hideError(e.target.name);
@@ -2596,11 +2616,11 @@ function bindCustomValidation() {
 }
 
 /* =========================
-   STEP 1 NEXT BUTTON VALIDATION
+   STEP 2 NEXT BUTTON VALIDATION
    ========================= */
 
 function bindStep1Validation() {
-  var nextBtn = document.getElementById('btn-next-step1');
+  var nextBtn = document.getElementById('btn-next-step2');
   if (!nextBtn) return;
 
   nextBtn.addEventListener('click', function(e) {
