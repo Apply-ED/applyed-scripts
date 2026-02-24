@@ -2787,63 +2787,72 @@ function bindYearLevelPills() {
   updatePills();
 }
 /* =========================
-   CURRICULUM CONTAINER VISIBILITY & LOCKING (F-6 vs 7-10)
+   CURRICULUM VISIBILITY & LOCKING (F-8 & Arts Pills)
    ========================= */
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
-  var f6Container = document.getElementById('f6-curriculum-container');
+  var coreContainer = document.getElementById('f6-curriculum-container'); // Upgraded to F-8
+  var artsPills = document.getElementById('y78-arts-pills'); // The new Y7-8 specific pills
 
-  if (!yearDropdown || !f6Container) return;
+  if (!yearDropdown) return;
+
+  // Helper to freeze the core checkboxes
+  function lockContainerCheckboxes(container) {
+    if (!container) return;
+    var checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(function(cb) {
+      cb.checked = true; // Force check
+      var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
+      if (wrapper) {
+        wrapper.style.pointerEvents = 'none'; // Lock clicks
+        wrapper.style.opacity = '0.7'; // Dim slightly
+      }
+    });
+  }
 
   function checkYearLevel() {
     var rawValue = yearDropdown.value;
-    if (!rawValue) {
-      f6Container.style.display = 'none';
-      return;
-    }
-
-    var isF6 = false;
     
-    // Check if it's Foundation or Years 1-6
+    // Hide everything by default when the dropdown changes
+    if (coreContainer) coreContainer.style.display = 'none';
+    if (artsPills) artsPills.style.display = 'none';
+
+    if (!rawValue) return;
+
+    var isF8 = false;
+    var isY78 = false;
+
+    // Check if it's Foundation
     if (rawValue === 'FOUNDATION') {
-      isF6 = true;
+      isF8 = true;
     } else {
+      // Extract the number for Years 1-10
       var match = rawValue.match(/\d+/);
       if (match) {
         var yearNum = parseInt(match[0], 10);
-        if (yearNum <= 6) {
-          isF6 = true;
+        
+        if (yearNum <= 8) {
+          isF8 = true; // Show the locked core subjects
+        }
+        if (yearNum === 7 || yearNum === 8) {
+          isY78 = true; // Show the Arts pills
         }
       }
     }
 
-    // Show or hide the container based on the result
-    if (isF6) {
-      f6Container.style.display = ''; // Show for F-6
-      
-      // Find all checkboxes inside this container and lock them
-      var checkboxes = f6Container.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(function(cb) {
-        cb.checked = true; // Force it to be checked
-        
-        // Find the Webflow label wrapper and freeze it
-        var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
-        if (wrapper) {
-          wrapper.style.pointerEvents = 'none'; // Makes it unclickable
-          wrapper.style.opacity = '0.7'; // Dims it slightly
-        }
-      });
-      
-    } else {
-      f6Container.style.display = 'none'; // Hide for 7-10
+    // Apply the visibility rules
+    if (isF8 && coreContainer) {
+      coreContainer.style.display = '';
+      lockContainerCheckboxes(coreContainer);
+    }
+    
+    if (isY78 && artsPills) {
+      artsPills.style.display = '';
     }
   }
 
-  // Listen for changes when the parent picks a new year level
   yearDropdown.addEventListener('change', checkYearLevel);
-  
-  // Run it once when the page first loads
-  checkYearLevel();
+  checkYearLevel(); // Run on load
 }
 
 /* =========================
