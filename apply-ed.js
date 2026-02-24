@@ -2796,57 +2796,52 @@ function bindYearLevelPills() {
   updatePills();
 }
 /* =========================
-   CURRICULUM VISIBILITY & LOCKING (F-9 Logic)
+   CURRICULUM VISIBILITY & LOCKING (F-10 Logic)
    ========================= */
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
   
-  // Our Containers
+  // All Our Containers
   var coreF8Container = document.getElementById('f6-curriculum-container'); 
   var artsPillsY78 = document.getElementById('y78-arts-pills');
-  var y9Container = document.getElementById('y9-curriculum-container'); // The NEW Year 9 block
+  var y9Container = document.getElementById('y9-curriculum-container');
+  var y10Container = document.getElementById('y10-curriculum-container'); // The Year 10 block!
 
   if (!yearDropdown) return;
 
-  // Helper 1: Freeze standard checkboxes (like English, Maths)
-  function lockContainerCheckboxes(container) {
+  // Smarter Helper: Only freezes items that actually have the 'locked-checkbox' class
+  function lockSpecificElements(container) {
     if (!container) return;
-    var checkboxes = container.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(function(cb) {
-      cb.checked = true; // Force check
-      var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
-      if (wrapper) {
-        wrapper.style.pointerEvents = 'none'; // Lock clicks
-        wrapper.style.opacity = '0.7'; // Dim slightly
+    var lockedItems = container.querySelectorAll('.locked-checkbox');
+    lockedItems.forEach(function(item) {
+      if (item.type === 'checkbox') {
+        item.checked = true;
       }
-    });
-  }
-
-  // Helper 2: Freeze specific tricky pills (like our Year 9 History pill!)
-  function lockSpecificPills(container) {
-    if (!container) return;
-    var lockedPills = container.querySelectorAll('.locked-checkbox');
-    lockedPills.forEach(function(pill) {
-       pill.style.pointerEvents = 'none'; // Lock clicks
-       pill.style.opacity = '0.8'; // Dim slightly so it looks "set"
+      var wrapper = item.closest('.w-checkbox') || item;
+      if (wrapper) {
+        wrapper.style.pointerEvents = 'none'; 
+        wrapper.style.opacity = '0.7'; 
+      }
     });
   }
 
   function checkYearLevel() {
     var rawValue = yearDropdown.value;
     
-    // 1. Hide EVERYTHING by default when the dropdown changes
+    // 1. Hide EVERYTHING by default
     if (coreF8Container) coreF8Container.style.display = 'none';
     if (artsPillsY78) artsPillsY78.style.display = 'none';
     if (y9Container) y9Container.style.display = 'none';
+    if (y10Container) y10Container.style.display = 'none';
 
     if (!rawValue) return;
 
     var isF8 = false;
     var isY78 = false;
     var isY9 = false;
+    var isY10 = false;
 
-    // 2. Figure out which year level they selected
+    // 2. Figure out the year level
     if (rawValue === 'FOUNDATION') {
       isF8 = true;
     } else {
@@ -2854,37 +2849,157 @@ function bindCurriculumVisibility() {
       if (match) {
         var yearNum = parseInt(match[0], 10);
         
-        if (yearNum <= 8) {
-          isF8 = true; // Show the locked core subjects for F-8
-        }
-        if (yearNum === 7 || yearNum === 8) {
-          isY78 = true; // Show the Arts pills for 7 & 8
-        }
-        if (yearNum === 9) {
-          isY9 = true; // Trigger the new Year 9 layout
-        }
+        if (yearNum <= 8) isF8 = true; 
+        if (yearNum === 7 || yearNum === 8) isY78 = true; 
+        if (yearNum === 9) isY9 = true; 
+        if (yearNum === 10) isY10 = true; // Trigger Year 10
       }
     }
 
-    // 3. Apply the visibility and locking rules
+    // 3. Apply rules
     if (isF8 && coreF8Container) {
       coreF8Container.style.display = '';
-      lockContainerCheckboxes(coreF8Container);
+      lockSpecificElements(coreF8Container);
     }
+    if (isY78 && artsPillsY78) artsPillsY78.style.display = '';
     
-    if (isY78 && artsPillsY78) {
-      artsPillsY78.style.display = '';
-    }
-
     if (isY9 && y9Container) {
       y9Container.style.display = '';
-      lockContainerCheckboxes(y9Container); // Locks English, Maths, Science, HPE
-      lockSpecificPills(y9Container); // Locks the History pill!
+      lockSpecificElements(y9Container); 
+    }
+
+    if (isY10 && y10Container) {
+      y10Container.style.display = '';
+      lockSpecificElements(y10Container); // Locks English, Maths, HPE
     }
   }
 
   yearDropdown.addEventListener('change', checkYearLevel);
-  checkYearLevel(); // Run on load
+  checkYearLevel(); 
+}
+
+/* =========================
+   WORKLOAD TRACKER (Traffic Light System)
+   ========================= */
+function bindWorkloadTracker() {
+  var yearDropdown = document.querySelector('select[name="student_year_level"]');
+  var trackerWrap = document.getElementById('workload-tracker');
+  var countText = document.getElementById('workload-count-text');
+  var warningText = document.getElementById('workload-warning-text');
+
+  if (!yearDropdown || !trackerWrap || !countText || !warningText) return;
+
+  function calculateWorkload() {
+    var rawValue = yearDropdown.value;
+    
+    // Hide tracker for Foundation to Year 6 (no elective overload risk)
+    if (!rawValue || rawValue === 'FOUNDATION') {
+      trackerWrap.style.display = 'none';
+      return;
+    }
+
+    var yearNum = 0;
+    var match = rawValue.match(/\d+/);
+    if (match) yearNum = parseInt(match[0], 10);
+
+    if (yearNum <= 6) {
+      trackerWrap.style.display = 'none';
+      return;
+    }
+
+    // Show tracker for Years 7 to 10
+    trackerWrap.style.display = 'block';
+    var total = 0;
+
+    // Helper: Count active pills in a specific container
+    function countPills(wrapperId) {
+      var wrap = document.getElementById(wrapperId);
+      if (!wrap || wrap.style.display === 'none') return 0;
+      return wrap.querySelectorAll('.ms-option.is-selected').length;
+    }
+
+    // Helper: Check if a language is actually selected
+    function hasLanguage() {
+      var langWrap = document.querySelector('.language-of-study-wrap');
+      var langSelect = langWrap ? langWrap.querySelector('select') : null;
+      if (langWrap && langWrap.style.display !== 'none' && langSelect && langSelect.value) {
+        return 1;
+      }
+      return 0;
+    }
+
+    // --- THE MATH ---
+    if (yearNum === 7 || yearNum === 8) {
+      // 7 Core subjects + Arts pills
+      total = 7 + countPills('y78-arts-pills');
+    } 
+    else if (yearNum === 9) {
+      // 4 Core (Eng, Maths, Sci, HPE) + HASS + Tech + Arts + Language
+      total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
+    } 
+    else if (yearNum === 10) {
+      // 3 Core (Eng, Maths, HPE) 
+      // + Maths Pathway + English Pathway + HPE Specialist
+      // + Science + HASS + Tech + Arts + Language
+      total = 3 
+            + countPills('y10-maths-pills') 
+            + countPills('y10-english-pills') 
+            + countPills('y10-hpe-pills')
+            + countPills('y10-science-pills')
+            + countPills('y10-hass-pills')
+            + countPills('y10-tech-pills')
+            + countPills('y10-arts-pills')
+            + hasLanguage();
+    }
+
+    // --- THE TRAFFIC LIGHT UI ---
+    countText.innerHTML = `<strong>Total Subjects Selected: ${total}</strong>`;
+    
+    // Default Green/Normal State
+    trackerWrap.style.backgroundColor = '#f4f7f4'; // Soft grey/green
+    trackerWrap.style.border = '1px solid #c3d9c3';
+    warningText.style.color = '#263358';
+
+    if (yearNum === 7 || yearNum === 8) {
+       warningText.textContent = "This is a highly manageable, standard workload for this year level.";
+    } 
+    else if (yearNum === 9) {
+      if (total >= 10) { // Amber Warning
+        trackerWrap.style.backgroundColor = '#fff8e1'; // Soft yellow
+        trackerWrap.style.border = '1px solid #ffe082';
+        warningText.style.color = '#8f6c00';
+        warningText.innerHTML = "<strong>Advisory:</strong> 10 or more subjects is a heavy workload for Year 9. Please ensure this is manageable for your child.";
+      } else {
+        warningText.textContent = "This is a standard, balanced workload for Year 9.";
+      }
+    } 
+    else if (yearNum === 10) {
+      if (total >= 11) { // Red Warning
+        trackerWrap.style.backgroundColor = '#ffebee'; // Soft red/pink
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Intensive Workload:</strong> 11+ subjects is a very heavy senior workload. Please carefully consider your child's schedule before proceeding.";
+      } else if (total === 10) { // Amber Warning
+         trackerWrap.style.backgroundColor = '#fff8e1'; 
+         trackerWrap.style.border = '1px solid #ffe082';
+         warningText.style.color = '#8f6c00';
+         warningText.innerHTML = "<strong>Advisory:</strong> 10 subjects is a robust workload. Ensure your child has adequate study time mapped out.";
+      } else {
+        warningText.textContent = "This is a standard, balanced workload for Year 10.";
+      }
+    }
+  }
+
+  // Listen for any clicks (Pills) or changes (Dropdowns) to recalculate
+  document.addEventListener('click', function(e) {
+     if(e.target.closest('.ms-option')) {
+        setTimeout(calculateWorkload, 50); // Small delay to let the pill change color first
+     }
+  });
+  document.addEventListener('change', calculateWorkload);
+  
+  // Run on load
+  setTimeout(calculateWorkload, 100);
 }
 
 /* =========================
@@ -2906,6 +3021,7 @@ bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
 bindCurriculumVisibility();
+bindWorkloadTracker();
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
