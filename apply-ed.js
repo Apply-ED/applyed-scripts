@@ -7,6 +7,7 @@ window.jumpToChild = function(targetIdx) {
         console.error("Navigation bridge not ready.");
     }
 };
+
 // --- CSS TO LOCK MANDATORY CHECKBOXES ---
 document.head.insertAdjacentHTML("beforeend", `<style>
   .locked-checkbox {
