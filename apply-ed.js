@@ -2785,7 +2785,65 @@ function bindYearLevelPills() {
   if (stateDropdown) stateDropdown.addEventListener('change', updatePills);
   updatePills();
 }
+/* =========================
+   CURRICULUM CONTAINER VISIBILITY & LOCKING (F-6 vs 7-10)
+   ========================= */
+function bindCurriculumVisibility() {
+  var yearDropdown = document.querySelector('select[name="student_year_level"]');
+  var f6Container = document.getElementById('f6-curriculum-container');
 
+  if (!yearDropdown || !f6Container) return;
+
+  function checkYearLevel() {
+    var rawValue = yearDropdown.value;
+    if (!rawValue) {
+      f6Container.style.display = 'none';
+      return;
+    }
+
+    var isF6 = false;
+    
+    // Check if it's Foundation or Years 1-6
+    if (rawValue === 'FOUNDATION') {
+      isF6 = true;
+    } else {
+      var match = rawValue.match(/\d+/);
+      if (match) {
+        var yearNum = parseInt(match[0], 10);
+        if (yearNum <= 6) {
+          isF6 = true;
+        }
+      }
+    }
+
+    // Show or hide the container based on the result
+    if (isF6) {
+      f6Container.style.display = ''; // Show for F-6
+      
+      // Find all checkboxes inside this container and lock them
+      var checkboxes = f6Container.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(function(cb) {
+        cb.checked = true; // Force it to be checked
+        
+        // Find the Webflow label wrapper and freeze it
+        var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
+        if (wrapper) {
+          wrapper.style.pointerEvents = 'none'; // Makes it unclickable
+          wrapper.style.opacity = '0.7'; // Dims it slightly
+        }
+      });
+      
+    } else {
+      f6Container.style.display = 'none'; // Hide for 7-10
+    }
+  }
+
+  // Listen for changes when the parent picks a new year level
+  yearDropdown.addEventListener('change', checkYearLevel);
+  
+  // Run it once when the page first loads
+  checkYearLevel();
+}
 
 /* =========================
       INIT
@@ -2805,6 +2863,7 @@ bindPillVisibility();
 bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
+bindCurriculumVisibility();
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
