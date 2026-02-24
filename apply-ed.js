@@ -2858,18 +2858,19 @@ function bindCurriculumVisibility() {
 
     // 3. Apply rules
     if (isF8 && coreF8Container) {
-      coreF8Container.style.display = '';
+      coreF8Container.style.display = 'block';
       lockSpecificElements(coreF8Container);
     }
-    if (isY78 && artsPillsY78) artsPillsY78.style.display = '';
-    
+    if (isY78 && artsPillsY78) {
+      artsPillsY78.style.display = 'block';
+    }
     if (isY9 && y9Container) {
-      y9Container.style.display = '';
+      y9Container.style.display = 'block';
       lockSpecificElements(y9Container); 
     }
 
     if (isY10 && y10Container) {
-      y10Container.style.display = '';
+      y10Container.style.display = 'block';
       lockSpecificElements(y10Container); // Locks English, Maths, HPE
     }
   }
