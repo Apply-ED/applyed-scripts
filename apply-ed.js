@@ -2492,10 +2492,16 @@ function bindCustomValidation() {
     { name: 'student_first_name', label: 'Student First Name' }
   ];
 
-  // Create a new list for Step 2 (About the Child)
+// Step 2 now checks for Identity, Background, and Rhythm dropdowns
   var step2Fields = [
-    { name: 'student_year_level', label: 'Year Level' },
-    { name: 'student_pronouns', label: 'Student Pronouns' }
+    { name: 'student_pronouns', label: 'Student Pronouns' },
+    { name: 'student_year_level', label: 'Current Year Level' },
+    { name: 'previous_schooling', label: 'Previous Schooling' },
+    { name: 'time_home_educated', label: 'Time Home Educated' },
+    { name: 'structured_learning_time', label: 'Structured Learning Time' },
+    { name: 'daily_peak', label: 'Daily Energy Peak' },
+    { name: 'attention_span', label: 'Attention Span' },
+    { name: 'routine_preference', label: 'Routine Preference' }
   ];
 
   // Create or update an error message below a field
