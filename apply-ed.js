@@ -808,12 +808,15 @@ function ensureDefaultProgramTypeForCurrentChild() {
      ========================= */
 
 /* =========================
-   REFINED MULTI-SELECT PILL LOGIC
+   REFINED MULTI-SELECT PILL LOGIC (WITH MAX LIMITS)
    ========================= */
 function syncGroup(groupEl) {
   const input = groupEl.querySelector(".ms-input");
   const options = Array.from(groupEl.querySelectorAll(".ms-option"));
   if (!input || !options.length) return;
+
+  // READ THE NEW MAX LIMIT SETTING
+  const maxLimit = parseInt(groupEl.getAttribute("data-max") || "0", 10);
 
   function writeToInput() {
     const selected = options
@@ -828,36 +831,42 @@ function syncGroup(groupEl) {
     if (option.dataset.aedBound === "1") return;
     option.dataset.aedBound = "1";
 
-      
-      // Force the toggle manually
-option.addEventListener("click", function (ev) {
-  ev.preventDefault();
-  ev.stopPropagation();
+    option.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
 
-  const clickedVal = this.getAttribute("data-value");
+      const clickedVal = this.getAttribute("data-value");
+      const EXCLUSIVE = ["all_study_blocks", "timing_unsure"]; 
+      const isExclusive = EXCLUSIVE.includes(clickedVal);
 
-  const EXCLUSIVE = ["all_study_blocks", "timing_unsure"]; // <-- match your data-values exactly
+      if (isExclusive) {
+        options.forEach(o => o.classList.remove("is-selected"));
+        this.classList.add("is-selected");
+      } else {
+        // --- THE MAX LIMIT CHECK ---
+        const isCurrentlySelected = this.classList.contains("is-selected");
 
-  const isExclusive = EXCLUSIVE.includes(clickedVal);
+        // If they are trying to select a new pill, and we have a limit...
+        if (!isCurrentlySelected && maxLimit > 0) {
+          const currentCount = options.filter(o => o.classList.contains("is-selected")).length;
+          
+          if (currentCount >= maxLimit) {
+            // They hit the limit! We stop the click right here.
+            return; 
+          }
+        }
+        // ---------------------------
 
-  if (isExclusive) {
-    // Selecting an exclusive option clears everything else
-    options.forEach(o => o.classList.remove("is-selected"));
-    this.classList.add("is-selected");
-  } else {
-    // Selecting a normal option clears exclusive options
-    options.forEach(o => {
-      const v = o.getAttribute("data-value");
-      if (EXCLUSIVE.includes(v)) o.classList.remove("is-selected");
-    });
+        options.forEach(o => {
+          const v = o.getAttribute("data-value");
+          if (EXCLUSIVE.includes(v)) o.classList.remove("is-selected");
+        });
 
-    // Normal toggle behaviour
-    this.classList.toggle("is-selected");
-  }
+        this.classList.toggle("is-selected");
+      }
 
-  writeToInput();
-}, true);
-
+      writeToInput();
+    }, true);
   });
 }
 
