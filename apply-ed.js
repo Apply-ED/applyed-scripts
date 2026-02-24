@@ -2796,16 +2796,19 @@ function bindYearLevelPills() {
   updatePills();
 }
 /* =========================
-   CURRICULUM VISIBILITY & LOCKING (F-8 & Arts Pills)
+   CURRICULUM VISIBILITY & LOCKING (F-9 Logic)
    ========================= */
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
-  var coreContainer = document.getElementById('f6-curriculum-container'); // Upgraded to F-8
-  var artsPills = document.getElementById('y78-arts-pills'); // The new Y7-8 specific pills
+  
+  // Our Containers
+  var coreF8Container = document.getElementById('f6-curriculum-container'); 
+  var artsPillsY78 = document.getElementById('y78-arts-pills');
+  var y9Container = document.getElementById('y9-curriculum-container'); // The NEW Year 9 block
 
   if (!yearDropdown) return;
 
-  // Helper to freeze the core checkboxes
+  // Helper 1: Freeze standard checkboxes (like English, Maths)
   function lockContainerCheckboxes(container) {
     if (!container) return;
     var checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -2819,44 +2822,64 @@ function bindCurriculumVisibility() {
     });
   }
 
+  // Helper 2: Freeze specific tricky pills (like our Year 9 History pill!)
+  function lockSpecificPills(container) {
+    if (!container) return;
+    var lockedPills = container.querySelectorAll('.locked-checkbox');
+    lockedPills.forEach(function(pill) {
+       pill.style.pointerEvents = 'none'; // Lock clicks
+       pill.style.opacity = '0.8'; // Dim slightly so it looks "set"
+    });
+  }
+
   function checkYearLevel() {
     var rawValue = yearDropdown.value;
     
-    // Hide everything by default when the dropdown changes
-    if (coreContainer) coreContainer.style.display = 'none';
-    if (artsPills) artsPills.style.display = 'none';
+    // 1. Hide EVERYTHING by default when the dropdown changes
+    if (coreF8Container) coreF8Container.style.display = 'none';
+    if (artsPillsY78) artsPillsY78.style.display = 'none';
+    if (y9Container) y9Container.style.display = 'none';
 
     if (!rawValue) return;
 
     var isF8 = false;
     var isY78 = false;
+    var isY9 = false;
 
-    // Check if it's Foundation
+    // 2. Figure out which year level they selected
     if (rawValue === 'FOUNDATION') {
       isF8 = true;
     } else {
-      // Extract the number for Years 1-10
       var match = rawValue.match(/\d+/);
       if (match) {
         var yearNum = parseInt(match[0], 10);
         
         if (yearNum <= 8) {
-          isF8 = true; // Show the locked core subjects
+          isF8 = true; // Show the locked core subjects for F-8
         }
         if (yearNum === 7 || yearNum === 8) {
-          isY78 = true; // Show the Arts pills
+          isY78 = true; // Show the Arts pills for 7 & 8
+        }
+        if (yearNum === 9) {
+          isY9 = true; // Trigger the new Year 9 layout
         }
       }
     }
 
-    // Apply the visibility rules
-    if (isF8 && coreContainer) {
-      coreContainer.style.display = '';
-      lockContainerCheckboxes(coreContainer);
+    // 3. Apply the visibility and locking rules
+    if (isF8 && coreF8Container) {
+      coreF8Container.style.display = '';
+      lockContainerCheckboxes(coreF8Container);
     }
     
-    if (isY78 && artsPills) {
-      artsPills.style.display = '';
+    if (isY78 && artsPillsY78) {
+      artsPillsY78.style.display = '';
+    }
+
+    if (isY9 && y9Container) {
+      y9Container.style.display = '';
+      lockContainerCheckboxes(y9Container); // Locks English, Maths, Science, HPE
+      lockSpecificPills(y9Container); // Locks the History pill!
     }
   }
 
