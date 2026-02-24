@@ -7,6 +7,13 @@ window.jumpToChild = function(targetIdx) {
         console.error("Navigation bridge not ready.");
     }
 };
+// --- CSS TO LOCK MANDATORY CHECKBOXES ---
+document.head.insertAdjacentHTML("beforeend", `<style>
+  .locked-checkbox {
+    pointer-events: none !important;
+    opacity: 0.8; /* Makes them look slightly muted so parents know they are locked */
+  }
+</style>`);
 
 window.Webflow ||= [];
 window.Webflow.push(function () {
