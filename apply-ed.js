@@ -2940,7 +2940,6 @@ function hasLanguage() {
       // + Maths Pathway + English Pathway + HPE Specialist
       // + Science + HASS + Tech + Arts + Language
       total = 3 
-            + countPills('y10-maths-pills') 
             + countPills('y10-english-pills') 
             + countPills('y10-hpe-pills')
             + countPills('y10-science-pills')
