@@ -2919,15 +2919,12 @@ function bindWorkloadTracker() {
       return wrap.querySelectorAll('.ms-option.is-selected').length;
     }
 
-    // Helper: Check if a language is actually selected
-    function hasLanguage() {
-      var langWrap = document.querySelector('.language-of-study-wrap');
-      var langSelect = langWrap ? langWrap.querySelector('select') : null;
-      if (langWrap && langWrap.style.display !== 'none' && langSelect && langSelect.value) {
-        return 1;
-      }
-      return 0;
-    }
+// Helper: Check if a language is actually selected
+function hasLanguage() {
+  var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"]');
+  if (langCb && langCb.checked) return 1;
+  return 0;
+}
 
     // --- THE MATH ---
     if (yearNum === 7 || yearNum === 8) {
