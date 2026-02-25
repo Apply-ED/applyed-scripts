@@ -2987,17 +2987,17 @@ function hasLanguage() {
     }
   }
 
-  // Listen for any clicks (Pills) or changes (Dropdowns) to recalculate
-  document.addEventListener('click', function(e) {
-     if(e.target.closest('.ms-option')) {
-        setTimeout(calculateWorkload, 50); // Small delay to let the pill change color first
-     }
-  });
-  document.addEventListener('change', calculateWorkload);
-  
-  // Run on load
-  setTimeout(calculateWorkload, 100);
-}
+document.addEventListener('click', function(e) {
+   if(e.target.closest('.ms-option')) {
+      setTimeout(calculateWorkload, 50);
+   }
+});
+document.addEventListener('change', calculateWorkload);
+document.addEventListener('click', function(e) {
+   if(e.target.closest('input[type="checkbox"]')) {
+      setTimeout(calculateWorkload, 50);
+   }
+});
 
 /* =========================
    SMART CHECKBOX SYNC (Bulletproof Webflow Version)
