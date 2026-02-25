@@ -3012,7 +3012,6 @@ function bindCheckboxSync() {
     { pills: 'y10-hass-pills', cb: 'y10-hass-cb' },
     { pills: 'y10-tech-pills', cb: 'y10-tech-cb' },
     { pills: 'y10-arts-pills', cb: 'y10-arts-cb' },
-    // Add Year 9 here if you want them to sync too!
     { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
     { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
     { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
@@ -3027,21 +3026,21 @@ function bindCheckboxSync() {
 
       var realInput, visualBox, wrapper;
 
-      // The Bulletproof Element Finder
+      // The Bulletproof Element Finder - Now uses 'label' which is native HTML
       if (element.tagName === 'INPUT') {
         realInput = element;
         visualBox = element.previousElementSibling;
-        wrapper = element.closest('.w-checkbox');
+        wrapper = element.closest('label'); 
       } else if (element.classList.contains('w-checkbox-input')) {
         visualBox = element;
         realInput = element.nextElementSibling;
-        wrapper = element.closest('.w-checkbox');
-      } else if (element.classList.contains('w-checkbox')) {
+        wrapper = element.closest('label');
+      } else if (element.tagName === 'LABEL' || element.classList.contains('w-checkbox')) {
         wrapper = element;
         visualBox = element.querySelector('.w-checkbox-input');
         realInput = element.querySelector('input[type="checkbox"]');
       } else {
-        wrapper = element.closest('.w-checkbox') || element;
+        wrapper = element.closest('label') || element;
         visualBox = wrapper.querySelector('.w-checkbox-input');
         realInput = wrapper.querySelector('input[type="checkbox"]');
       }
@@ -3051,10 +3050,10 @@ function bindCheckboxSync() {
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // Update backend data for Simon
+      // Update backend data
       realInput.checked = shouldBeChecked;
 
-      // Update Webflow UI for the parent
+      // Update Webflow UI
       if (visualBox) {
         if (shouldBeChecked) {
           visualBox.classList.add('w--redirected-checked');
@@ -3063,19 +3062,22 @@ function bindCheckboxSync() {
         }
       }
 
-// Only lock when pills are selected (prevent manual uncheck)
-// When no pills selected, allow user to manually uncheck
-if (wrapper) {
-  wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
-}
+      // Lock the wrapper so it cannot be clicked AND visually dim it
+      if (wrapper) {
+        wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
+        wrapper.style.opacity = shouldBeChecked ? '0.6' : '1'; 
+      }
     });
   }
 
+  // Listen for clicks on the pills
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   });
+  
+  // Run on load to set initial state
   setTimeout(updateCheckboxes, 100);
 }
 
