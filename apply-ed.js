@@ -3004,16 +3004,15 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Links Pills to Parent Checkboxes)
+   SMART CHECKBOX SYNC (Webflow Custom Checkbox Friendly)
    ========================= */
 function bindCheckboxSync() {
-  // A map of the pill wrappers and the checkboxes they should control
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
     { pills: 'y10-hass-pills', cb: 'y10-hass-cb' },
     { pills: 'y10-tech-pills', cb: 'y10-tech-cb' },
     { pills: 'y10-arts-pills', cb: 'y10-arts-cb' },
-    // You can add Year 9 here too if you gave them IDs!
+        // You can add Year 9 here too if you gave them IDs!
     { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
     { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
     { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
@@ -3022,32 +3021,48 @@ function bindCheckboxSync() {
   function updateCheckboxes() {
     syncMap.forEach(function(item) {
       var pillWrap = document.getElementById(item.pills);
-      var checkbox = document.getElementById(item.cb);
+      var cbElement = document.getElementById(item.cb);
       
-      if (pillWrap && checkbox) {
-        // Count how many pills are currently selected in this wrapper
-        var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
-        
-        // If 1 or more pills are selected, check the box. Otherwise, uncheck.
-        checkbox.checked = (selectedCount > 0);
-        
-        // Lock the checkbox so parents MUST use the pills
-        var wrapper = checkbox.closest('.w-checkbox') || checkbox.parentElement;
-        if (wrapper) {
-          wrapper.style.pointerEvents = 'none'; 
+      if (!pillWrap || !cbElement) return;
+
+      // Safely find Webflow's hidden input AND the visual box
+      var realInput = cbElement.tagName === 'INPUT' ? cbElement : cbElement.querySelector('input[type="checkbox"]');
+      var visualBox = cbElement.tagName === 'INPUT' ? cbElement.previousElementSibling : cbElement.querySelector('.w-checkbox-input');
+      var wrapper = cbElement.closest('.w-checkbox') || cbElement;
+
+      if (!realInput) return;
+
+      // Count the active pills
+      var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
+      var shouldBeChecked = (selectedCount > 0);
+
+      // 1. Update the actual hidden HTML input for Simon's backend
+      realInput.checked = shouldBeChecked;
+
+      // 2. Update Webflow's visual box so the parent sees it
+      if (visualBox) {
+        if (shouldBeChecked) {
+          visualBox.classList.add('w--redirected-checked');
+        } else {
+          visualBox.classList.remove('w--redirected-checked');
         }
+      }
+
+      // 3. Lock the wrapper so parents must use the pills to interact
+      if (wrapper) {
+        wrapper.style.pointerEvents = 'none';
       }
     });
   }
 
-  // Listen for any clicks on pills to run the sync
+  // Listen for clicks on any pill
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
-      setTimeout(updateCheckboxes, 50); // Tiny delay to let the pill finish its own click animation
+      setTimeout(updateCheckboxes, 50); 
     }
   });
 
-  // Run once on load just in case there are pre-selected pills
+  // Run on load to catch any pre-selected states
   setTimeout(updateCheckboxes, 100);
 }
 
