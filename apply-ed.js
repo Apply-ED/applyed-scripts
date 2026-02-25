@@ -2948,7 +2948,7 @@ function hasLanguage() {
             + countPills('y10-arts-pills')
             + hasLanguage();
     }
-
+  
     // --- THE TRAFFIC LIGHT UI ---
     countText.innerHTML = `<strong>Total Subjects Selected: ${total}</strong>`;
     
