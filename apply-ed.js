@@ -3004,7 +3004,7 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Webflow Custom Checkbox Friendly)
+   SMART CHECKBOX SYNC (Bulletproof Webflow Version)
    ========================= */
 function bindCheckboxSync() {
   var syncMap = [
@@ -3012,7 +3012,7 @@ function bindCheckboxSync() {
     { pills: 'y10-hass-pills', cb: 'y10-hass-cb' },
     { pills: 'y10-tech-pills', cb: 'y10-tech-cb' },
     { pills: 'y10-arts-pills', cb: 'y10-arts-cb' },
-        // You can add Year 9 here too if you gave them IDs!
+    // Add Year 9 here if you want them to sync too!
     { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
     { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
     { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
@@ -3021,25 +3021,40 @@ function bindCheckboxSync() {
   function updateCheckboxes() {
     syncMap.forEach(function(item) {
       var pillWrap = document.getElementById(item.pills);
-      var cbElement = document.getElementById(item.cb);
+      var element = document.getElementById(item.cb);
       
-      if (!pillWrap || !cbElement) return;
+      if (!pillWrap || !element) return;
 
-      // Safely find Webflow's hidden input AND the visual box
-      var realInput = cbElement.tagName === 'INPUT' ? cbElement : cbElement.querySelector('input[type="checkbox"]');
-      var visualBox = cbElement.tagName === 'INPUT' ? cbElement.previousElementSibling : cbElement.querySelector('.w-checkbox-input');
-      var wrapper = cbElement.closest('.w-checkbox') || cbElement;
+      var realInput, visualBox, wrapper;
+
+      // The Bulletproof Element Finder
+      if (element.tagName === 'INPUT') {
+        realInput = element;
+        visualBox = element.previousElementSibling;
+        wrapper = element.closest('.w-checkbox');
+      } else if (element.classList.contains('w-checkbox-input')) {
+        visualBox = element;
+        realInput = element.nextElementSibling;
+        wrapper = element.closest('.w-checkbox');
+      } else if (element.classList.contains('w-checkbox')) {
+        wrapper = element;
+        visualBox = element.querySelector('.w-checkbox-input');
+        realInput = element.querySelector('input[type="checkbox"]');
+      } else {
+        wrapper = element.closest('.w-checkbox') || element;
+        visualBox = wrapper.querySelector('.w-checkbox-input');
+        realInput = wrapper.querySelector('input[type="checkbox"]');
+      }
 
       if (!realInput) return;
 
-      // Count the active pills
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // 1. Update the actual hidden HTML input for Simon's backend
+      // Update backend data for Simon
       realInput.checked = shouldBeChecked;
 
-      // 2. Update Webflow's visual box so the parent sees it
+      // Update Webflow UI for the parent
       if (visualBox) {
         if (shouldBeChecked) {
           visualBox.classList.add('w--redirected-checked');
@@ -3048,21 +3063,18 @@ function bindCheckboxSync() {
         }
       }
 
-      // 3. Lock the wrapper so parents must use the pills to interact
+      // Lock it down
       if (wrapper) {
         wrapper.style.pointerEvents = 'none';
       }
     });
   }
 
-  // Listen for clicks on any pill
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   });
-
-  // Run on load to catch any pre-selected states
   setTimeout(updateCheckboxes, 100);
 }
 
