@@ -2997,7 +2997,7 @@ function hasLanguage() {
   // Run on load
   setTimeout(calculateWorkload, 100);
 }
-
+}
 /* =========================
    SMART CHECKBOX SYNC (Bulletproof Webflow Version)
    ========================= */
