@@ -3465,3 +3465,45 @@ setTimeout(lockStatePickers, 500);
 })();
 
 });
+/* =========================
+   SYSTEM DIAGNOSTICS
+   ========================= */
+function runDiagnostics() {
+   console.log("--- 🕵️ APPLY-ED SYSTEM DIAGNOSTIC REPORT ---");
+   
+   var idsToCheck = [
+      // Checkboxes & Pills
+      'y10-science-pills', 'y10-science-cb',
+      'y10-hass-pills', 'y10-hass-cb',
+      'y10-tech-pills', 'y10-tech-cb',
+      'y10-arts-pills', 'y10-arts-cb',
+      
+      // Tracker Needs These
+      'y10-maths-pills', 'y10-english-pills', 'y10-hpe-pills',
+      'y9-hass-pills', 'y9-tech-pills', 'y9-arts-pills',
+      'workload-tracker', 'workload-count-text', 'workload-warning-text',
+      
+      // Heading
+      'child-name-heading'
+   ];
+
+   idsToCheck.forEach(function(id) {
+      if (document.getElementById(id)) {
+         console.log("✅ Found ID: " + id);
+      } else {
+         console.error("❌ MISSING ID: " + id + " (Check Webflow!)");
+      }
+   });
+
+   // Special check for the student name input field
+   if (!document.querySelector('input[name="student_first_name"]')) {
+       console.error("❌ MISSING NAME: Could not find an input field with the name 'student_first_name'");
+   } else {
+       console.log("✅ Found Name: Student First Name Input");
+   }
+
+   console.log("----------------------------------------------");
+}
+
+// Run the scan 2 seconds after the page loads
+setTimeout(runDiagnostics, 2000);
