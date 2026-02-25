@@ -3007,8 +3007,7 @@ function hasLanguage() {
    SMART CHECKBOX SYNC (Event Capture + Cache Buster)
    ========================= */
 function bindCheckboxSync() {
-  // Tracker to prove the new file is live
-  console.log("✅ Smart Checkbox Sync v3 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v3 loaded!"); // This proves the file updated
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3049,7 +3048,7 @@ function bindCheckboxSync() {
     });
   }
 
-  // The 'true' here bypasses the pill's click-blocker
+  // THE MAGIC WORD: The 'true' here bypasses the pill's click-blocker
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
