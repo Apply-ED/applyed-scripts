@@ -2869,10 +2869,20 @@ function bindCurriculumVisibility() {
       lockSpecificElements(y9Container); 
     }
 
-    if (isY10 && y10Container) {
-      y10Container.style.display = 'block';
-      lockSpecificElements(y10Container); // Locks English, Maths, HPE
+if (isY10 && y10Container) {
+  y10Container.style.display = 'block';
+  lockSpecificElements(y10Container); // Locks English, Maths, HPE
+  // Unlock Languages — it is optional for Year 10
+  var langCb = document.getElementById('languages');
+  if (langCb) {
+    langCb.classList.remove('locked-checkbox');
+    var langWrapper = langCb.closest('.w-checkbox');
+    if (langWrapper) {
+      langWrapper.style.pointerEvents = '';
+      langWrapper.style.opacity = '';
     }
+  }
+}
   }
 
   yearDropdown.addEventListener('change', checkYearLevel);
