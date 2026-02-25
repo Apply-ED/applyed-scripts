@@ -3004,7 +3004,7 @@ function hasLanguage() {
 }
 }
 /* =========================
-   SMART CHECKBOX SYNC (Truly Bulletproof Webflow Version)
+   SMART CHECKBOX SYNC (Event Capture Fix)
    ========================= */
 function bindCheckboxSync() {
   var syncMap = [
@@ -3024,24 +3024,22 @@ function bindCheckboxSync() {
       
       if (!pillWrap || !element) return;
 
-      // Webflow always wraps checkboxes in a <label> tag, regardless of your class names
       var wrapper = element.closest('label');
       if (!wrapper) return;
 
-      // Safely find the hidden input and the visual custom box inside that label
       var realInput = wrapper.querySelector('input[type="checkbox"]');
-      var visualBox = wrapper.querySelector('.w-checkbox-input') || element;
+      // Look specifically for the div, to avoid confusing it with the input
+      var visualBox = wrapper.querySelector('div.w-checkbox-input') || wrapper.querySelector('.w-checkbox-input') || element;
 
       if (!realInput) return;
 
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // 1. Update the actual hidden checkbox data
+      // Update actual data
       realInput.checked = shouldBeChecked;
 
-      
-      // 2. Update the Webflow visual UI
+      // Update Webflow UI
       if (visualBox) {
         if (shouldBeChecked) {
           visualBox.classList.add('w--redirected-checked');
@@ -3050,19 +3048,26 @@ function bindCheckboxSync() {
         }
       }
 
-      // 3. Lock the checkbox so parents can't manually uncheck it while pills are selected
+      // Lock it
       wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
-      
-      // Optional: Slightly dim the locked checkbox so parents know it is automated
       wrapper.style.opacity = shouldBeChecked ? '0.6' : '1';
     });
   }
 
+  // THE FIX: Adding 'true' forces this to hear the click BEFORE the pill script swallows it
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
+  }, true);
+  
+  // Backup: Listen to the hidden data field changing directly
+  document.addEventListener('change', function(e) {
+    if(e.target && e.target.classList.contains('ms-input')) {
+      setTimeout(updateCheckboxes, 50);
+    }
   });
+
   setTimeout(updateCheckboxes, 100);
 }
 
