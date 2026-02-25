@@ -2984,15 +2984,19 @@ function hasLanguage() {
       } else {
         warningText.textContent = "This is a standard, balanced workload for Year 10.";
       }
-    }
-  }
+ }
 
-document.addEventListener('click', function(e) {
-   if(e.target.closest('.ms-option')) {
+  // Listen for pill clicks and dropdown/checkbox changes to recalculate
+  document.addEventListener('click', function(e) {
+    if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]')) {
       setTimeout(calculateWorkload, 50);
-   }
-});
-document.addEventListener('change', calculateWorkload);
+    }
+  });
+  document.addEventListener('change', calculateWorkload);
+
+  // Run on load
+  setTimeout(calculateWorkload, 100);
+}
 
 /* =========================
    SMART CHECKBOX SYNC (Bulletproof Webflow Version)
