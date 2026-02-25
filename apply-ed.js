@@ -3487,23 +3487,28 @@ document.addEventListener('input', function(e) {
         }
     }
 });
-// --- CHECKBOX PROTECTION SCRIPT ---
-// Prevents unchecking a main category (like Science) if pills are still active inside it.
+// --- IMPROVED CHECKBOX PROTECTION ---
 document.addEventListener('change', function(e) {
-  // 1. Check if we are clicking a checkbox inside a learning area
   const checkbox = e.target;
+  // This finds the section wrapper. 
+  // Make sure your sections have the class 'learning-area-section' in Webflow!
   const section = checkbox.closest('.learning-area-section');
+  
   if (!section || checkbox.type !== 'checkbox') return;
 
-  // 2. Check if there are any active pills in this section
+  // 1. Look for pills that have the 'is-active' class
   const activePills = section.querySelectorAll('.pill.is-active');
+  
+  // 2. Look for any hidden checkboxes inside those pills that are checked
+  const checkedPillInputs = section.querySelectorAll('.pill input:checked');
 
-  // 3. If the user tries to uncheck the box BUT pills are still selected...
-  if (!checkbox.checked && activePills.length > 0) {
-    // 4. Force the checkbox back to "checked"
-    checkbox.checked = true;
-    
-    // 5. Tell the user why
-    alert("Please deselect all specific subjects (pills) before removing this learning area.");
+  // If the user tries to uncheck the main category...
+  if (!checkbox.checked) {
+    // Check if there are active pills OR checked pill inputs
+    if (activePills.length > 0 || checkedPillInputs.length > 0) {
+      // Force it back to checked
+      checkbox.checked = true;
+      alert("Please deselect your specific subject pills before removing this learning area.");
+    }
   }
 });
