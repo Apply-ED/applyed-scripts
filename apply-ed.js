@@ -3004,6 +3004,54 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
+   SMART CHECKBOX SYNC (Links Pills to Parent Checkboxes)
+   ========================= */
+function bindCheckboxSync() {
+  // A map of the pill wrappers and the checkboxes they should control
+  var syncMap = [
+    { pills: 'y10-science-pills', cb: 'y10-science-cb' },
+    { pills: 'y10-hass-pills', cb: 'y10-hass-cb' },
+    { pills: 'y10-tech-pills', cb: 'y10-tech-cb' },
+    { pills: 'y10-arts-pills', cb: 'y10-arts-cb' },
+    // You can add Year 9 here too if you gave them IDs!
+    { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
+    { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
+    { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
+  ];
+
+  function updateCheckboxes() {
+    syncMap.forEach(function(item) {
+      var pillWrap = document.getElementById(item.pills);
+      var checkbox = document.getElementById(item.cb);
+      
+      if (pillWrap && checkbox) {
+        // Count how many pills are currently selected in this wrapper
+        var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
+        
+        // If 1 or more pills are selected, check the box. Otherwise, uncheck.
+        checkbox.checked = (selectedCount > 0);
+        
+        // Lock the checkbox so parents MUST use the pills
+        var wrapper = checkbox.closest('.w-checkbox') || checkbox.parentElement;
+        if (wrapper) {
+          wrapper.style.pointerEvents = 'none'; 
+        }
+      }
+    });
+  }
+
+  // Listen for any clicks on pills to run the sync
+  document.addEventListener('click', function(e) {
+    if(e.target.closest('.ms-option')) {
+      setTimeout(updateCheckboxes, 50); // Tiny delay to let the pill finish its own click animation
+    }
+  });
+
+  // Run once on load just in case there are pre-selected pills
+  setTimeout(updateCheckboxes, 100);
+}
+
+/* =========================
       INIT
       ========================= */
 
@@ -3023,6 +3071,7 @@ bindStep1Validation();
 bindCustomValidation();
 bindCurriculumVisibility();
 bindWorkloadTracker();
+bindCheckboxSync();
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
