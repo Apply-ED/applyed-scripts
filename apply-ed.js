@@ -2993,11 +2993,6 @@ document.addEventListener('click', function(e) {
    }
 });
 document.addEventListener('change', calculateWorkload);
-document.addEventListener('click', function(e) {
-   if(e.target.closest('input[type="checkbox"]')) {
-      setTimeout(calculateWorkload, 50);
-   }
-});
 
 /* =========================
    SMART CHECKBOX SYNC (Bulletproof Webflow Version)
