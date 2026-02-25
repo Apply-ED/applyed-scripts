@@ -3004,7 +3004,7 @@ function hasLanguage() {
 }
 }
 /* =========================
-   SMART CHECKBOX SYNC (Bulletproof Webflow Version)
+   SMART CHECKBOX SYNC (Truly Bulletproof Webflow Version)
    ========================= */
 function bindCheckboxSync() {
   var syncMap = [
@@ -3024,36 +3024,23 @@ function bindCheckboxSync() {
       
       if (!pillWrap || !element) return;
 
-      var realInput, visualBox, wrapper;
+      // Webflow always wraps checkboxes in a <label> tag, regardless of your class names
+      var wrapper = element.closest('label');
+      if (!wrapper) return;
 
-      // The Bulletproof Element Finder - Now uses 'label' which is native HTML
-      if (element.tagName === 'INPUT') {
-        realInput = element;
-        visualBox = element.previousElementSibling;
-        wrapper = element.closest('label'); 
-      } else if (element.classList.contains('w-checkbox-input')) {
-        visualBox = element;
-        realInput = element.nextElementSibling;
-        wrapper = element.closest('label');
-      } else if (element.tagName === 'LABEL' || element.classList.contains('w-checkbox')) {
-        wrapper = element;
-        visualBox = element.querySelector('.w-checkbox-input');
-        realInput = element.querySelector('input[type="checkbox"]');
-      } else {
-        wrapper = element.closest('label') || element;
-        visualBox = wrapper.querySelector('.w-checkbox-input');
-        realInput = wrapper.querySelector('input[type="checkbox"]');
-      }
+      // Safely find the hidden input and the visual custom box inside that label
+      var realInput = wrapper.querySelector('input[type="checkbox"]');
+      var visualBox = wrapper.querySelector('.w-checkbox-input') || element;
 
       if (!realInput) return;
 
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // Update backend data
+      // 1. Update the actual hidden checkbox data
       realInput.checked = shouldBeChecked;
 
-      // Update Webflow UI
+      // 2. Update the Webflow visual UI
       if (visualBox) {
         if (shouldBeChecked) {
           visualBox.classList.add('w--redirected-checked');
@@ -3062,22 +3049,19 @@ function bindCheckboxSync() {
         }
       }
 
-      // Lock the wrapper so it cannot be clicked AND visually dim it
-      if (wrapper) {
-        wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
-        wrapper.style.opacity = shouldBeChecked ? '0.6' : '1'; 
-      }
+      // 3. Lock the checkbox so parents can't manually uncheck it while pills are selected
+      wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
+      
+      // Optional: Slightly dim the locked checkbox so parents know it is automated
+      wrapper.style.opacity = shouldBeChecked ? '0.6' : '1';
     });
   }
 
-  // Listen for clicks on the pills
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   });
-  
-  // Run on load to set initial state
   setTimeout(updateCheckboxes, 100);
 }
 
