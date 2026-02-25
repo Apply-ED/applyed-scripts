@@ -3079,6 +3079,31 @@ function bindCheckboxSync() {
 }
 
 /* =========================
+   PERSONALISE HEADING
+   ========================= */
+function bindPersonalisedHeading() {
+  var heading = document.getElementById('child-name-heading');
+  // NOTE: Change 'student_first_name' to match whatever the actual name of your input field is in Step 1!
+  var nameInput = document.querySelector('input[name="student_first_name"]'); 
+
+  if (!heading || !nameInput) return;
+
+  function updateHeading() {
+    var childName = nameInput.value.trim();
+    if (childName) {
+      heading.textContent = "Personalising " + childName + "'s learning plan";
+    } else {
+      heading.textContent = "Personalising your child's learning plan";
+    }
+  }
+
+  // Update when they type the name in Step 1
+  nameInput.addEventListener('input', updateHeading);
+  // Run on load in case it's already filled out
+  setTimeout(updateHeading, 200);
+}
+
+/* =========================
       INIT
       ========================= */
 
@@ -3099,6 +3124,7 @@ bindCustomValidation();
 bindCurriculumVisibility();
 bindWorkloadTracker();
 bindCheckboxSync();
+bindPersonalisedHeading();
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
