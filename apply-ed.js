@@ -3040,6 +3040,7 @@ function bindCheckboxSync() {
       // 1. Update the actual hidden checkbox data
       realInput.checked = shouldBeChecked;
 
+      
       // 2. Update the Webflow visual UI
       if (visualBox) {
         if (shouldBeChecked) {
