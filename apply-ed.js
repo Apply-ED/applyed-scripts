@@ -8,13 +8,18 @@ window.jumpToChild = function(targetIdx) {
     }
 };
 
-// --- CSS TO LOCK MANDATORY CHECKBOXES ---
 document.head.insertAdjacentHTML("beforeend", `<style>
   .locked-checkbox {
     pointer-events: none !important;
-    opacity: 0.8; /* Makes them look slightly muted so parents know they are locked */
+    opacity: 0.8;
   }
 </style>`);
+
+// Remove locked-checkbox from Languages — it is optional
+setTimeout(function() {
+  var langCb = document.getElementById('languages');
+  if (langCb) langCb.classList.remove('locked-checkbox');
+}, 500);
 
 window.Webflow ||= [];
 window.Webflow.push(function () {
