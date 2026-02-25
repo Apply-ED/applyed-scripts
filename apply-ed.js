@@ -3487,33 +3487,23 @@ document.addEventListener('input', function(e) {
         }
     }
 });
+// --- CHECKBOX PROTECTION SCRIPT ---
+// Prevents unchecking a main category (like Science) if pills are still active inside it.
+document.addEventListener('change', function(e) {
+  // 1. Check if we are clicking a checkbox inside a learning area
+  const checkbox = e.target;
+  const section = checkbox.closest('.learning-area-section');
+  if (!section || checkbox.type !== 'checkbox') return;
 
-// --- PILL AUTO-SWAP SCRIPT ---
-// This ensures that clicking a new pill automatically deselects any other active pill in that section.
-document.addEventListener('click', function(e) {
-  // 1. Check if the thing clicked is a pill
-  const clickedPill = e.target.closest('.pill');
-  if (!clickedPill) return;
+  // 2. Check if there are any active pills in this section
+  const activePills = section.querySelectorAll('.pill.is-active');
 
-  // 2. Find the section this pill lives in (e.g., Maths or Science)
-  const container = clickedPill.closest('.learning-area-section');
-  if (!container) return;
-
-  // 3. Find any other pill in this section that is currently 'is-active'
-  const activePills = container.querySelectorAll('.pill.is-active');
-
-  activePills.forEach(pill => {
-    // 4. If it's not the one we just clicked, remove the active class
-    if (pill !== clickedPill) {
-      pill.classList.remove('is-active');
-      
-      // 5. If your pills use a hidden checkbox/radio to save data, uncheck it
-      const input = pill.querySelector('input');
-      if (input) {
-        input.checked = false;
-        // Trigger a change so the main script knows the data changed
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-  });
-}, true);
+  // 3. If the user tries to uncheck the box BUT pills are still selected...
+  if (!checkbox.checked && activePills.length > 0) {
+    // 4. Force the checkbox back to "checked"
+    checkbox.checked = true;
+    
+    // 5. Tell the user why
+    alert("Please deselect all specific subjects (pills) before removing this learning area.");
+  }
+});
