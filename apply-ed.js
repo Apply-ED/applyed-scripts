@@ -3004,10 +3004,10 @@ function hasLanguage() {
 }
 }
 /* =========================
-   SMART CHECKBOX SYNC (Event Capture + Cache Buster)
+   SMART CHECKBOX SYNC (Event Capture + Cache Buster v3)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v3 loaded!"); // This proves the file updated
+  console.log("✅ Smart Checkbox Sync v3 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3023,39 +3023,32 @@ function bindCheckboxSync() {
     syncMap.forEach(function(item) {
       var pillWrap = document.getElementById(item.pills);
       var element = document.getElementById(item.cb);
-      
       if (!pillWrap || !element) return;
 
       var wrapper = element.closest('label');
       if (!wrapper) return;
 
-      // Find Native checkbox element
       var realInput = element.tagName === 'INPUT' ? element : wrapper.querySelector('input[type="checkbox"]');
       if (!realInput) return;
 
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // 1. Physically check the box
       realInput.checked = shouldBeChecked;
-      
-      // 2. Trigger the change event so Webflow knows it updated
       realInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-      // 3. Lock and dim the wrapper
       wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
       wrapper.style.opacity = shouldBeChecked ? '0.6' : '1';
     });
   }
 
-  // THE MAGIC WORD: The 'true' here bypasses the pill's click-blocker
+  // The 'true' bypasses the click-blocker
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   }, true);
   
-  // Backup listener checking the hidden data
   document.addEventListener('change', function(e) {
     if(e.target && e.target.classList.contains('ms-input')) {
       setTimeout(updateCheckboxes, 50);
