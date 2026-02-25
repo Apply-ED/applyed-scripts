@@ -3027,46 +3027,34 @@ function bindCheckboxSync() {
       var wrapper = element.closest('label');
       if (!wrapper) return;
 
-      var realInput = wrapper.querySelector('input[type="checkbox"]');
-      // Look specifically for the div, to avoid confusing it with the input
-      var visualBox = wrapper.querySelector('div.w-checkbox-input') || wrapper.querySelector('.w-checkbox-input') || element;
-
+      var realInput = element.tagName === 'INPUT' ? element : wrapper.querySelector('input[type="checkbox"]');
       if (!realInput) return;
 
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // Update actual data
+      // 1. Physically check the HTML checkbox
       realInput.checked = shouldBeChecked;
 
-      // Update Webflow UI
-      if (visualBox) {
-        if (shouldBeChecked) {
-          visualBox.classList.add('w--redirected-checked');
-        } else {
-          visualBox.classList.remove('w--redirected-checked');
-        }
-      }
-
-      // Lock it
+      // 2. Lock the checkbox wrapper so it can't be manually unchecked while pills are active
       wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
       wrapper.style.opacity = shouldBeChecked ? '0.6' : '1';
     });
   }
 
-  // THE FIX: Adding 'true' forces this to hear the click BEFORE the pill script swallows it
+  // THIS IS THE FIX: The 'true' forces the script to hear the click first!
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   }, true);
   
-  // Backup: Listen to the hidden data field changing directly
+  // Backup listener
   document.addEventListener('change', function(e) {
     if(e.target && e.target.classList.contains('ms-input')) {
       setTimeout(updateCheckboxes, 50);
     }
-  });
+  }, true);
 
   setTimeout(updateCheckboxes, 100);
 }
