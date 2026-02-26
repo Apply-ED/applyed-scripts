@@ -873,7 +873,7 @@ function syncGroup(groupEl) {
         else {
           // Sections where you MUST have at least 1 pill selected (Core Subjects)
           // Add any other mandatory group IDs to this list if needed!
-          const mandatoryGroups = ['y10-science-pills', 'y10-maths-pills', 'y10-english-pills', 'y10-hpe-pills', 'y9-science-pills', 'y9-maths-pills', 'y9-english-pills', 'y9-hpe-pills'];
+          const mandatoryGroups = ['y10-science-pills', 'y10-maths-pills', 'y9-science-pills', 'y9-maths-pills'];
           
           if (currentCount === 1 && mandatoryGroups.includes(groupEl.id)) {
              // Stop! Don't let them deselect the very last pill in a mandatory section.
@@ -2899,7 +2899,7 @@ if (isY10 && y10Container) {
 }
 
 /* =========================
-   WORKLOAD TRACKER (Traffic Light System)
+   WORKLOAD TRACKER (Traffic Light System v2)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2912,7 +2912,6 @@ function bindWorkloadTracker() {
   function calculateWorkload() {
     var rawValue = yearDropdown.value;
     
-    // Hide tracker for Foundation to Year 6 (no elective overload risk)
     if (!rawValue || rawValue === 'FOUNDATION') {
       trackerWrap.style.display = 'none';
       return;
@@ -2927,37 +2926,31 @@ function bindWorkloadTracker() {
       return;
     }
 
-    // Show tracker for Years 7 to 10
     trackerWrap.style.display = 'block';
     var total = 0;
 
-    // Helper: Count active pills in a specific container
     function countPills(wrapperId) {
       var wrap = document.getElementById(wrapperId);
       if (!wrap || wrap.style.display === 'none') return 0;
       return wrap.querySelectorAll('.ms-option.is-selected').length;
     }
 
-// Helper: Check if a language is actually selected
-function hasLanguage() {
-  var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"]');
-  if (langCb && langCb.checked) return 1;
-  return 0;
-}
+    function hasLanguage() {
+      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"]');
+      if (langCb && langCb.checked) return 1;
+      return 0;
+    }
 
     // --- THE MATH ---
     if (yearNum === 7 || yearNum === 8) {
-      // 7 Core subjects + Arts pills
       total = 7 + countPills('y78-arts-pills');
     } 
     else if (yearNum === 9) {
-      // 4 Core (Eng, Maths, Sci, HPE) + HASS + Tech + Arts + Language
       total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
     } 
     else if (yearNum === 10) {
-      // 3 Core (Eng, Maths, HPE) 
-      // + Maths Pathway + English Pathway + HPE Specialist
-      // + Science + HASS + Tech + Arts + Language
+      // 3 Core (Eng, Maths, HPE) = 3
+      // Everything else calculates dynamically!
       total = 3 
             + countPills('y10-english-pills') 
             + countPills('y10-hpe-pills')
@@ -2971,8 +2964,7 @@ function hasLanguage() {
     // --- THE TRAFFIC LIGHT UI ---
     countText.innerHTML = `<strong>Total Subjects Selected: ${total}</strong>`;
     
-    // Default Green/Normal State
-    trackerWrap.style.backgroundColor = '#f4f7f4'; // Soft grey/green
+    trackerWrap.style.backgroundColor = '#f4f7f4'; 
     trackerWrap.style.border = '1px solid #c3d9c3';
     warningText.style.color = '#263358';
 
@@ -2980,8 +2972,8 @@ function hasLanguage() {
        warningText.textContent = "This is a highly manageable, standard workload for this year level.";
     } 
     else if (yearNum === 9) {
-      if (total >= 10) { // Amber Warning
-        trackerWrap.style.backgroundColor = '#fff8e1'; // Soft yellow
+      if (total >= 10) { 
+        trackerWrap.style.backgroundColor = '#fff8e1'; 
         trackerWrap.style.border = '1px solid #ffe082';
         warningText.style.color = '#8f6c00';
         warningText.innerHTML = "<strong>Advisory:</strong> 10 or more subjects is a heavy workload for Year 9. Please ensure this is manageable for your child.";
@@ -2990,12 +2982,12 @@ function hasLanguage() {
       }
     } 
     else if (yearNum === 10) {
-      if (total >= 11) { // Red Warning
-        trackerWrap.style.backgroundColor = '#ffebee'; // Soft red/pink
+      if (total >= 11) { 
+        trackerWrap.style.backgroundColor = '#ffebee'; 
         trackerWrap.style.border = '1px solid #ffcdd2';
         warningText.style.color = '#c62828';
         warningText.innerHTML = "<strong>Intensive Workload:</strong> 11+ subjects is a very heavy senior workload. Please carefully consider your child's schedule before proceeding.";
-      } else if (total === 10) { // Amber Warning
+      } else if (total === 10) { 
          trackerWrap.style.backgroundColor = '#fff8e1'; 
          trackerWrap.style.border = '1px solid #ffe082';
          warningText.style.color = '#8f6c00';
@@ -3003,21 +2995,27 @@ function hasLanguage() {
       } else {
         warningText.textContent = "This is a standard, balanced workload for Year 10.";
       }
- }
+    }
+  }
 
-
-  // Listen for pill clicks and dropdown/checkbox changes to recalculate
+  // THE FIX: Adding 'true' forces this to hear the click BEFORE the pill swallows it!
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]')) {
       setTimeout(calculateWorkload, 50);
     }
-  });
-  document.addEventListener('change', calculateWorkload);
+  }, true);
+  
+  document.addEventListener('change', function(e) {
+    if(e.target && e.target.classList.contains('ms-input')) {
+      setTimeout(calculateWorkload, 50);
+    } else {
+      calculateWorkload();
+    }
+  }, true);
 
-  // Run on load
   setTimeout(calculateWorkload, 100);
 }
-}
+
 /* =========================
    SMART CHECKBOX SYNC (Event Capture + Cache Buster v3)
    ========================= */
