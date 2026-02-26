@@ -813,14 +813,13 @@ function ensureDefaultProgramTypeForCurrentChild() {
      ========================= */
 
 /* =========================
-   REFINED MULTI-SELECT PILL LOGIC (WITH MAX LIMITS)
+   REFINED MULTI-SELECT PILL LOGIC (WITH AUTO-SWAP & MANDATORY LOCKS)
    ========================= */
 function syncGroup(groupEl) {
   const input = groupEl.querySelector(".ms-input");
   const options = Array.from(groupEl.querySelectorAll(".ms-option"));
   if (!input || !options.length) return;
 
-  // READ THE NEW MAX LIMIT SETTING
   const maxLimit = parseInt(groupEl.getAttribute("data-max") || "0", 10);
 
   function writeToInput() {
@@ -848,26 +847,41 @@ function syncGroup(groupEl) {
         options.forEach(o => o.classList.remove("is-selected"));
         this.classList.add("is-selected");
       } else {
-        // --- THE MAX LIMIT CHECK ---
         const isCurrentlySelected = this.classList.contains("is-selected");
+        const currentCount = options.filter(o => o.classList.contains("is-selected")).length;
 
-        // If they are trying to select a new pill, and we have a limit...
-        if (!isCurrentlySelected && maxLimit > 0) {
-          const currentCount = options.filter(o => o.classList.contains("is-selected")).length;
-          
-          if (currentCount >= maxLimit) {
-            // They hit the limit! We stop the click right here.
-            return; 
+        // --- TRYING TO SELECT A NEW PILL ---
+        if (!isCurrentlySelected) {
+          if (maxLimit > 0 && currentCount >= maxLimit) {
+            // AUTO-SWAP: If the limit is exactly 1 (like Maths), swap them!
+            if (maxLimit === 1) {
+               options.forEach(o => o.classList.remove("is-selected"));
+               this.classList.add("is-selected");
+            } else {
+               return; // Limit reached for multi-select (e.g. Science), stop click
+            }
+          } else {
+            // Normal select
+            options.forEach(o => {
+              const v = o.getAttribute("data-value");
+              if (EXCLUSIVE.includes(v)) o.classList.remove("is-selected");
+            });
+            this.classList.add("is-selected");
           }
+        } 
+        // --- TRYING TO DESELECT A PILL ---
+        else {
+          // Sections where you MUST have at least 1 pill selected (Core Subjects)
+          // Add any other mandatory group IDs to this list if needed!
+          const mandatoryGroups = ['y10-science-pills', 'y10-maths-pills', 'y10-english-pills', 'y10-hpe-pills', 'y9-science-pills', 'y9-maths-pills', 'y9-english-pills', 'y9-hpe-pills'];
+          
+          if (currentCount === 1 && mandatoryGroups.includes(groupEl.id)) {
+             // Stop! Don't let them deselect the very last pill in a mandatory section.
+             return; 
+          }
+
+          this.classList.remove("is-selected");
         }
-        // ---------------------------
-
-        options.forEach(o => {
-          const v = o.getAttribute("data-value");
-          if (EXCLUSIVE.includes(v)) o.classList.remove("is-selected");
-        });
-
-        this.classList.toggle("is-selected");
       }
 
       writeToInput();
@@ -2990,6 +3004,7 @@ function hasLanguage() {
         warningText.textContent = "This is a standard, balanced workload for Year 10.";
       }
  }
+
 
   // Listen for pill clicks and dropdown/checkbox changes to recalculate
   document.addEventListener('click', function(e) {
