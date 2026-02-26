@@ -959,15 +959,21 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE
+   LANGUAGE DROPDOWN TOGGLE (Bulletproof v2)
    ========================= */
-
 function bindLanguageToggle() {
-  const languageCheckbox = document.querySelector('input.curriculum-checkbox[data-value="languages"]');
+  // Find the checkbox using multiple fallback methods
+  const languageCheckbox = document.getElementById('languages') || 
+                           document.querySelector('input.curriculum-checkbox[data-value="languages"]') ||
+                           document.querySelector('input[name="languages"]');
+                           
   const wrapper = document.querySelector('.language-of-study-wrap');
   const select = wrapper ? wrapper.querySelector("select") : null;
 
-  if (!languageCheckbox || !wrapper) return;
+  if (!languageCheckbox || !wrapper) {
+     console.warn("⚠️ Language toggle skipped: Could not find Checkbox or Wrapper in Webflow.");
+     return;
+  }
 
   function toggle() {
     if (languageCheckbox.checked) {
@@ -982,7 +988,17 @@ function bindLanguageToggle() {
     }
   }
 
-  languageCheckbox.addEventListener("change", toggle);
+  // Listen directly and globally to ensure Webflow doesn't block it
+  languageCheckbox.addEventListener("change", function() {
+    setTimeout(toggle, 50);
+  });
+  
+  document.addEventListener('change', function(e) {
+    if (e.target === languageCheckbox || e.target.id === 'languages') {
+      setTimeout(toggle, 50);
+    }
+  }, true);
+
   toggle(); // run on load
 }
 /* =========================
@@ -2897,7 +2913,7 @@ if (isY10 && y10Container) {
 }
 
 /* =========================
-   WORKLOAD TRACKER (Traffic Light System v3)
+   WORKLOAD TRACKER (Traffic Light System v4)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2934,7 +2950,10 @@ function bindWorkloadTracker() {
     }
 
     function hasLanguage() {
-      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"]');
+      // BULLETPROOF: Look for ID, data-value, or name
+      var langCb = document.getElementById('languages') || 
+                   document.querySelector('input.curriculum-checkbox[data-value="languages"]') ||
+                   document.querySelector('input[name="languages"]');
       if (langCb && langCb.checked) return 1;
       return 0;
     }
@@ -2947,7 +2966,6 @@ function bindWorkloadTracker() {
       total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
     } 
     else if (yearNum === 10) {
-      // Clean calculation based on exact Apply-ED rules
       var engCount = 1 + countPills('y10-english-pills'); 
       var mathsCount = countPills('y10-maths-pills'); 
       var sciCount = countPills('y10-science-pills'); 
@@ -2999,7 +3017,8 @@ function bindWorkloadTracker() {
 
   // The 'true' forces the script to hear the click before it's swallowed
   document.addEventListener('click', function(e) {
-    if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]')) {
+    // ADDED .w-checkbox to catch clicks directly on Webflow's custom checkboxes
+    if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]') || e.target.closest('.w-checkbox')) {
       setTimeout(calculateWorkload, 50);
     }
   }, true);
