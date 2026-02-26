@@ -813,7 +813,7 @@ function ensureDefaultProgramTypeForCurrentChild() {
      ========================= */
 
 /* =========================
-   REFINED MULTI-SELECT PILL LOGIC (WITH AUTO-SWAP & MANDATORY LOCKS)
+   REFINED MULTI-SELECT PILL LOGIC (WITH AUTO-SWAP & MANDATORY LOCKS v5)
    ========================= */
 function syncGroup(groupEl) {
   const input = groupEl.querySelector(".ms-input");
@@ -871,13 +871,11 @@ function syncGroup(groupEl) {
         } 
         // --- TRYING TO DESELECT A PILL ---
         else {
-          // Sections where you MUST have at least 1 pill selected (Core Subjects)
-          // Add any other mandatory group IDs to this list if needed!
+          // Core Subjects that MUST have at least 1 pill selected
           const mandatoryGroups = ['y10-science-pills', 'y10-maths-pills', 'y9-science-pills', 'y9-maths-pills'];
           
           if (currentCount === 1 && mandatoryGroups.includes(groupEl.id)) {
-             // Stop! Don't let them deselect the very last pill in a mandatory section.
-             return; 
+             return; // Stop them from unclicking the very last pill!
           }
 
           this.classList.remove("is-selected");
@@ -2899,7 +2897,7 @@ if (isY10 && y10Container) {
 }
 
 /* =========================
-   WORKLOAD TRACKER (Traffic Light System v2)
+   WORKLOAD TRACKER (Traffic Light System v3)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2949,20 +2947,21 @@ function bindWorkloadTracker() {
       total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
     } 
     else if (yearNum === 10) {
-      // 3 Core (Eng, Maths, HPE) = 3
-      // Everything else calculates dynamically!
-      total = 3 
-            + countPills('y10-english-pills') 
-            + countPills('y10-hpe-pills')
-            + countPills('y10-science-pills')
-            + countPills('y10-hass-pills')
-            + countPills('y10-tech-pills')
-            + countPills('y10-arts-pills')
-            + hasLanguage();
+      // Clean calculation based on exact Apply-ED rules
+      var engCount = 1 + countPills('y10-english-pills'); 
+      var mathsCount = countPills('y10-maths-pills'); 
+      var sciCount = countPills('y10-science-pills'); 
+      var hassCount = countPills('y10-hass-pills');
+      var techCount = countPills('y10-tech-pills');
+      var artsCount = countPills('y10-arts-pills');
+      var hpeCount = 1 + countPills('y10-hpe-pills'); 
+      var langCount = hasLanguage();
+      
+      total = engCount + mathsCount + sciCount + hassCount + techCount + artsCount + hpeCount + langCount;
     }
   
     // --- THE TRAFFIC LIGHT UI ---
-    countText.innerHTML = `<strong>Total Subjects Selected: ${total}</strong>`;
+    countText.innerHTML = `<strong>Total subjects selected: ${total}</strong>`;
     
     trackerWrap.style.backgroundColor = '#f4f7f4'; 
     trackerWrap.style.border = '1px solid #c3d9c3';
@@ -2998,7 +2997,7 @@ function bindWorkloadTracker() {
     }
   }
 
-  // THE FIX: Adding 'true' forces this to hear the click BEFORE the pill swallows it!
+  // The 'true' forces the script to hear the click before it's swallowed
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]')) {
       setTimeout(calculateWorkload, 50);
