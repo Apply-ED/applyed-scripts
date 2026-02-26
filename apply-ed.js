@@ -3035,7 +3035,7 @@ function bindCheckboxSync() {
     { pills: 'y10-arts-pills', cb: 'y10-arts-cb' },
     { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
     { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
-    { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
+    { pills: 'y9-arts-pills', cb: 'y9-arts-cb' },
     { pills: 'y78-arts-pills', cb: 'y78-arts-cb' }
   ];
 
