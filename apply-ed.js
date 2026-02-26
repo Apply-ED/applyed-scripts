@@ -3023,10 +3023,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Duplicate ID Immunity v8)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v9 + Visibility Sync)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v8 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v9 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3049,7 +3049,7 @@ function bindCheckboxSync() {
       
       if (!pillWrap || !element) return;
 
-      var wrapper = element.closest('label');
+      var wrapper = element.closest('label') || element.closest('.w-checkbox');
       if (!wrapper) return;
 
       var realInput = element.tagName === 'INPUT' ? element : wrapper.querySelector('input[type="checkbox"]');
@@ -3058,7 +3058,10 @@ function bindCheckboxSync() {
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
+      // 1. Update Native Input
       realInput.checked = shouldBeChecked;
+      
+      // 2. Force Webflow to update the visual UI box
       realInput.dispatchEvent(new Event('change', { bubbles: true }));
 
       wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
@@ -3066,18 +3069,35 @@ function bindCheckboxSync() {
     });
   }
 
+  // Listener 1: User interaction
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
     }
   }, true);
   
+  // Listener 2: Programmatic updates
   document.addEventListener('change', function(e) {
     if(e.target && e.target.classList.contains('ms-input')) {
       setTimeout(updateCheckboxes, 50);
     }
   }, true);
 
+  // Listener 3: THE FIX - Sweep UI exactly when a step becomes visible
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.attributeName === 'class' && mutation.target.classList.contains('is-active')) {
+        // 50ms delay allows Webflow to finish changing display:none to block
+        setTimeout(updateCheckboxes, 50);
+      }
+    });
+  });
+
+  document.querySelectorAll('.step').forEach(function(step) {
+    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  // Initial fallback run
   setTimeout(updateCheckboxes, 100);
 }
 
