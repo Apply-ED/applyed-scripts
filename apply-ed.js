@@ -3023,10 +3023,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Duplicate ID Immunity v9 + Visibility Sync)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v10 + Visibility Sync)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v9 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v10 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3036,6 +3036,7 @@ function bindCheckboxSync() {
     { pills: 'y9-hass-pills', cb: 'y9-hass-cb' },
     { pills: 'y9-tech-pills', cb: 'y9-tech-cb' },
     { pills: 'y9-arts-pills', cb: 'y9-arts-cb' }
+    { pills: 'y78-arts-pills', cb: 'y78-arts-cb' }
   ];
 
   function updateCheckboxes() {
