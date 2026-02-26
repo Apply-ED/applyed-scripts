@@ -2922,7 +2922,7 @@ if (isY10 && y10Container) {
 }
 
 /* =========================
-   WORKLOAD TRACKER (Traffic Light System v5)
+   WORKLOAD TRACKER (Duplicate ID Immunity v8)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2934,46 +2934,34 @@ function bindWorkloadTracker() {
 
   function calculateWorkload() {
     var rawValue = yearDropdown.value;
-    
-    if (!rawValue || rawValue === 'FOUNDATION') {
-      trackerWrap.style.display = 'none';
-      return;
-    }
+    if (!rawValue || rawValue === 'FOUNDATION') { trackerWrap.style.display = 'none'; return; }
 
     var yearNum = 0;
     var match = rawValue.match(/\d+/);
     if (match) yearNum = parseInt(match[0], 10);
 
-    if (yearNum <= 6) {
-      trackerWrap.style.display = 'none';
-      return;
-    }
+    if (yearNum <= 6) { trackerWrap.style.display = 'none'; return; }
 
     trackerWrap.style.display = 'block';
     var total = 0;
 
     function countPills(wrapperId) {
-      var wrap = document.getElementById(wrapperId);
+      // DUPLICATE ID IMMUNITY: Find all, grab the visible one
+      var wraps = document.querySelectorAll('#' + wrapperId);
+      var wrap = Array.from(wraps).find(el => el.offsetParent !== null) || wraps[0];
       if (!wrap || wrap.style.display === 'none') return 0;
       return wrap.querySelectorAll('.ms-option.is-selected').length;
     }
 
     function hasLanguage() {
-      // Find ALL language checkboxes
       var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
       var isChecked = false;
-      
       langCbs.forEach(function(cb) {
-         // Only count it if it is checked AND currently visible on the screen!
-         if (cb.checked && cb.offsetParent !== null) {
-            isChecked = true;
-         }
+         if (cb.checked && cb.offsetParent !== null) isChecked = true;
       });
-      
       return isChecked ? 1 : 0;
     }
 
-    // --- THE MATH ---
     if (yearNum === 7 || yearNum === 8) {
       total = 7 + countPills('y78-arts-pills');
     } 
@@ -2981,29 +2969,17 @@ function bindWorkloadTracker() {
       total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
     } 
     else if (yearNum === 10) {
-      var engCount = 1 + countPills('y10-english-pills'); 
-      var mathsCount = countPills('y10-maths-pills'); 
-      var sciCount = countPills('y10-science-pills'); 
-      var hassCount = countPills('y10-hass-pills');
-      var techCount = countPills('y10-tech-pills');
-      var artsCount = countPills('y10-arts-pills');
-      var hpeCount = 1 + countPills('y10-hpe-pills'); 
-      var langCount = hasLanguage();
-      
-      total = engCount + mathsCount + sciCount + hassCount + techCount + artsCount + hpeCount + langCount;
+      total = 1 + countPills('y10-english-pills') + countPills('y10-maths-pills') + countPills('y10-science-pills') + countPills('y10-hass-pills') + countPills('y10-tech-pills') + countPills('y10-arts-pills') + 1 + countPills('y10-hpe-pills') + hasLanguage();
     }
   
-    // --- THE TRAFFIC LIGHT UI ---
     countText.innerHTML = `<strong>Total subjects selected: ${total}</strong>`;
-    
     trackerWrap.style.backgroundColor = '#f4f7f4'; 
     trackerWrap.style.border = '1px solid #c3d9c3';
     warningText.style.color = '#263358';
 
     if (yearNum === 7 || yearNum === 8) {
        warningText.textContent = "This is a highly manageable, standard workload for this year level.";
-    } 
-    else if (yearNum === 9) {
+    } else if (yearNum === 9) {
       if (total >= 10) { 
         trackerWrap.style.backgroundColor = '#fff8e1'; 
         trackerWrap.style.border = '1px solid #ffe082';
@@ -3012,8 +2988,7 @@ function bindWorkloadTracker() {
       } else {
         warningText.textContent = "This is a standard, balanced workload for Year 9.";
       }
-    } 
-    else if (yearNum === 10) {
+    } else if (yearNum === 10) {
       if (total >= 11) { 
         trackerWrap.style.backgroundColor = '#ffebee'; 
         trackerWrap.style.border = '1px solid #ffcdd2';
@@ -3030,7 +3005,6 @@ function bindWorkloadTracker() {
     }
   }
 
-  // Catch any relevant clicks
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]') || e.target.closest('.w-checkbox')) {
       setTimeout(calculateWorkload, 50);
@@ -3049,10 +3023,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Event Capture + Cache Buster v3)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v8)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v7 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v8 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3066,8 +3040,13 @@ function bindCheckboxSync() {
 
   function updateCheckboxes() {
     syncMap.forEach(function(item) {
-      var pillWrap = document.getElementById(item.pills);
-      var element = document.getElementById(item.cb);
+      // DUPLICATE ID IMMUNITY: Find all, grab the visible one
+      var pillWraps = document.querySelectorAll('#' + item.pills);
+      var pillWrap = Array.from(pillWraps).find(el => el.offsetParent !== null) || pillWraps[0];
+      
+      var cbs = document.querySelectorAll('#' + item.cb);
+      var element = Array.from(cbs).find(el => el.offsetParent !== null) || cbs[0];
+      
       if (!pillWrap || !element) return;
 
       var wrapper = element.closest('label');
@@ -3087,7 +3066,6 @@ function bindCheckboxSync() {
     });
   }
 
-  // The 'true' bypasses the click-blocker
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) {
       setTimeout(updateCheckboxes, 50); 
