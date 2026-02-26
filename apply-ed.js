@@ -959,47 +959,56 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE (Bulletproof v2)
+   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v3)
    ========================= */
 function bindLanguageToggle() {
-  // Find the checkbox using multiple fallback methods
-  const languageCheckbox = document.getElementById('languages') || 
-                           document.querySelector('input.curriculum-checkbox[data-value="languages"]') ||
-                           document.querySelector('input[name="languages"]');
-                           
-  const wrapper = document.querySelector('.language-of-study-wrap');
-  const select = wrapper ? wrapper.querySelector("select") : null;
-
-  if (!languageCheckbox || !wrapper) {
-     console.warn("⚠️ Language toggle skipped: Could not find Checkbox or Wrapper in Webflow.");
-     return;
-  }
-
-  function toggle() {
-    if (languageCheckbox.checked) {
-      wrapper.style.display = "block";
-      if (select) select.required = true;
-    } else {
-      wrapper.style.display = "none";
-      if (select) {
-        select.required = false;
-        select.value = "";
+  function syncAll() {
+    // Find ALL language checkboxes on the page
+    var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+    
+    langCbs.forEach(function(cb) {
+      // Find the wrapper that specifically belongs to this checkbox
+      var wrap = null;
+      var parent = cb.parentElement;
+      while (parent && parent !== document.body) {
+        wrap = parent.querySelector('.language-of-study-wrap');
+        if (wrap) break;
+        parent = parent.parentElement;
       }
-    }
+      
+      if (!wrap) return;
+      var select = wrap.querySelector("select");
+
+      if (cb.checked) {
+        wrap.style.display = "block";
+        if (select) select.required = true;
+      } else {
+        wrap.style.display = "none";
+        if (select) {
+          select.required = false;
+          select.value = "";
+        }
+      }
+    });
   }
 
-  // Listen directly and globally to ensure Webflow doesn't block it
-  languageCheckbox.addEventListener("change", function() {
-    setTimeout(toggle, 50);
-  });
+  // Listen for changes globally
+  document.addEventListener("change", function(e) {
+    if (e.target && (e.target.getAttribute('data-value') === 'languages' || e.target.name === 'languages' || e.target.id === 'languages')) {
+      setTimeout(syncAll, 50);
+    }
+  }, true);
   
-  document.addEventListener('change', function(e) {
-    if (e.target === languageCheckbox || e.target.id === 'languages') {
-      setTimeout(toggle, 50);
+  // Catch Webflow's custom wrapper clicks
+  document.addEventListener("click", function(e) {
+    var target = e.target.closest('.w-checkbox') || e.target;
+    var input = target.querySelector('input[type="checkbox"]') || target;
+    if (input && (input.getAttribute('data-value') === 'languages' || input.name === 'languages' || input.id === 'languages')) {
+      setTimeout(syncAll, 50);
     }
   }, true);
 
-  toggle(); // run on load
+  syncAll(); // run on load
 }
 /* =========================
    FOUNDATION LABEL BY STATE (Year Level display)
@@ -2913,7 +2922,7 @@ if (isY10 && y10Container) {
 }
 
 /* =========================
-   WORKLOAD TRACKER (Traffic Light System v4)
+   WORKLOAD TRACKER (Traffic Light System v5)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2950,12 +2959,18 @@ function bindWorkloadTracker() {
     }
 
     function hasLanguage() {
-      // BULLETPROOF: Look for ID, data-value, or name
-      var langCb = document.getElementById('languages') || 
-                   document.querySelector('input.curriculum-checkbox[data-value="languages"]') ||
-                   document.querySelector('input[name="languages"]');
-      if (langCb && langCb.checked) return 1;
-      return 0;
+      // Find ALL language checkboxes
+      var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+      var isChecked = false;
+      
+      langCbs.forEach(function(cb) {
+         // Only count it if it is checked AND currently visible on the screen!
+         if (cb.checked && cb.offsetParent !== null) {
+            isChecked = true;
+         }
+      });
+      
+      return isChecked ? 1 : 0;
     }
 
     // --- THE MATH ---
@@ -3015,9 +3030,8 @@ function bindWorkloadTracker() {
     }
   }
 
-  // The 'true' forces the script to hear the click before it's swallowed
+  // Catch any relevant clicks
   document.addEventListener('click', function(e) {
-    // ADDED .w-checkbox to catch clicks directly on Webflow's custom checkboxes
     if(e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]') || e.target.closest('.w-checkbox')) {
       setTimeout(calculateWorkload, 50);
     }
@@ -3038,7 +3052,7 @@ function bindWorkloadTracker() {
    SMART CHECKBOX SYNC (Event Capture + Cache Buster v3)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v6 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v7 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
