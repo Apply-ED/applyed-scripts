@@ -3038,7 +3038,7 @@ function bindWorkloadTracker() {
    SMART CHECKBOX SYNC (Event Capture + Cache Buster v3)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v5 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v6 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
