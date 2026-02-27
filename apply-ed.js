@@ -3023,10 +3023,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Duplicate ID Immunity v10 + Visibility Sync)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + Visibility Sync)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v10 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v11 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3535,3 +3535,71 @@ document.addEventListener('change', function(e) {
     }
   }
 });
+/* =========================================
+   STEP 3: SMART INTEREST DEEP DIVES
+   ========================================= */
+function initInterestDeepDives() {
+  const primaryGrid = document.getElementById('primary-interests-grid');
+  if (!primaryGrid) return;
+
+  function updateDeepDives() {
+    // 1. Check if this is an Interest-Led program
+    const programType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    const isInterestLed = (programType === 'interest_led');
+
+    // 2. Toggle the subheadings based on program type
+    const stdSub = document.getElementById('subheading-standard');
+    const intSub = document.getElementById('subheading-interest-led');
+    if (stdSub) stdSub.style.display = isInterestLed ? 'none' : 'block';
+    if (intSub) intSub.style.display = isInterestLed ? 'block' : 'none';
+
+    // 3. The "Map" - Links the Tier 1 data-value to the Tier 2 Div ID
+    const deepDiveMap = {
+      'animals_nature': 'deep-dive-animals'
+      // We will add the other 11 here as you build them!
+    };
+
+    // 4. See which main pills are currently clicked
+    const selectedPills = Array.from(primaryGrid.querySelectorAll('.ms-option.is-selected'))
+                               .map(pill => pill.getAttribute('data-value'));
+
+    // 5. Show or Hide the Deep Dives
+    for (const [pillValue, containerId] of Object.entries(deepDiveMap)) {
+      const deepDiveDiv = document.getElementById(containerId);
+      if (deepDiveDiv) {
+        // Only show if it's Interest-Led AND they clicked the matching pill
+        if (isInterestLed && selectedPills.includes(pillValue)) {
+          deepDiveDiv.style.display = 'block';
+        } else {
+          deepDiveDiv.style.display = 'none';
+        }
+      }
+    }
+  }
+
+  // Listen for clicks on the main pills
+  primaryGrid.addEventListener('click', function(e) {
+    if (e.target.closest('.ms-option')) {
+      setTimeout(updateDeepDives, 50); // Small delay to let the UI catch up
+    }
+  });
+
+  // Listen for step changes (runs automatically when Step 3 opens)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(updateDeepDives, 50);
+      }
+    });
+  });
+  
+  document.querySelectorAll('.step').forEach(step => {
+    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  // Run once on load just in case
+  setTimeout(updateDeepDives, 100);
+}
+
+// Start the watcher
+setTimeout(initInterestDeepDives, 500);
