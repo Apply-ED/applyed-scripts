@@ -3046,10 +3046,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + Visibility Sync)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + F-6 Ceasefire)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v12 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v11 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3063,8 +3063,25 @@ function bindCheckboxSync() {
   ];
 
   function updateCheckboxes() {
+    // 1. Find out what year level we are looking at
+    var yearDropdown = document.querySelector('select[name="student_year_level"]');
+    var rawYear = yearDropdown ? yearDropdown.value : '';
+    var isF6 = false;
+    
+    if (rawYear === 'FOUNDATION') {
+      isF6 = true;
+    } else if (rawYear.match(/\d+/)) {
+      if (parseInt(rawYear.match(/\d+/)[0], 10) <= 6) isF6 = true;
+    }
+
+    // 2. Run the sync map
     syncMap.forEach(function(item) {
-      // DUPLICATE ID IMMUNITY: Find all, grab the visible one
+      // THE CEASEFIRE: If it's F-6, let the Curriculum function handle the Arts box!
+      if (item.cb === 'y78-arts-cb' && isF6) {
+          return; 
+      }
+
+      // DUPLICATE ID IMMUNITY
       var pillWraps = document.querySelectorAll('#' + item.pills);
       var pillWrap = Array.from(pillWraps).find(el => el.offsetParent !== null) || pillWraps[0];
       
@@ -3082,11 +3099,11 @@ function bindCheckboxSync() {
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // 1. Update Native Input
-      realInput.checked = shouldBeChecked;
-      
-      // 2. Force Webflow to update the visual UI box
-      realInput.dispatchEvent(new Event('change', { bubbles: true }));
+      // Update Native Input
+      if (realInput.checked !== shouldBeChecked) {
+         realInput.checked = shouldBeChecked;
+         realInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
 
       wrapper.style.pointerEvents = shouldBeChecked ? 'none' : '';
       wrapper.style.opacity = shouldBeChecked ? '0.6' : '1';
@@ -3107,11 +3124,10 @@ function bindCheckboxSync() {
     }
   }, true);
 
-  // Listener 3: THE FIX - Sweep UI exactly when a step becomes visible
+  // Listener 3: Sweep UI exactly when a step becomes visible
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       if (mutation.attributeName === 'class' && mutation.target.classList.contains('is-active')) {
-        // 50ms delay allows Webflow to finish changing display:none to block
         setTimeout(updateCheckboxes, 50);
       }
     });
@@ -3121,7 +3137,6 @@ function bindCheckboxSync() {
     observer.observe(step, { attributes: true, attributeFilter: ['class'] });
   });
 
-  // Initial fallback run
   setTimeout(updateCheckboxes, 100);
 }
 
