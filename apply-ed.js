@@ -3574,7 +3574,7 @@ document.addEventListener('change', function(e) {
   }
 });
 /* =========================================
-   STEP 3: SMART INTEREST DEEP DIVES
+   STEP 3: SMART INTEREST DEEP DIVES (ALL 13 CATEGORIES)
    ========================================= */
 function initInterestDeepDives() {
   const primaryGrid = document.getElementById('primary-interests-grid');
@@ -3584,11 +3584,9 @@ function initInterestDeepDives() {
     let isInterestLed = false;
     
     // 1. Bulletproof Program Type Check
-    // Try the original helper first
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     if (pType === 'interest_led') isInterestLed = true;
 
-    // Shortcut: Check the radio button directly using the ID from Webflow
     const radioBtn = document.getElementById('interest_led');
     if (radioBtn && radioBtn.checked) {
         isInterestLed = true;
@@ -3600,10 +3598,21 @@ function initInterestDeepDives() {
     if (stdSub) stdSub.style.display = isInterestLed ? 'none' : 'block';
     if (intSub) intSub.style.display = isInterestLed ? 'block' : 'none';
 
-    // 3. The "Map" - Links the Tier 1 data-value to the Tier 2 Div ID
+    // 3. The COMPLETE "Map" - Links Tier 1 data-value to Tier 2 Div ID
     const deepDiveMap = {
-      'animals_nature': 'deep-dive-animals'
-      // You will add the others here later!
+      'animals_nature': 'deep-dive-animals',
+      'digital_coding': 'deep-dive-coding', /* Check if your main pill is digital_coding or digital_design! */
+      'art_creativity': 'deep-dive-art',
+      'building_construction': 'deep-dive-building',
+      'creative_writing': 'deep-dive-writing',
+      'space_astronomy': 'deep-dive-space',
+      'strategic_games': 'deep-dive-games',
+      'technology_gaming': 'deep-dive-tech',
+      'history_culture': 'deep-dive-history',
+      'cooking_life_skills': 'deep-dive-cooking',
+      'chemistry_experiments': 'deep-dive-chemistry',
+      'music': 'deep-dive-music',
+      'sport': 'deep-dive-sport'
     };
 
     // 4. Get selected values safely from the hidden input
