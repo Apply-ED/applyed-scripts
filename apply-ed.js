@@ -3559,15 +3559,17 @@ function initInterestDeepDives() {
       // We will add the other 11 here as you build them!
     };
 
-    // 4. See which main pills are currently clicked
-    const selectedPills = Array.from(primaryGrid.querySelectorAll('.ms-option.is-selected'))
-                               .map(pill => pill.getAttribute('data-value'));
+    // 4. Get selected values directly from the hidden input to bypass click blockers
+    const primaryInput = primaryGrid.querySelector('.ms-input');
+    let selectedPills = [];
+    if (primaryInput && primaryInput.value) {
+      try { selectedPills = JSON.parse(primaryInput.value); } catch(e) {}
+    }
 
     // 5. Show or Hide the Deep Dives
     for (const [pillValue, containerId] of Object.entries(deepDiveMap)) {
       const deepDiveDiv = document.getElementById(containerId);
       if (deepDiveDiv) {
-        // Only show if it's Interest-Led AND they clicked the matching pill
         if (isInterestLed && selectedPills.includes(pillValue)) {
           deepDiveDiv.style.display = 'block';
         } else {
@@ -3577,12 +3579,18 @@ function initInterestDeepDives() {
     }
   }
 
-  // Listen for clicks on the main pills
+  // Listen for the native change event from your existing pill logic
+  const primaryInput = primaryGrid.querySelector('.ms-input');
+  if (primaryInput) {
+    primaryInput.addEventListener('change', updateDeepDives);
+  }
+
+  // Also catch clicks in the "Capture Phase" just in case
   primaryGrid.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) {
-      setTimeout(updateDeepDives, 50); // Small delay to let the UI catch up
+      setTimeout(updateDeepDives, 50);
     }
-  });
+  }, true);
 
   // Listen for step changes (runs automatically when Step 3 opens)
   const observer = new MutationObserver(function(mutations) {
@@ -3597,9 +3605,7 @@ function initInterestDeepDives() {
     observer.observe(step, { attributes: true, attributeFilter: ['class'] });
   });
 
-  // Run once on load just in case
   setTimeout(updateDeepDives, 100);
 }
 
-// Start the watcher
 setTimeout(initInterestDeepDives, 500);
