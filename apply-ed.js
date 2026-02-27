@@ -2847,17 +2847,17 @@ function bindCurriculumVisibility() {
   var coreF8Container = document.getElementById('f6-curriculum-container'); 
   var artsPillsY78 = document.getElementById('y78-arts-pills');
   var y9Container = document.getElementById('y9-curriculum-container');
-  var y10Container = document.getElementById('y10-curriculum-container'); // The Year 10 block!
+  var y10Container = document.getElementById('y10-curriculum-container');
 
   if (!yearDropdown) return;
 
-  // Smarter Helper: Only freezes items that actually have the 'locked-checkbox' class
   function lockSpecificElements(container) {
     if (!container) return;
     var lockedItems = container.querySelectorAll('.locked-checkbox');
     lockedItems.forEach(function(item) {
       if (item.type === 'checkbox') {
         item.checked = true;
+        item.dispatchEvent(new Event('change', { bubbles: true })); // Nudge Webflow UI
       }
       var wrapper = item.closest('.w-checkbox') || item;
       if (wrapper) {
@@ -2878,31 +2878,55 @@ function bindCurriculumVisibility() {
 
     if (!rawValue) return;
 
-    var isF8 = false;
+    var isF6 = false;
     var isY78 = false;
     var isY9 = false;
     var isY10 = false;
 
     // 2. Figure out the year level
     if (rawValue === 'FOUNDATION') {
-      isF8 = true;
+      isF6 = true;
     } else {
       var match = rawValue.match(/\d+/);
       if (match) {
         var yearNum = parseInt(match[0], 10);
-        
-        if (yearNum <= 8) isF8 = true; 
+        if (yearNum <= 6) isF6 = true; 
         if (yearNum === 7 || yearNum === 8) isY78 = true; 
         if (yearNum === 9) isY9 = true; 
-        if (yearNum === 10) isY10 = true; // Trigger Year 10
+        if (yearNum === 10) isY10 = true;
       }
     }
 
-    // 3. Apply rules
-    if (isF8 && coreF8Container) {
-      coreF8Container.style.display = 'block';
-      lockSpecificElements(coreF8Container);
+    // 3. Apply Core F-8 Rules
+    if (isF6 || isY78) {
+      if (coreF8Container) {
+        coreF8Container.style.display = 'block';
+        lockSpecificElements(coreF8Container); // Locks English, Maths, etc.
+        
+        // --- THE SMART ARTS FIX ---
+        var artsCb = document.getElementById('y78-arts-cb');
+        if (artsCb) {
+           var artsWrap = artsCb.closest('.w-checkbox') || artsCb.parentElement;
+           var realInput = artsCb.tagName === 'INPUT' ? artsCb : artsWrap.querySelector('input[type="checkbox"]');
+           
+           if (isF6) {
+             // F-6: Mandatory and Locked
+             if (realInput) {
+               realInput.checked = true;
+               realInput.dispatchEvent(new Event('change', { bubbles: true }));
+             }
+             artsWrap.style.pointerEvents = 'none';
+             artsWrap.style.opacity = '0.7';
+           } else if (isY78) {
+             // 7-8: Optional and Unlocked
+             artsWrap.style.pointerEvents = 'auto';
+             artsWrap.style.opacity = '1';
+           }
+        }
+      }
     }
+
+    // 4. Apply Specific Elective Rules
     if (isY78 && artsPillsY78) {
       artsPillsY78.style.display = 'block';
     }
@@ -2910,11 +2934,10 @@ function bindCurriculumVisibility() {
       y9Container.style.display = 'block';
       lockSpecificElements(y9Container); 
     }
-
-if (isY10 && y10Container) {
-  y10Container.style.display = 'block';
-  lockSpecificElements(y10Container); // Locks English, Maths, HPE
-}
+    if (isY10 && y10Container) {
+      y10Container.style.display = 'block';
+      lockSpecificElements(y10Container);
+    }
   }
 
   yearDropdown.addEventListener('change', checkYearLevel);
@@ -3026,7 +3049,7 @@ function bindWorkloadTracker() {
    SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + Visibility Sync)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v11 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v12 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
