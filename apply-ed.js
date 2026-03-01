@@ -3506,7 +3506,25 @@ window.validateGoalDirectedStep4 = function() {
 
 // Start the watchers
 setTimeout(bindGoalCounter, 500);
+/* =========================================
+   PROGRAM TYPE HELPER
+   ========================================= */
+function getGoalDirectedProgramType() {
+  // 1. Check the live radio button on the screen first
+  const checkedRadio = document.querySelector('input[type="radio"][name="program_type"]:checked');
+  if (checkedRadio && checkedRadio.value) {
+    return checkedRadio.value;
+  }
 
+  // 2. Fall back to saved memory state if no radio is currently selected
+  const idx = typeof getChildIndex === 'function' ? getChildIndex() : 0;
+  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
+  if (saved && saved.program_type) {
+    return saved.program_type;
+  }
+
+  return null;
+}
 /* =========================================
    CONTAINER 3A / 3B MASTER SWITCH
    ========================================= */
