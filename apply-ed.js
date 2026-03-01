@@ -3540,7 +3540,7 @@ function bindGoalContainerSwapper() {
   setTimeout(swapContainers, 100);
 }
 setTimeout(bindGoalContainerSwapper, 500);
-})();
+
 
 // --- INDEPENDENT NAME UPDATE SCRIPT ---
 // This runs separately to ensure the heading updates even if the main script is messy.
@@ -3751,104 +3751,5 @@ function initGoalDirectedDeepDives() {
 
   setTimeout(updateGoalDeepDives, 100);
 }
-
-/* =========================================
-   GOAL-DIRECTED STICKY COUNTER & VALIDATION OVERRIDE
-   ========================================= */
-function bindGoalCounter() {
-  // 1. Dynamically build the sticky UI banner so you don't have to in Webflow
-  let banner = document.getElementById('aed-goal-counter');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'aed-goal-counter';
-    banner.style.cssText = `
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #fdfdfd;
-      border-top: 1px solid #DDe4dd;
-      padding: 12px 20px;
-      z-index: 9999;
-      box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
-      justify-content: center;
-      gap: 24px;
-      font-family: Montserrat, sans-serif;
-      font-size: 14px;
-      color: #263358;
-    `;
-    document.body.appendChild(banner);
-  }
-
-  function updateCounter() {
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    const currentStep = document.querySelector('.step.is-active');
-    const isStep4 = currentStep && currentStep.getAttribute('data-step') === '4'; // Make sure this matches your step number!
-
-    // Hide banner completely if not on Goal-Directed Step 4
-    if (pType !== 'goal_directed' || !isStep4) {
-      banner.style.display = 'none';
-      return;
-    }
-
-    banner.style.display = 'flex';
-
-    let shortCount = 0;
-    let longCount = 0;
-
-    // Only count pills that are currently VISIBLE on the screen
-    document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-      if (pill.offsetParent !== null) { 
-        if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
-        if (pill.getAttribute('data-goal-type') === 'long') longCount++;
-      }
-    });
-
-    const shortColor = (shortCount >= 4 && shortCount <= 8) ? '#386641' : '#c62828';
-    const longColor = (longCount >= 1 && longCount <= 2) ? '#386641' : '#c62828';
-
-    banner.innerHTML = `
-      <div><strong>Short-Term:</strong> <span style="color: ${shortColor}; font-weight: bold;">${shortCount}</span> (Target: 4-8)</div>
-      <div><strong>Long-Term:</strong> <span style="color: ${longColor}; font-weight: bold;">${longCount}</span> (Target: 1-2)</div>
-    `;
-  }
-
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
-  }, true);
-
-  setTimeout(updateCounter, 100);
-}
-
-// 2. Override the Next Button Validation for Goal-Directed
-window.validateGoalDirectedStep4 = function() {
-  setStep4GoalError(null);
-
-  const programType = getGoalDirectedProgramType();
-  if (programType !== 'goal_directed') return true;
-
-  let shortCount = 0;
-  let longCount = 0;
-
-  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-    if (pill.offsetParent !== null) {
-      if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
-      if (pill.getAttribute('data-goal-type') === 'long') longCount++;
-    }
-  });
-
-  if (shortCount < 4 || shortCount > 8) {
-    setStep4GoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
-    return false;
-  }
-
-  if (longCount < 1 || longCount > 2) {
-    setStep4GoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
-    return false;
-  }
-
-  return true;
-};
 
 });
