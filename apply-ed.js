@@ -3049,7 +3049,7 @@ function bindWorkloadTracker() {
    SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + F-6 Ceasefire)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v12 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v13 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3845,3 +3845,49 @@ window.validateGoalDirectedStep4 = function() {
 // Start the watchers
 setTimeout(initGoalDirectedDeepDives, 500);
 setTimeout(bindGoalCounter, 500);
+
+/* =========================================
+   CONTAINER 3A / 3B MASTER SWITCH
+   ========================================= */
+function bindGoalContainerSwapper() {
+  const container3A = document.getElementById('container-3a-general'); 
+  const container3B = document.getElementById('container-3b-goaldirected');
+  
+  function swapContainers() {
+    // Check what program type is selected
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    
+    if (pType === 'goal_directed') {
+      // Hide standard goals, show specialized goal-directed engine
+      if (container3A) container3A.style.display = 'none';
+      if (container3B) container3B.style.display = 'block';
+    } else {
+      // Show standard goals for Curriculum and Interest-Led
+      if (container3A) container3A.style.display = 'block';
+      if (container3B) container3B.style.display = 'none';
+    }
+  }
+
+  // 1. Listen for clicks on the Program Type radio buttons in Step 1
+  document.addEventListener('change', function(e) {
+    if (e.target.name === 'program_type') {
+      setTimeout(swapContainers, 50);
+    }
+  });
+  
+  // 2. Run the check every time they navigate to a new step
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(swapContainers, 50);
+      }
+    });
+  });
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  // Run once on load
+  setTimeout(swapContainers, 100);
+}
+
+// Start the watcher
+setTimeout(bindGoalContainerSwapper, 500);
