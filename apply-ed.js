@@ -3049,7 +3049,7 @@ function bindWorkloadTracker() {
    SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + F-6 Ceasefire)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v11 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v12 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3668,3 +3668,180 @@ function initInterestDeepDives() {
 
 // Start the watcher
 setTimeout(initInterestDeepDives, 500);
+
+/* =========================================
+   STEP 3: GOAL-DIRECTED DEEP DIVES (CONTAINER 3B)
+   ========================================= */
+function initGoalDirectedDeepDives() {
+  // 1. The Map: Links Tier 1 pill values to Tier 2 Deep Dive Box IDs
+  const goalDeepDiveMap = {
+    // Academic
+    'gd_reading_writing': 'deep-dive-gd-reading',
+    'gd_numeracy_maths': 'deep-dive-gd-numeracy',
+    'gd_digital_tech': 'deep-dive-gd-digital',
+    'gd_creative': 'deep-dive-gd-creative',
+    // Social
+    'gd_emotional': 'deep-dive-gd-emotional',
+    'gd_social': 'deep-dive-gd-social',
+    'gd_communication': 'deep-dive-gd-communication',
+    'gd_resilience': 'deep-dive-gd-resilience',
+    // Independence
+    'gd_lifeskills': 'deep-dive-gd-lifeskills',
+    'gd_organization': 'deep-dive-gd-organization',
+    'gd_financial': 'deep-dive-gd-financial',
+    'gd_pathways': 'deep-dive-gd-pathways'
+  };
+
+  function updateGoalDeepDives() {
+    // Only run if the user is on a Goal-Directed program
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    if (pType !== 'goal_directed') return;
+
+    // 2. Gather all selected Tier 1 goals from the hidden inputs
+    let allSelectedTier1 = [];
+    const tier1Inputs = [
+      'goal_directed_academic_focus',
+      'goal_directed_social_focus',
+      'goal_directed_independence_focus'
+    ];
+
+    tier1Inputs.forEach(inputName => {
+      const inputEl = document.querySelector(`input[name="${inputName}"]`);
+      if (inputEl && inputEl.value) {
+        try {
+          const parsed = JSON.parse(inputEl.value);
+          if (Array.isArray(parsed)) allSelectedTier1 = allSelectedTier1.concat(parsed);
+        } catch(e) {}
+      }
+    });
+
+    // 3. Show or Hide the corresponding deep dive boxes
+    for (const [pillValue, containerId] of Object.entries(goalDeepDiveMap)) {
+      const deepDiveDiv = document.getElementById(containerId);
+      if (deepDiveDiv) {
+        deepDiveDiv.style.display = allSelectedTier1.includes(pillValue) ? 'block' : 'none';
+      }
+    }
+  }
+
+  // 4. Listeners to trigger the reveal instantly
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.ms-option')) {
+      setTimeout(updateGoalDeepDives, 50);
+    }
+  }, true);
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(updateGoalDeepDives, 50);
+      }
+    });
+  });
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  setTimeout(updateGoalDeepDives, 100);
+}
+
+/* =========================================
+   GOAL-DIRECTED STICKY COUNTER & VALIDATION OVERRIDE
+   ========================================= */
+function bindGoalCounter() {
+  // 1. Dynamically build the sticky UI banner so you don't have to in Webflow
+  let banner = document.getElementById('aed-goal-counter');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'aed-goal-counter';
+    banner.style.cssText = `
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fdfdfd;
+      border-top: 1px solid #DDe4dd;
+      padding: 12px 20px;
+      z-index: 9999;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
+      justify-content: center;
+      gap: 24px;
+      font-family: Montserrat, sans-serif;
+      font-size: 14px;
+      color: #263358;
+    `;
+    document.body.appendChild(banner);
+  }
+
+  function updateCounter() {
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    const currentStep = document.querySelector('.step.is-active');
+    const isStep4 = currentStep && currentStep.getAttribute('data-step') === '4'; // Make sure this matches your step number!
+
+    // Hide banner completely if not on Goal-Directed Step 4
+    if (pType !== 'goal_directed' || !isStep4) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    banner.style.display = 'flex';
+
+    let shortCount = 0;
+    let longCount = 0;
+
+    // Only count pills that are currently VISIBLE on the screen
+    document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+      if (pill.offsetParent !== null) { 
+        if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
+        if (pill.getAttribute('data-goal-type') === 'long') longCount++;
+      }
+    });
+
+    const shortColor = (shortCount >= 4 && shortCount <= 8) ? '#386641' : '#c62828';
+    const longColor = (longCount >= 1 && longCount <= 2) ? '#386641' : '#c62828';
+
+    banner.innerHTML = `
+      <div><strong>Short-Term:</strong> <span style="color: ${shortColor}; font-weight: bold;">${shortCount}</span> (Target: 4-8)</div>
+      <div><strong>Long-Term:</strong> <span style="color: ${longColor}; font-weight: bold;">${longCount}</span> (Target: 1-2)</div>
+    `;
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
+  }, true);
+
+  setTimeout(updateCounter, 100);
+}
+
+// 2. Override the Next Button Validation for Goal-Directed
+window.validateGoalDirectedStep4 = function() {
+  setStep4GoalError(null);
+
+  const programType = getGoalDirectedProgramType();
+  if (programType !== 'goal_directed') return true;
+
+  let shortCount = 0;
+  let longCount = 0;
+
+  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+    if (pill.offsetParent !== null) {
+      if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
+      if (pill.getAttribute('data-goal-type') === 'long') longCount++;
+    }
+  });
+
+  if (shortCount < 4 || shortCount > 8) {
+    setStep4GoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
+    return false;
+  }
+
+  if (longCount < 1 || longCount > 2) {
+    setStep4GoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
+    return false;
+  }
+
+  return true;
+};
+
+// Start the watchers
+setTimeout(initGoalDirectedDeepDives, 500);
+setTimeout(bindGoalCounter, 500);
