@@ -3865,25 +3865,36 @@ function bindGoalContainerSwapper() {
     if (pType === 'goal_directed') {
       // Hide 3A (Standard), Show 3B (Goal-Directed)
       if (container3A) container3A.style.setProperty('display', 'none', 'important');
-      
-      // We use 'block' here, but if 3B also needs to be a grid, change this to 'grid'
       if (container3B) container3B.style.setProperty('display', 'block', 'important'); 
     } else {
       // Show 3A (Standard), Hide 3B (Goal-Directed)
-      // We use 'grid' here to preserve your 3-column layout
       if (container3A) container3A.style.setProperty('display', 'grid', 'important');
       if (container3B) container3B.style.setProperty('display', 'none', 'important');
     }
   }
 
-  // 1. Listen for clicks on the Program Type radio buttons globally
+  // 1. Native Change Listener (Catches programmatic changes)
   document.addEventListener('change', function(e) {
     if (e.target && e.target.name === 'program_type') {
       setTimeout(swapContainers, 50);
     }
   });
+
+  // 2. NEW: Aggressive Webflow Click Listener (Bypasses Webflow's event interception)
+  document.addEventListener('click', function(e) {
+    // Check if the user clicked anywhere inside a Webflow radio button wrapper
+    const radioWrapper = e.target.closest('.w-radio');
+    if (radioWrapper) {
+      // Check if this specific radio button belongs to our program_type group
+      const internalInput = radioWrapper.querySelector('input[name="program_type"]');
+      if (internalInput) {
+        // Give Webflow 50ms to update the hidden input, then fire the swap
+        setTimeout(swapContainers, 50);
+      }
+    }
+  }, true); // The 'true' makes it capture the click instantly
   
-  // 2. Run the check every time they navigate to a new step
+  // 3. Run the check every time they navigate to a new step
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((m) => {
       if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
