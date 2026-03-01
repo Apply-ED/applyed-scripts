@@ -3212,15 +3212,15 @@ function bindGoalContainerSwapper() {
 
 
 /* =========================
-      INIT
-      ========================= */
+   INIT
+   ========================= */
 
-  setChildrenCount(getTotalChildrenFromStep0());
-  setChildIndex(getChildIndex());
+setChildrenCount(getTotalChildrenFromStep0());
+setChildIndex(getChildIndex());
 
-  initAllMultiSelectGroups();
-  bindCurriculumCheckboxes();
-  bindLanguageToggle();
+initAllMultiSelectGroups();
+bindCurriculumCheckboxes();
+bindLanguageToggle();
 bindFoundationLabelByState();
 bindTooltips();
 fixMultiSelectTooltipZIndex(); 
@@ -3233,6 +3233,11 @@ bindCurriculumVisibility();
 bindWorkloadTracker();
 bindCheckboxSync();
 bindPersonalisedHeading();
+
+// --- THE NEWLY RESCUED SCRIPTS ---
+initInterestDeepDives();
+initGoalDirectedDeepDives();
+bindGoalCounter();
 bindGoalContainerSwapper();
   
 // Static per-child pricing — Step 0 add-on labels
@@ -3578,7 +3583,6 @@ setTimeout(lockStatePickers, 500);
   });
 })();
 
-});
 // --- INDEPENDENT NAME UPDATE SCRIPT ---
 // This runs separately to ensure the heading updates even if the main script is messy.
 document.addEventListener('input', function(e) {
@@ -3894,7 +3898,4 @@ window.validateGoalDirectedStep4 = function() {
   return true;
 };
 
-// Start the watchers
-setTimeout(initGoalDirectedDeepDives, 500);
-setTimeout(bindGoalCounter, 500);
-
+});
