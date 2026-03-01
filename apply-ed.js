@@ -3743,7 +3743,7 @@ function initGoalDirectedDeepDives() {
     'gd_resilience': 'deep-dive-gd-resilience',
     // Independence
     'gd_lifeskills': 'deep-dive-gd-lifeskills',
-    'gd_organization': 'deep-dive-gd-organization',
+    'gd_organisation': 'deep-dive-gd-organisation',
     'gd_financial': 'deep-dive-gd-financial',
     'gd_pathways': 'deep-dive-gd-pathways'
   };
@@ -3752,29 +3752,15 @@ function initGoalDirectedDeepDives() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     if (pType !== 'goal_directed') return;
 
-    // 2. Gather all selected Tier 1 goals using the updated Webflow field names
-    let allSelectedTier1 = [];
-    const tier1Inputs = [
-      'general_academic_goals',
-      'general_social_goals',
-      'general_independence_goals'
-    ];
-
-    tier1Inputs.forEach(inputName => {
-      const inputEl = document.querySelector(`input[name="${inputName}"]`);
-      if (inputEl && inputEl.value) {
-        try {
-          const parsed = JSON.parse(inputEl.value);
-          if (Array.isArray(parsed)) allSelectedTier1 = allSelectedTier1.concat(parsed);
-        } catch(e) {}
-      }
-    });
+    // 2. NEW METHOD: Bypass the hidden inputs and read the live visible pills directly
+    const selectedPills = Array.from(document.querySelectorAll('.ms-option.is-selected'))
+                               .map(el => el.getAttribute('data-value'));
 
     // 3. Show or Hide the corresponding deep dive boxes with Webflow overrides
     for (const [pillValue, containerId] of Object.entries(goalDeepDiveMap)) {
       const deepDiveDiv = document.getElementById(containerId);
       if (deepDiveDiv) {
-        if (allSelectedTier1.includes(pillValue)) {
+        if (selectedPills.includes(pillValue)) {
           deepDiveDiv.style.setProperty('display', 'block', 'important');
         } else {
           deepDiveDiv.style.setProperty('display', 'none', 'important');
