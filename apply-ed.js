@@ -3749,16 +3749,15 @@ function initGoalDirectedDeepDives() {
   };
 
   function updateGoalDeepDives() {
-    // Only run if the user is on a Goal-Directed program
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     if (pType !== 'goal_directed') return;
 
-    // 2. Gather all selected Tier 1 goals from the hidden inputs
+    // 2. Gather all selected Tier 1 goals using the updated Webflow field names
     let allSelectedTier1 = [];
     const tier1Inputs = [
-      'goal_directed_academic_focus',
-      'goal_directed_social_focus',
-      'goal_directed_independence_focus'
+      'general_academic_goals',
+      'general_social_goals',
+      'general_independence_goals'
     ];
 
     tier1Inputs.forEach(inputName => {
@@ -3771,11 +3770,15 @@ function initGoalDirectedDeepDives() {
       }
     });
 
-    // 3. Show or Hide the corresponding deep dive boxes
+    // 3. Show or Hide the corresponding deep dive boxes with Webflow overrides
     for (const [pillValue, containerId] of Object.entries(goalDeepDiveMap)) {
       const deepDiveDiv = document.getElementById(containerId);
       if (deepDiveDiv) {
-        deepDiveDiv.style.display = allSelectedTier1.includes(pillValue) ? 'block' : 'none';
+        if (allSelectedTier1.includes(pillValue)) {
+          deepDiveDiv.style.setProperty('display', 'block', 'important');
+        } else {
+          deepDiveDiv.style.setProperty('display', 'none', 'important');
+        }
       }
     }
   }
@@ -3794,6 +3797,7 @@ function initGoalDirectedDeepDives() {
       }
     });
   });
+  
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
   setTimeout(updateGoalDeepDives, 100);
