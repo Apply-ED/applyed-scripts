@@ -3165,6 +3165,52 @@ function bindPersonalisedHeading() {
   setTimeout(updateHeading, 200);
 }
 
+/* =========================================
+   CONTAINER 3A / 3B MASTER SWITCH
+   ========================================= */
+function bindGoalContainerSwapper() {
+  const container3A = document.getElementById('container-3a-general'); 
+  const container3B = document.getElementById('container-3b-goaldirected');
+  
+  function swapContainers() {
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    
+    if (pType === 'goal_directed') {
+      if (container3A) container3A.style.setProperty('display', 'none', 'important');
+      if (container3B) container3B.style.setProperty('display', 'block', 'important'); 
+    } else {
+      if (container3A) container3A.style.setProperty('display', 'grid', 'important');
+      if (container3B) container3B.style.setProperty('display', 'none', 'important');
+    }
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'program_type') {
+      setTimeout(swapContainers, 50);
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    const radioWrapper = e.target.closest('.w-radio');
+    if (radioWrapper && radioWrapper.querySelector('input[name="program_type"]')) {
+      setTimeout(swapContainers, 50);
+    }
+  }, true);
+  
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(swapContainers, 50);
+      }
+    });
+  });
+  
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  setTimeout(swapContainers, 100);
+}
+
+
 /* =========================
       INIT
       ========================= */
@@ -3187,6 +3233,7 @@ bindCurriculumVisibility();
 bindWorkloadTracker();
 bindCheckboxSync();
 bindPersonalisedHeading();
+bindGoalContainerSwapper();
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
@@ -3851,60 +3898,3 @@ window.validateGoalDirectedStep4 = function() {
 setTimeout(initGoalDirectedDeepDives, 500);
 setTimeout(bindGoalCounter, 500);
 
-/* =========================================
-   CONTAINER 3A / 3B MASTER SWITCH
-   ========================================= */
-function bindGoalContainerSwapper() {
-  const container3A = document.getElementById('container-3a-general'); 
-  const container3B = document.getElementById('container-3b-goaldirected');
-  
-  function swapContainers() {
-    // Check what program type is selected from the live DOM
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    
-    if (pType === 'goal_directed') {
-      // Hide 3A (Standard), Show 3B (Goal-Directed)
-      if (container3A) container3A.style.setProperty('display', 'none', 'important');
-      if (container3B) container3B.style.setProperty('display', 'block', 'important'); 
-    } else {
-      // Show 3A (Standard), Hide 3B (Goal-Directed)
-      if (container3A) container3A.style.setProperty('display', 'grid', 'important');
-      if (container3B) container3B.style.setProperty('display', 'none', 'important');
-    }
-  }
-
-  // 1. Native Change Listener (Catches programmatic changes)
-  document.addEventListener('change', function(e) {
-    if (e.target && e.target.name === 'program_type') {
-      setTimeout(swapContainers, 50);
-    }
-  });
-
-  // 2. NEW: Aggressive Webflow Click Listener (Bypasses Webflow's event interception)
-  document.addEventListener('click', function(e) {
-    // Check if the user clicked anywhere inside a Webflow radio button wrapper
-    const radioWrapper = e.target.closest('.w-radio');
-    if (radioWrapper) {
-      // Check if this specific radio button belongs to our program_type group
-      const internalInput = radioWrapper.querySelector('input[name="program_type"]');
-      if (internalInput) {
-        // Give Webflow 50ms to update the hidden input, then fire the swap
-        setTimeout(swapContainers, 50);
-      }
-    }
-  }, true); // The 'true' makes it capture the click instantly
-  
-  // 3. Run the check every time they navigate to a new step
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(swapContainers, 50);
-      }
-    });
-  });
-  
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
-
-  // Run once on load to establish the initial state
-  setTimeout(swapContainers, 100);
-}
