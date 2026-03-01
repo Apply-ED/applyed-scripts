@@ -3350,237 +3350,196 @@ function lockStatePickers() {
 }
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
-/* =========================
-   STEP 4: GOAL-DIRECTED VALIDATION
-   ========================= */
-function getGoalDirectedProgramType() {
-  // Priority 1: Check the live radio button on the screen first
-  const checkedRadio = document.querySelector('input[type="radio"][name="program_type"]:checked');
-  if (checkedRadio && checkedRadio.value) {
-    return checkedRadio.value;
-  }
-
-  // Priority 2: Fall back to saved memory state if no radio is currently selected
-  const idx = typeof getChildIndex === 'function' ? getChildIndex() : 0;
-  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
-  if (saved && saved.program_type) {
-    return saved.program_type;
-  }
-
-  return null;
-}
-
-function countSelectedGoalPills(fieldNames) {
-  let total = 0;
-  fieldNames.forEach(function(name) {
-    // Try all possible selectors - ms-input can be input or other element types
-    const el = document.querySelector('.ms-input[name="' + name + '"]');
-    if (!el) return;
-    const raw = (el.value || '').trim();
-    if (!raw || raw === '[]') return;
-    try {
-      const vals = JSON.parse(raw);
-      if (Array.isArray(vals)) total += vals.length;
-    } catch(e) {}
-  });
-  return total;
-}
-
-/* -------------------------------------------------------
-   STEP 4 GOAL-DIRECTED VALIDATION — FIXED & EXPANDED
-   ------------------------------------------------------- */
-
-/**
- * Show or hide the step4-goal-error element.
- * Uses setProperty('display', ..., 'important') to override
- * Webflow's own display:none !important on hidden elements.
- */
-function setStep4GoalError(msg) {
-  // Try the Webflow element first; fall back to a dynamically-created one
-  let el = document.getElementById('step4-goal-error');
-
-  if (!el) {
-    // Element is missing from DOM — create it just above the nav buttons
-    const step4El = getStepEl(4);
-    const navRow = step4El && step4El.querySelector('[data-step-action="next"]');
-    const insertTarget = navRow ? navRow.closest('div, section') || navRow.parentElement : step4El;
-
-    el = document.createElement('div');
-    el.id = 'step4-goal-error';
-    // Apply baseline styles so it looks correct even without Webflow styling
-    el.style.cssText = [
-      'color:#b00020',
-      'background:#fff5f5',
-      'border:1px solid #f5c6cb',
-      'border-radius:6px',
-      'padding:10px 14px',
-      'font-size:14px',
-      'line-height:1.5',
-      'margin-bottom:12px',
-      'font-family:Montserrat,sans-serif'
-    ].join(';');
-
-    if (insertTarget) insertTarget.insertAdjacentElement('beforebegin', el);
-    else document.body.appendChild(el);
-
-    console.log('[Goal Validation] step4-goal-error was missing from DOM — created dynamically');
-  }
-
-  if (msg) {
-    el.textContent = msg;
-    // Use setProperty + 'important' to override Webflow's display:none !important
-    el.style.setProperty('display', 'block', 'important');
-    el.style.setProperty('visibility', 'visible', 'important');
-    el.style.setProperty('opacity', '1', 'important');
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  } else {
-    el.style.setProperty('display', 'none', 'important');
-    el.textContent = '';
-  }
-}
-
-function validateGoalDirectedStep4() {
-  // Always clear first
+/* =========================================
+   STEP 4: INTEREST-LED & STANDARD GOALS VALIDATION
+   ========================================= */
+window.validateInterestLedStep4 = function() {
   setStep4GoalError(null);
+  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
-  const programType = getGoalDirectedProgramType();
-  if (programType !== 'goal_directed') return true;
-
-  const shortTermFields = ['short_term_academic', 'short_term_social', 'short_term_independence'];
-  const longTermFields  = ['long_term_academic', 'long_term_social', 'long_term_independence'];
-
-  const shortCount = countSelectedGoalPills(shortTermFields);
-  const longCount  = countSelectedGoalPills(longTermFields);
-
-  console.log('[Goal Validation] short:', shortCount, 'long:', longCount);
-
-  if (shortCount < 4) {
-    setStep4GoalError(
-      'Please select at least 4 short-term goals (across Academic, Social, and Independence). ' +
-      'You have selected ' + shortCount + '.'
-    );
-    return false;
-  }
-  if (shortCount > 8) {
-    setStep4GoalError(
-      'You have selected ' + shortCount + ' short-term goals. ' +
-      'To keep the program realistic, please reduce your selection to no more than 8.'
-    );
-    return false;
-  }
-  if (longCount < 1) {
-    setStep4GoalError('Please select at least 1 long-term goal.');
-    return false;
-  }
-  if (longCount > 2) {
-    setStep4GoalError(
-      'You have selected ' + longCount + ' long-term goals. ' +
-      'To keep the program realistic, please reduce your selection to no more than 2.'
-    );
-    return false;
-  }
-
-  return true;
-}
-
-/* -------------------------------------------------------
-   STEP 4 INTEREST-LED VALIDATION
-   ------------------------------------------------------- */
-
-function validateInterestLedStep4() {
-  // Always clear error first
-  setStep4GoalError(null);
-
-  const programType = getGoalDirectedProgramType();
-  if (programType !== 'interest_led') return true;
-
-  const count = countSelectedGoalPills(['curiosities']);
-  console.log('[Interest Validation] curiosities selected:', count);
-
-  if (count < 1) {
-    setStep4GoalError(
-      'Please select at least one curiosity so we can build investigations around your child\u2019s interests.'
-    );
-    return false;
-  }
-
-  return true;
-}
-document.addEventListener("DOMContentLoaded", lockStatePickers);
-setTimeout(lockStatePickers, 500);
-
-/* =========================
-   HOME PAGE "CREATE PROGRAM" CTA BUTTONS
-   Buttons must have: data-aed-create-program="1"
-   State dropdown:    select[name="state-picker"]
-   Mid-page error:    id="mid-page-state-error"
-   ========================= */
-(function bindCreateProgramCtaButtons() {
-  function getStateErrorEl(btn) {
-    // Try mid-page error element first; fall back to creating one near the button
-    const midPageErr = document.getElementById('mid-page-state-error');
-    if (midPageErr) return midPageErr;
-
-    // Dynamically create an error element right after the button
-    let el = btn.parentElement && btn.parentElement.querySelector('.aed-state-error');
-    if (!el) {
-      el = document.createElement('p');
-      el.className = 'aed-state-error';
-      el.style.cssText = [
-        'color:#b00020',
-        'font-size:14px',
-        'margin-top:8px',
-        'font-family:Montserrat,sans-serif'
-      ].join(';');
-      el.style.display = 'none';
-      btn.insertAdjacentElement('afterend', el);
+  // 1. INTEREST-LED SPECIFIC: Check for at least 1 curiosity
+  if (pType === 'interest_led') {
+    const primaryGrid = document.getElementById('primary-interests-grid');
+    if (primaryGrid) {
+      const curiosityCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+      if (curiosityCount < 1) {
+        setStep4GoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
+        return false;
+      }
     }
-    return el;
   }
 
-  function showStateError(btn, msg) {
-    const el = getStateErrorEl(btn);
-    if (!el) return;
-    el.textContent = msg || 'Please select your state before continuing.';
-    el.style.setProperty('display', 'block', 'important');
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // 2. ALL STANDARD PROGRAMS (Interest-Led & Curriculum-Based): Check for at least 3 goals
+  if (pType !== 'goal_directed') {
+    const container3A = document.getElementById('container-3a-general');
+    if (container3A) {
+      // Count all selected pills sitting inside the standard goals container
+      const standardGoalCount = container3A.querySelectorAll('.ms-option.is-selected').length;
+      
+      if (standardGoalCount < 3) {
+        setStep4GoalError(`Please select at least 3 goals in total. You currently have ${standardGoalCount} selected.`);
+        return false;
+      }
+    }
   }
 
-  function hideStateError(btn) {
-    const el = getStateErrorEl(btn);
-    if (el) el.style.setProperty('display', 'none', 'important');
+  return true;
+};
+
+/* =========================================
+   STEP 4: GOAL-DIRECTED COUNTER & VALIDATION
+   ========================================= */
+function bindGoalCounter() {
+  // 1. Build the sticky banner UI
+  let banner = document.getElementById('aed-goal-counter');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'aed-goal-counter';
+    banner.style.cssText = `
+      display: none; position: fixed; bottom: 0; left: 0; width: 100%;
+      background: #fdfdfd; border-top: 1px solid #DDe4dd; padding: 12px 20px;
+      z-index: 9999; box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
+      justify-content: center; gap: 24px; font-family: Montserrat, sans-serif;
+      font-size: 14px; color: #263358;
+    `;
+    document.body.appendChild(banner);
   }
 
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-aed-create-program="1"]');
-    if (!btn) return;
+  function updateCounter() {
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    const currentStep = document.querySelector('.step.is-active');
+    const isStep4 = currentStep && currentStep.getAttribute('data-step') === '4';
 
-    const statePicker = document.querySelector('select[name="state-picker"]');
-    const stateVal = statePicker ? (statePicker.value || '').trim() : '';
-
-    if (!stateVal) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      showStateError(btn, 'Please select your state before creating a program.');
+    // Hide if not on Goal-Directed Step 4
+    if (pType !== 'goal_directed' || !isStep4) {
+      banner.style.setProperty('display', 'none', 'important');
       return;
     }
 
-    // State is valid — persist it for the intake form and allow navigation
-    try { localStorage.setItem('aed_selected_state', stateVal); } catch (_) {}
-    hideStateError(btn);
-    // Button's natural href / onclick will fire normally
-  });
+    banner.style.setProperty('display', 'flex', 'important');
 
-  // Live clear error when state is selected
-  document.addEventListener('change', function(e) {
-    if (e.target && e.target.name === 'state-picker' && e.target.value) {
-      const midPageErr = document.getElementById('mid-page-state-error');
-      if (midPageErr) midPageErr.style.setProperty('display', 'none', 'important');
-      document.querySelectorAll('.aed-state-error').forEach(function(el) {
-        el.style.setProperty('display', 'none', 'important');
-      });
+    let shortCount = 0;
+    let longCount = 0;
+
+    // Count visible pills using the new Custom Attributes you added in Webflow
+    document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+      if (pill.offsetParent !== null) { 
+        if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
+        if (pill.getAttribute('data-goal-type') === 'long') longCount++;
+      }
+    });
+
+    const shortColor = (shortCount >= 4 && shortCount <= 8) ? '#386641' : '#c62828';
+    const longColor = (longCount >= 1 && longCount <= 2) ? '#386641' : '#c62828';
+
+    banner.innerHTML = `
+      <div><strong>Short-Term:</strong> <span style="color: ${shortColor}; font-weight: bold;">${shortCount}</span> (Target: 4-8)</div>
+      <div><strong>Long-Term:</strong> <span style="color: ${longColor}; font-weight: bold;">${longCount}</span> (Target: 1-2)</div>
+    `;
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
+  }, true);
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(updateCounter, 50);
+      }
+    });
+  });
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  setTimeout(updateCounter, 100);
+}
+
+// 2. The Master Validation Rules for the "Next" Button
+window.validateGoalDirectedStep4 = function() {
+  setStep4GoalError(null);
+
+  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+  if (pType !== 'goal_directed') return true;
+
+  let shortCount = 0;
+  let longCount = 0;
+  let socialShortCount = 0;
+  let coreShortCount = 0; // Academic & Independence
+
+  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+    if (pill.offsetParent !== null) { 
+      const type = pill.getAttribute('data-goal-type');
+      const isSocial = pill.getAttribute('data-category') === 'social';
+
+      if (type === 'short') {
+         shortCount++;
+         if (isSocial) socialShortCount++;
+         else coreShortCount++;
+      }
+      if (type === 'long') {
+         longCount++;
+      }
     }
   });
+
+  // Rule 1: 4 to 8 Short-term goals
+  if (shortCount < 4 || shortCount > 8) {
+    setStep4GoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
+    return false;
+  }
+
+  // Rule 2: Mostly Academic/Independence goals
+  // Fails if they select more social goals than core goals
+  if (socialShortCount > coreShortCount) {
+    setStep4GoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`);
+    return false;
+  }
+
+  // Rule 3: 1 to 2 Long-term goals
+  if (longCount < 1 || longCount > 2) {
+    setStep4GoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
+    return false;
+  }
+
+  return true;
+};
+
+// Start the watchers
+setTimeout(bindGoalCounter, 500);
+
+/* =========================================
+   CONTAINER 3A / 3B MASTER SWITCH
+   ========================================= */
+function bindGoalContainerSwapper() {
+  const container3A = document.getElementById('container-3a-general'); 
+  const container3B = document.getElementById('container-3b-goaldirected');
+  
+  function swapContainers() {
+    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+    
+    if (pType === 'goal_directed') {
+      if (container3A) container3A.style.setProperty('display', 'none', 'important');
+      if (container3B) container3B.style.setProperty('display', 'block', 'important');
+    } else {
+      if (container3A) container3A.style.setProperty('display', 'block', 'important');
+      if (container3B) container3B.style.setProperty('display', 'none', 'important');
+    }
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target.name === 'program_type') setTimeout(swapContainers, 50);
+  });
+  
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(swapContainers, 50);
+    });
+  });
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  setTimeout(swapContainers, 100);
+}
+setTimeout(bindGoalContainerSwapper, 500);
 })();
 
 // --- INDEPENDENT NAME UPDATE SCRIPT ---
