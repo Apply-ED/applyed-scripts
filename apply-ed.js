@@ -3586,9 +3586,9 @@ setTimeout(lockStatePickers, 500);
 // --- INDEPENDENT NAME UPDATE SCRIPT ---
 // This runs separately to ensure the heading updates even if the main script is messy.
 document.addEventListener('input', function(e) {
-    // 1. Check if the element being typed in is the child_name field
-    if (e.target.name === 'child_name' || e.target.getAttribute('data-name') === 'child_name') {
-        const currentName = e.target.value.trim() || "your child";
+    // 1. Check if the element being typed in is the student name field
+    if (e.target.name === 'student_first_name' || e.target.name === 'child_name' || e.target.getAttribute('data-name') === 'child_name') {
+        const currentName = e.target.value.trim() || "Your child";
 
         // 2. Update the main heading (Personalising X's...)
         const personalHeading = document.querySelector('.personalising-heading');
@@ -3599,9 +3599,13 @@ document.addEventListener('input', function(e) {
         // 3. Update the sidebar/ID display
         const idHeading = document.getElementById('child-id-display');
         if (idHeading) {
-            // We'll use a generic "Child" label here to keep it simple and safe
             idHeading.textContent = `Child: ${currentName}`;
         }
+
+        // 4. NEW: Universal Name Injector (Updates Step 3B and anywhere else!)
+        document.querySelectorAll('.insert-student-name').forEach(function(el) {
+            el.textContent = currentName;
+        });
     }
 });
 // --- IMPROVED CHECKBOX PROTECTION ---
