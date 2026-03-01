@@ -3301,16 +3301,21 @@ function lockStatePickers() {
 /* =========================
    STEP 4: GOAL-DIRECTED VALIDATION
    ========================= */
-
 function getGoalDirectedProgramType() {
-  // Check the saved current child data first
-  const idx = getChildIndex();
-  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
-  if (saved && saved.program_type) return saved.program_type;
+  // Priority 1: Check the live radio button on the screen first
+  const checkedRadio = document.querySelector('input[type="radio"][name="program_type"]:checked');
+  if (checkedRadio && checkedRadio.value) {
+    return checkedRadio.value;
+  }
 
-  // Fall back to checking the radio directly
-  const checked = document.querySelector('input[type="radio"][name="program_type"]:checked');
-  return checked ? checked.value : null;
+  // Priority 2: Fall back to saved memory state if no radio is currently selected
+  const idx = typeof getChildIndex === 'function' ? getChildIndex() : 0;
+  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
+  if (saved && saved.program_type) {
+    return saved.program_type;
+  }
+
+  return null;
 }
 
 function countSelectedGoalPills(fieldNames) {
@@ -3854,23 +3859,26 @@ function bindGoalContainerSwapper() {
   const container3B = document.getElementById('container-3b-goaldirected');
   
   function swapContainers() {
-    // Check what program type is selected
+    // Check what program type is selected from the live DOM
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
     if (pType === 'goal_directed') {
-      // Hide standard goals, show specialized goal-directed engine
-      if (container3A) container3A.style.display = 'none';
-      if (container3B) container3B.style.display = 'block';
+      // Hide 3A (Standard), Show 3B (Goal-Directed)
+      if (container3A) container3A.style.setProperty('display', 'none', 'important');
+      
+      // We use 'block' here, but if 3B also needs to be a grid, change this to 'grid'
+      if (container3B) container3B.style.setProperty('display', 'block', 'important'); 
     } else {
-      // Show standard goals for Curriculum and Interest-Led
-      if (container3A) container3A.style.display = 'block';
-      if (container3B) container3B.style.display = 'none';
+      // Show 3A (Standard), Hide 3B (Goal-Directed)
+      // We use 'grid' here to preserve your 3-column layout
+      if (container3A) container3A.style.setProperty('display', 'grid', 'important');
+      if (container3B) container3B.style.setProperty('display', 'none', 'important');
     }
   }
 
-  // 1. Listen for clicks on the Program Type radio buttons in Step 1
+  // 1. Listen for clicks on the Program Type radio buttons globally
   document.addEventListener('change', function(e) {
-    if (e.target.name === 'program_type') {
+    if (e.target && e.target.name === 'program_type') {
       setTimeout(swapContainers, 50);
     }
   });
@@ -3883,11 +3891,9 @@ function bindGoalContainerSwapper() {
       }
     });
   });
+  
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
-  // Run once on load
+  // Run once on load to establish the initial state
   setTimeout(swapContainers, 100);
 }
-
-// Start the watcher
-setTimeout(bindGoalContainerSwapper, 500);
