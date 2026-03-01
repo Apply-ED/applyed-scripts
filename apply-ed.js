@@ -3351,46 +3351,105 @@ function lockStatePickers() {
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
 /* =========================================
-   STEP 4: INTEREST-LED & STANDARD GOALS VALIDATION
+   GOAL STEP VALIDATION & COUNTER (FOOLPROOF VERSION)
    ========================================= */
+// 1. The Custom Error Display Function
+function showGoalError(msg) {
+  const activeStep = document.querySelector('.step.is-active');
+  if (!activeStep) return;
+  
+  let errEl = activeStep.querySelector('.goal-validation-error');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.className = 'goal-validation-error';
+    // Instantly builds a nice looking error box
+    errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+    
+    // Injects it right above the "Next" button
+    const nextBtnWrap = activeStep.querySelector('[data-step-action="next"]')?.parentElement;
+    if (nextBtnWrap) {
+      nextBtnWrap.parentNode.insertBefore(errEl, nextBtnWrap);
+    } else {
+      activeStep.appendChild(errEl);
+    }
+  }
+  
+  errEl.textContent = msg || '';
+  errEl.style.display = msg ? 'block' : 'none';
+}
+
+// 2. Interest-Led & Standard Validation
 window.validateInterestLedStep4 = function() {
-  setStep4GoalError(null);
+  showGoalError(null); // Clear old errors
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
-  // 1. INTEREST-LED SPECIFIC: Check for at least 1 curiosity
   if (pType === 'interest_led') {
     const primaryGrid = document.getElementById('primary-interests-grid');
     if (primaryGrid) {
-      const curiosityCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
-      if (curiosityCount < 1) {
-        setStep4GoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
+      const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+      if (count < 1) {
+        showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
         return false;
       }
     }
   }
 
-  // 2. ALL STANDARD PROGRAMS (Interest-Led & Curriculum-Based): Check for at least 3 goals
   if (pType !== 'goal_directed') {
     const container3A = document.getElementById('container-3a-general');
     if (container3A) {
-      // Count all selected pills sitting inside the standard goals container
-      const standardGoalCount = container3A.querySelectorAll('.ms-option.is-selected').length;
-      
-      if (standardGoalCount < 3) {
-        setStep4GoalError(`Please select at least 3 goals in total. You currently have ${standardGoalCount} selected.`);
+      const count = container3A.querySelectorAll('.ms-option.is-selected').length;
+      if (count < 3) {
+        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`);
         return false;
       }
     }
+  }
+  return true;
+};
+
+// 3. Goal-Directed Validation
+window.validateGoalDirectedStep4 = function() {
+  showGoalError(null); // Clear old errors
+  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
+  if (pType !== 'goal_directed') return true;
+
+  let shortCount = 0;
+  let longCount = 0;
+  let socialShortCount = 0;
+  let coreShortCount = 0;
+
+  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+    if (pill.offsetParent !== null) { 
+      const type = pill.getAttribute('data-goal-type');
+      const isSocial = pill.getAttribute('data-category') === 'social';
+
+      if (type === 'short') {
+         shortCount++;
+         if (isSocial) socialShortCount++;
+         else coreShortCount++;
+      }
+      if (type === 'long') longCount++;
+    }
+  });
+
+  if (shortCount < 4 || shortCount > 8) {
+    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
+    return false;
+  }
+  if (socialShortCount > coreShortCount) {
+    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`);
+    return false;
+  }
+  if (longCount < 1 || longCount > 2) {
+    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
+    return false;
   }
 
   return true;
 };
 
-/* =========================================
-   STEP 4: GOAL-DIRECTED COUNTER & VALIDATION
-   ========================================= */
+// 4. Sticky Counter
 function bindGoalCounter() {
-  // 1. Build the sticky banner UI
   let banner = document.getElementById('aed-goal-counter');
   if (!banner) {
     banner = document.createElement('div');
@@ -3407,11 +3466,12 @@ function bindGoalCounter() {
 
   function updateCounter() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    const currentStep = document.querySelector('.step.is-active');
-    const isStep4 = currentStep && currentStep.getAttribute('data-step') === '4';
+    
+    // FOOLPROOF STEP CHECK: Does the active screen actually contain our goals?
+    const activeStep = document.querySelector('.step.is-active');
+    const isGoalStep = activeStep && activeStep.querySelector('#container-3b-goaldirected');
 
-    // Hide if not on Goal-Directed Step 4
-    if (pType !== 'goal_directed' || !isStep4) {
+    if (pType !== 'goal_directed' || !isGoalStep) {
       banner.style.setProperty('display', 'none', 'important');
       return;
     }
@@ -3421,7 +3481,6 @@ function bindGoalCounter() {
     let shortCount = 0;
     let longCount = 0;
 
-    // Count visible pills using the new Custom Attributes you added in Webflow
     document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
       if (pill.offsetParent !== null) { 
         if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
@@ -3444,67 +3503,13 @@ function bindGoalCounter() {
 
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(updateCounter, 50);
-      }
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(updateCounter, 50);
     });
   });
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
   setTimeout(updateCounter, 100);
 }
-
-// 2. The Master Validation Rules for the "Next" Button
-window.validateGoalDirectedStep4 = function() {
-  setStep4GoalError(null);
-
-  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-  if (pType !== 'goal_directed') return true;
-
-  let shortCount = 0;
-  let longCount = 0;
-  let socialShortCount = 0;
-  let coreShortCount = 0; // Academic & Independence
-
-  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-    if (pill.offsetParent !== null) { 
-      const type = pill.getAttribute('data-goal-type');
-      const isSocial = pill.getAttribute('data-category') === 'social';
-
-      if (type === 'short') {
-         shortCount++;
-         if (isSocial) socialShortCount++;
-         else coreShortCount++;
-      }
-      if (type === 'long') {
-         longCount++;
-      }
-    }
-  });
-
-  // Rule 1: 4 to 8 Short-term goals
-  if (shortCount < 4 || shortCount > 8) {
-    setStep4GoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
-    return false;
-  }
-
-  // Rule 2: Mostly Academic/Independence goals
-  // Fails if they select more social goals than core goals
-  if (socialShortCount > coreShortCount) {
-    setStep4GoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`);
-    return false;
-  }
-
-  // Rule 3: 1 to 2 Long-term goals
-  if (longCount < 1 || longCount > 2) {
-    setStep4GoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
-    return false;
-  }
-
-  return true;
-};
-
-// Start the watchers
 setTimeout(bindGoalCounter, 500);
 /* =========================================
    PROGRAM TYPE HELPER
