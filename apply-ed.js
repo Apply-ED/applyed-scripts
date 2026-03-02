@@ -45,8 +45,8 @@ window.Webflow.push(function () {
 
   // Add this attribute to the intake form:
   // <form data-aed-form="intake"> ... </form>
-  const INTAKE_FORM_SELECTOR = 'form[data-aed-form="intake"]';
-
+  //  const INTAKE_FORM_SELECTOR = 'form[data-aed-form="intake"]';
+  const INTAKE_FORM_SELECTOR = 'form';
   // Step 6 CTA button
   const PAY_CTA_SELECTOR = "#pay-button";
 
@@ -2618,11 +2618,11 @@ function bindCustomValidation() {
     return true;
   }
 
-  // Suppress browser default validation on the form
-  var form = document.querySelector('form[data-aed-form="intake"]');
-  if (form) {
-    form.setAttribute('novalidate', 'true');
-  }
+// Suppress browser default validation on the form
+  var forms = document.querySelectorAll('form');
+  forms.forEach(function(f) {
+    f.setAttribute('novalidate', 'true');
+  });
 
   // Bind Step 0 continue button
   var step0Btn = document.querySelector('#btn-next-step0');
