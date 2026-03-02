@@ -686,12 +686,15 @@ function showStep4GoalInfo() {
       'border-radius:8px', 'padding:12px 16px', 'font-size:14px',
       'line-height:1.6', 'margin-bottom:16px', 'font-family:Montserrat,sans-serif'
     ].join(';');
+  }
 
-    // Injects right at the top of the Goal-Directed container
+  // NEW LOGIC: Inject the green banner into the correct container based on program type
+  if (programType === 'goal_directed') {
     const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-    if (container3B) {
-      container3B.insertAdjacentElement('afterbegin', el);
-    }
+    if (container3B) container3B.insertAdjacentElement('afterbegin', el);
+  } else {
+    const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
+    if (container3A) container3A.insertAdjacentElement('afterbegin', el);
   }
 
   if (content) {
