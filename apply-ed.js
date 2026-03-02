@@ -655,60 +655,57 @@ updateCurrentChildHeading();
    STEP 4: INFO BANNER
    Shown at top of Step 4 for goal_directed and interest_led programs.
    ------------------------------------------------------- */
-const STEP4_INFO_ID = 'step4-goal-info';
-
-const STEP4_BANNER_CONTENT = {
-  goal_directed: {
-    title: 'Goal-Directed Program',
-    body:
-      'Please select <strong>4\u20138 short-term goals</strong> (across Academic, Social, and Independence) ' +
-      'and <strong>1\u20132 long-term goals</strong> to help us build a focused, achievable program for your child.'
-  },
-  interest_led: {
-    title: 'Interest-Led Program',
-    body:
-      'Select your child\u2019s curiosities below \u2014 even <strong>one strong interest is enough</strong>. ' +
-      'We\u2019ll build 4 unique investigations around what your child loves, each tied to curriculum.'
-  }
-};
-
+/* -------------------------------------------------------
+   STEP 4: INFO BANNER & INTEREST BANNER
+   ------------------------------------------------------- */
 function showStep4GoalInfo() {
-  const programType = getGoalDirectedProgramType();
-  const content = STEP4_BANNER_CONTENT[programType];
+  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
-  let el = document.getElementById(STEP4_INFO_ID);
-
-  if (!el) {
-    el = document.createElement('div');
-    el.id = STEP4_INFO_ID;
-    el.style.cssText = [
-      'color:#263358', 'background:#eef4ee', 'border:1px solid #c3d9c3',
-      'border-radius:8px', 'padding:12px 16px', 'font-size:14px',
-      'line-height:1.6', 'margin-bottom:16px', 'font-family:Montserrat,sans-serif'
-    ].join(';');
-  }
-
-// NEW LOGIC: Inject the green banner into the correct container based on program type
-  if (programType === 'goal_directed') {
-    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-    if (container3B) container3B.insertAdjacentElement('afterbegin', el);
-  } else if (programType === 'interest_led') {
-    // Drop it at the top of the Interests container instead of the Goals container!
+  // 1. UNIVERSAL INTERESTS BANNER (Shows for all programs)
+  let interestBanner = document.getElementById('aed-interest-banner');
+  if (!interestBanner) {
+    interestBanner = document.createElement('div');
+    interestBanner.id = 'aed-interest-banner';
+    interestBanner.style.cssText = 'color:#263358; background:#eef4ee; border:1px solid #c3d9c3; border-radius:8px; padding:12px 16px; font-size:14px; line-height:1.6; margin-bottom:16px; font-family:Montserrat,sans-serif;';
+    
     const interestsContainer = document.getElementById('step3-interests-container');
-    if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', el);
+    if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', interestBanner);
   }
 
-  if (content) {
-    el.innerHTML = '<strong>' + content.title + '</strong><br>' + content.body;
-    el.style.setProperty('display', 'block', 'important');
+  // Set the correct text for the Interests banner
+  if (pType === 'interest_led') {
+    interestBanner.innerHTML = '<strong>Interest-Led Program</strong><br>Select your child’s curiosities below — even <strong>one strong interest is enough</strong>. We’ll build 4 unique investigations around what your child loves, each tied to curriculum.';
   } else {
-    el.style.setProperty('display', 'none', 'important');
+    interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child’s passions.';
+  }
+  interestBanner.style.setProperty('display', 'block', 'important');
+
+  // 2. GOAL-DIRECTED BANNER (Only for Container 3B)
+  let goalBanner3B = document.getElementById('step4-goal-info');
+  if (!goalBanner3B) {
+    goalBanner3B = document.createElement('div');
+    goalBanner3B.id = 'step4-goal-info';
+    goalBanner3B.style.cssText = 'color:#263358; background:#eef4ee; border:1px solid #c3d9c3; border-radius:8px; padding:12px 16px; font-size:14px; line-height:1.6; margin-bottom:16px; font-family:Montserrat,sans-serif;';
+    
+    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+    if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
+  }
+
+  // Show or hide the 3B banner depending on program type
+  if (pType === 'goal_directed') {
+    goalBanner3B.innerHTML = '<strong>Goal-Directed Program</strong><br>Please select <strong>4–8 short-term goals</strong> (across Academic, Social, and Independence) and <strong>1–2 long-term goals</strong> to help us build a focused, achievable program for your child.';
+    goalBanner3B.style.setProperty('display', 'block', 'important');
+  } else {
+    goalBanner3B.style.setProperty('display', 'none', 'important');
   }
 }
 
 function hideStep4GoalInfo() {
-  const el = document.getElementById(STEP4_INFO_ID);
-  if (el) el.style.setProperty('display', 'none', 'important');
+  const interestBanner = document.getElementById('aed-interest-banner');
+  if (interestBanner) interestBanner.style.setProperty('display', 'none', 'important');
+  
+  const goalBanner3B = document.getElementById('step4-goal-info');
+  if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
 }
 
 function ensureDefaultProgramTypeForCurrentChild() {
