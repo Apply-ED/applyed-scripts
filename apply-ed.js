@@ -3593,12 +3593,21 @@ function getGoalDirectedProgramType() {
   return null;
 }
 /* =========================================
-   CONTAINER 3A / 3B MASTER SWITCH
+   CONTAINER 3A / 3B MASTER SWITCH & BANNERS
    ========================================= */
 function bindGoalContainerSwapper() {
   const container3A = document.getElementById('container-3a-general'); 
   const container3B = document.getElementById('container-3b-goaldirected');
   
+  // NEW: Inject the friendly green banner into Container 3A
+  if (container3A && !document.getElementById('aed-3a-banner')) {
+    const banner = document.createElement('div');
+    banner.id = 'aed-3a-banner';
+    banner.style.cssText = 'color:#263358; background:#eef4ee; border:1px solid #c3d9c3; border-radius:8px; padding:12px 16px; font-size:14px; line-height:1.6; margin-bottom:16px; font-family:Montserrat,sans-serif;';
+    banner.innerHTML = '<strong>Program Goals</strong><br>Please select <strong>at least 3 goals in total</strong> across the categories below to help shape the overall direction of your child\'s learning.';
+    container3A.insertAdjacentElement('afterbegin', banner);
+  }
+
   function swapContainers() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
