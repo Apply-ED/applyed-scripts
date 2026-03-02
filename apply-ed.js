@@ -1800,10 +1800,19 @@ if (action === "back") {
     return;
   }
 
-  if (action === "next") {
+if (action === "next") {
     if (!validateStep(currentStepNum)) return;
-    if (currentStepNum === 4 && !validateGoalDirectedStep4()) return;
-    if (currentStepNum === 4 && !validateInterestLedStep4()) return;
+    
+    // FOOLPROOF VISIBILITY CHECK: Run validations based on what is actually on screen!
+    const container3B = document.getElementById('container-3b-goaldirected');
+    if (container3B && container3B.offsetParent !== null) {
+      if (typeof validateGoalDirectedStep4 === 'function' && !validateGoalDirectedStep4()) return;
+    }
+
+    const container3A = document.getElementById('container-3a-general');
+    if (container3A && container3A.offsetParent !== null) {
+      if (typeof validateInterestLedStep4 === 'function' && !validateInterestLedStep4()) return;
+    }
 
     if (currentStepNum === 0) {
       recalcOrderSummaryUIAndHidden();
@@ -1812,11 +1821,6 @@ if (action === "back") {
     recalcOrderSummaryUIAndHidden();
 
     if (currentStepNum < STEP_PAYMENT) setActive(currentStepNum + 1);
-    return;
-  }
-
-  if (action === "save-child") {
-    saveCurrentChildAndAdvance();
     return;
   }
 });
@@ -3464,14 +3468,14 @@ function bindGoalCounter() {
     document.body.appendChild(banner);
   }
 
-  function updateCounter() {
+function updateCounter() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
-    // FOOLPROOF STEP CHECK: Does the active screen actually contain our goals?
-    const activeStep = document.querySelector('.step.is-active');
-    const isGoalStep = activeStep && activeStep.querySelector('#container-3b-goaldirected');
+    // FOOLPROOF VISIBILITY CHECK: Is the Goal container currently on the screen?
+    const container3B = document.getElementById('container-3b-goaldirected');
+    const isGoalContainerVisible = container3B && container3B.offsetParent !== null;
 
-    if (pType !== 'goal_directed' || !isGoalStep) {
+    if (pType !== 'goal_directed' || !isGoalContainerVisible) {
       banner.style.setProperty('display', 'none', 'important');
       return;
     }
