@@ -688,13 +688,14 @@ function showStep4GoalInfo() {
     ].join(';');
   }
 
-  // NEW LOGIC: Inject the green banner into the correct container based on program type
+// NEW LOGIC: Inject the green banner into the correct container based on program type
   if (programType === 'goal_directed') {
     const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (container3B) container3B.insertAdjacentElement('afterbegin', el);
-  } else {
-    const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
-    if (container3A) container3A.insertAdjacentElement('afterbegin', el);
+  } else if (programType === 'interest_led') {
+    // Drop it at the top of the Interests container instead of the Goals container!
+    const interestsContainer = document.getElementById('step3-interests-container');
+    if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', el);
   }
 
   if (content) {
