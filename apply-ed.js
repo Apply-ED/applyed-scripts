@@ -3376,14 +3376,15 @@ function lockStatePickers() {
 /* =========================================
    GOAL STEP VALIDATION & SMART ERRORS
    ========================================= */
-// 1. The Custom Error Display Function
+// 1. The Custom Error Display Function (Bulletproof Edition)
 function showGoalError(msg, targetContainerId) {
   let errEl = document.getElementById('custom-goal-error-box');
   
   if (!errEl) {
     errEl = document.createElement('div');
     errEl.id = 'custom-goal-error-box';
-    errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+    // Added position: relative and z-index to ensure nothing overlaps it
+    errEl.style.cssText = 'position: relative; z-index: 9999; color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
   }
   
   if (!msg) {
@@ -3394,14 +3395,25 @@ function showGoalError(msg, targetContainerId) {
   errEl.textContent = msg;
   errEl.style.display = 'block';
 
-// Smart Placer: Move the error box to sit just above whichever container caused the error
+  // Try to find the exact container by ID first, then by Class
   const targetContainer = document.getElementById(targetContainerId) || document.querySelector('.' + targetContainerId);
-  if (targetContainer && targetContainer.parentNode) {
-    targetContainer.parentNode.insertBefore(errEl, targetContainer);
-    // Smoothly scroll the screen up so the parent actually sees the error!
+
+  if (targetContainer) {
+    // Drop the error safely inside the very top of the container
+    targetContainer.insertAdjacentElement('afterbegin', errEl);
     errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    // ULTIMATE FALLBACK: If the container is hiding, drop the error at the top of the screen!
+    const activeStep = document.querySelector('.step.is-active');
+    if (activeStep) {
+       activeStep.insertAdjacentElement('afterbegin', errEl);
+       errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 }
+
+// Connect it to the window so we can test it directly in the console!
+window.showGoalError = showGoalError;
 
 // 2. Interest-Led & Standard Validation
 window.validateInterestLedStep4 = function() {
