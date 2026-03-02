@@ -3420,7 +3420,7 @@ window.validateInterestLedStep4 = function() {
   showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
-  if (pType === 'interest_led') {
+ if (pType === 'interest_led' || pType === 'curriculum_based' || pType === 'curriculum_aligned') {
     const primaryGrid = document.getElementById('primary-interests-grid');
     if (primaryGrid) {
       const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
@@ -3448,7 +3448,7 @@ if (pType !== 'goal_directed') {
 window.validateGoalDirectedStep4 = function() {
   showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-  if (pType !== 'goal_directed' || pType !== 'curriculum_aligned') return true;
+  if (pType !== 'goal_directed') return true;
 
   // Enforce at least 1 Interest
   const primaryGrid = document.getElementById('primary-interests-grid');
