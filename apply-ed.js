@@ -688,7 +688,7 @@ function showStep4GoalInfo() {
     ].join(';');
 
     // Injects right at the top of the Goal-Directed container
-    const container3B = document.getElementById('step3b-goal-container') || document.querySelector('.step3b-goal-container');
+    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (container3B) {
       container3B.insertAdjacentElement('afterbegin', el);
     }
@@ -3394,8 +3394,8 @@ function showGoalError(msg, targetContainerId) {
   errEl.textContent = msg;
   errEl.style.display = 'block';
 
-  // Smart Placer: Move the error box to sit just above whichever container caused the error
-  const targetContainer = document.getElementById(targetContainerId);
+// Smart Placer: Move the error box to sit just above whichever container caused the error
+  const targetContainer = document.getElementById(targetContainerId) || document.querySelector('.' + targetContainerId);
   if (targetContainer && targetContainer.parentNode) {
     targetContainer.parentNode.insertBefore(errEl, targetContainer);
     // Smoothly scroll the screen up so the parent actually sees the error!
@@ -3419,12 +3419,12 @@ window.validateInterestLedStep4 = function() {
     }
   }
 
-  if (pType !== 'goal_directed') {
-    const container3A = document.getElementById('step3a-goal-container');
+if (pType !== 'goal_directed') {
+    const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
     if (container3A) {
       const count = container3A.querySelectorAll('.ms-option.is-selected').length;
       if (count < 3) {
-        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'step3a-goal-container');
+        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'container-3a-general');
         return false;
       }
     }
@@ -3467,16 +3467,16 @@ window.validateGoalDirectedStep4 = function() {
     }
   });
 
-  if (shortCount < 4 || shortCount > 8) {
-    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`, 'step3b-goal-container');
+if (shortCount < 4 || shortCount > 8) {
+    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`, 'container-3b-goaldirected');
     return false;
   }
   if (socialShortCount > coreShortCount) {
-    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`, 'step3b-goal-container');
+    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`, 'container-3b-goaldirected');
     return false;
   }
   if (longCount < 1 || longCount > 2) {
-    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`, 'step3b-goal-container');
+    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`, 'container-3b-goaldirected');
     return false;
   }
 
@@ -3498,8 +3498,8 @@ function bindGoalCounter() {
       font-size: 14px; color: #263358;
     `;
     
-    // Injects just under the instruction banner inside 3B
-    const container3B = document.getElementById('step3b-goal-container') || document.querySelector('.step3b-goal-container');
+// Injects just under the instruction banner inside 3B
+    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (container3B) {
       container3B.insertAdjacentElement('afterbegin', banner);
     } else {
