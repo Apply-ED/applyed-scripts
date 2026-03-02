@@ -679,25 +679,19 @@ function showStep4GoalInfo() {
   let el = document.getElementById(STEP4_INFO_ID);
 
   if (!el) {
-    const step4El = getStepEl(3);
-    if (!step4El) return;
-
     el = document.createElement('div');
     el.id = STEP4_INFO_ID;
     el.style.cssText = [
-      'color:#263358',
-      'background:#eef4ee',
-      'border:1px solid #c3d9c3',
-      'border-radius:8px',
-      'padding:12px 16px',
-      'font-size:14px',
-      'line-height:1.6',
-      'margin-bottom:16px',
-      'font-family:Montserrat,sans-serif'
+      'color:#263358', 'background:#eef4ee', 'border:1px solid #c3d9c3',
+      'border-radius:8px', 'padding:12px 16px', 'font-size:14px',
+      'line-height:1.6', 'margin-bottom:16px', 'font-family:Montserrat,sans-serif'
     ].join(';');
 
-    // Insert as the very first child of Step 4
-    step4El.insertAdjacentElement('afterbegin', el);
+    // Injects right at the top of the Goal-Directed container
+    const container3B = document.getElementById('step3b-goal-container') || document.querySelector('.step3b-goal-container');
+    if (container3B) {
+      container3B.insertAdjacentElement('afterbegin', el);
+    }
   }
 
   if (content) {
@@ -3380,36 +3374,38 @@ function lockStatePickers() {
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
 /* =========================================
-   GOAL STEP VALIDATION & COUNTER (FOOLPROOF VERSION)
+   GOAL STEP VALIDATION & SMART ERRORS
    ========================================= */
 // 1. The Custom Error Display Function
-function showGoalError(msg) {
-  const activeStep = document.querySelector('.step.is-active');
-  if (!activeStep) return;
+function showGoalError(msg, targetContainerId) {
+  let errEl = document.getElementById('custom-goal-error-box');
   
-  let errEl = activeStep.querySelector('.goal-validation-error');
   if (!errEl) {
     errEl = document.createElement('div');
-    errEl.className = 'goal-validation-error';
-    // Instantly builds a nice looking error box
+    errEl.id = 'custom-goal-error-box';
     errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
-    
-    // Injects it right above the "Next" button
-    const nextBtnWrap = activeStep.querySelector('[data-step-action="next"]')?.parentElement;
-    if (nextBtnWrap) {
-      nextBtnWrap.parentNode.insertBefore(errEl, nextBtnWrap);
-    } else {
-      activeStep.appendChild(errEl);
-    }
   }
   
-  errEl.textContent = msg || '';
-  errEl.style.display = msg ? 'block' : 'none';
+  if (!msg) {
+    errEl.style.display = 'none';
+    return;
+  }
+
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+
+  // Smart Placer: Move the error box to sit just above whichever container caused the error
+  const targetContainer = document.getElementById(targetContainerId);
+  if (targetContainer && targetContainer.parentNode) {
+    targetContainer.parentNode.insertBefore(errEl, targetContainer);
+    // Smoothly scroll the screen up so the parent actually sees the error!
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 // 2. Interest-Led & Standard Validation
 window.validateInterestLedStep4 = function() {
-  showGoalError(null); // Clear old errors
+  showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
   if (pType === 'interest_led') {
@@ -3417,18 +3413,18 @@ window.validateInterestLedStep4 = function() {
     if (primaryGrid) {
       const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
       if (count < 1) {
-        showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
+        showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.', 'step3-interests-container');
         return false;
       }
     }
   }
 
   if (pType !== 'goal_directed') {
-    const container3A = document.getElementById('container-3a-general');
+    const container3A = document.getElementById('step3a-goal-container');
     if (container3A) {
       const count = container3A.querySelectorAll('.ms-option.is-selected').length;
       if (count < 3) {
-        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`);
+        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'step3a-goal-container');
         return false;
       }
     }
@@ -3438,16 +3434,16 @@ window.validateInterestLedStep4 = function() {
 
 // 3. Goal-Directed Validation
 window.validateGoalDirectedStep4 = function() {
-  showGoalError(null); // Clear old errors
+  showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
   if (pType !== 'goal_directed') return true;
 
-  // --- NEW: Enforce at least 1 Interest ---
+  // Enforce at least 1 Interest
   const primaryGrid = document.getElementById('primary-interests-grid');
   if (primaryGrid) {
     const interestCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
     if (interestCount < 1) {
-      showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
+      showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.', 'step3-interests-container');
       return false;
     }
   }
@@ -3472,15 +3468,15 @@ window.validateGoalDirectedStep4 = function() {
   });
 
   if (shortCount < 4 || shortCount > 8) {
-    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`);
+    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`, 'step3b-goal-container');
     return false;
   }
   if (socialShortCount > coreShortCount) {
-    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`);
+    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`, 'step3b-goal-container');
     return false;
   }
   if (longCount < 1 || longCount > 2) {
-    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`);
+    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`, 'step3b-goal-container');
     return false;
   }
 
@@ -3488,19 +3484,27 @@ window.validateGoalDirectedStep4 = function() {
 };
 
 // 4. Sticky Counter
+// 4. Sticky Counter
 function bindGoalCounter() {
   let banner = document.getElementById('aed-goal-counter');
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'aed-goal-counter';
+    // Removed position: fixed, now it's a neat inline block above the goals
     banner.style.cssText = `
-      display: none; position: fixed; bottom: 0; left: 0; width: 100%;
-      background: #fdfdfd; border-top: 1px solid #DDe4dd; padding: 12px 20px;
-      z-index: 9999; box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
+      display: none; background: #fdfdfd; border: 1px solid #DDe4dd; padding: 12px 20px;
+      border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       justify-content: center; gap: 24px; font-family: Montserrat, sans-serif;
       font-size: 14px; color: #263358;
     `;
-    document.body.appendChild(banner);
+    
+    // Injects just under the instruction banner inside 3B
+    const container3B = document.getElementById('step3b-goal-container') || document.querySelector('.step3b-goal-container');
+    if (container3B) {
+      container3B.insertAdjacentElement('afterbegin', banner);
+    } else {
+      document.body.appendChild(banner);
+    }
   }
 
 function updateCounter() {
