@@ -755,23 +755,48 @@ function ensureDefaultProgramTypeForCurrentChild() {
     return el ? toInt(el.value, 1) : 1;
   }
 
-  function showStepError(stepNum, msg) {
+function showStepError(stepNum, msg) {
     const stepEl = getStepEl(stepNum);
     if (!stepEl) return;
-    const err = stepEl.querySelector(".step-error");
-    if (!err) return;
+    
+    let err = stepEl.querySelector(".step-error");
+    if (!err) {
+      // If Webflow didn't provide an error text block, build our own!
+      err = document.createElement("div");
+      err.className = "step-error";
+      err.style.cssText = "color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;";
+      
+      // Try to put it right above the buttons
+      const actionsWrap = stepEl.querySelector("[data-step-action]")?.closest("div");
+      if (actionsWrap) {
+        actionsWrap.parentNode.insertBefore(err, actionsWrap);
+      } else {
+        stepEl.appendChild(err);
+      }
+    }
+    
     err.textContent = msg || "";
     err.style.display = msg ? "block" : "none";
   }
 
   function clearStepError(stepNum) { showStepError(stepNum, ""); }
 
-  function isElementActuallyFillable(el) {
+function isElementActuallyFillable(el) {
     if (!el) return false;
     if (el.disabled) return false;
     const type = (el.getAttribute("type") || "").toLowerCase();
     if (type === "hidden") return false;
     if (el.hasAttribute("data-state-key")) return false;
+
+    // THE ULTIMATE VISIBILITY CHECK: If it has 0 physical width or height, it is completely hidden!
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return false;
+
+    // Specific fix for Webflow hidden Pill Groups
+    if (el.classList.contains("ms-input")) {
+      const group = el.closest(".ms-group");
+      if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) return false;
+    }
+
     return true;
   }
 
@@ -3471,11 +3496,14 @@ function bindGoalCounter() {
 function updateCounter() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
-    // FOOLPROOF VISIBILITY CHECK: Is the Goal container currently on the screen?
-    const container3B = document.getElementById('container-3b-goaldirected');
-    const isGoalContainerVisible = container3B && container3B.offsetParent !== null;
+    // FOOLPROOF CHECK: Look across the entire screen for any visible short-term goal pills
+    let hasVisibleGoals = false;
+    document.querySelectorAll('.ms-option[data-goal-type="short"]').forEach(pill => {
+       if (pill.offsetWidth > 0 || pill.offsetParent !== null) hasVisibleGoals = true;
+    });
 
-    if (pType !== 'goal_directed' || !isGoalContainerVisible) {
+    // If we aren't on Goal Directed, or the goals are hidden, sleep the counter.
+    if (pType !== 'goal_directed' || !hasVisibleGoals) {
       banner.style.setProperty('display', 'none', 'important');
       return;
     }
