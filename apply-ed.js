@@ -644,7 +644,7 @@ updateCurrentChildHeading();
 }
 
   // Show/hide the Step 4 goal-directed info banner
-  if (stepNum === 4) {
+  if (stepNum === 3) {
     setTimeout(showStep4GoalInfo, 0);
   } else {
     hideStep4GoalInfo();
@@ -679,7 +679,7 @@ function showStep4GoalInfo() {
   let el = document.getElementById(STEP4_INFO_ID);
 
   if (!el) {
-    const step4El = getStepEl(4);
+    const step4El = getStepEl(3);
     if (!step4El) return;
 
     el = document.createElement('div');
@@ -3441,6 +3441,16 @@ window.validateGoalDirectedStep4 = function() {
   showGoalError(null); // Clear old errors
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
   if (pType !== 'goal_directed') return true;
+
+  // --- NEW: Enforce at least 1 Interest ---
+  const primaryGrid = document.getElementById('primary-interests-grid');
+  if (primaryGrid) {
+    const interestCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+    if (interestCount < 1) {
+      showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.');
+      return false;
+    }
+  }
 
   let shortCount = 0;
   let longCount = 0;
