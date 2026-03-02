@@ -3448,7 +3448,7 @@ if (pType !== 'goal_directed') {
 window.validateGoalDirectedStep4 = function() {
   showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-  if (pType !== 'goal_directed') return true;
+  if (pType !== 'goal_directed' || pType !== 'curriculum_aligned') return true;
 
   // Enforce at least 1 Interest
   const primaryGrid = document.getElementById('primary-interests-grid');
