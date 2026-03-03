@@ -559,7 +559,8 @@ function applyStateDefaultForCurrentChild() {
   }
 
   const STEP_FIRST_CHILD = 1;
-  const STEP_LAST_CHILD = 5;
+  const STEP_LAST_CHILD = 3;  // Reduced from 5
+  const STEP_ENVIRONMENT = 4; // The new Learning Environment step
   const STEP_PAYMENT = 6;
 
   let currentStepNum = 0;
@@ -1356,12 +1357,10 @@ function saveCurrentChildAndAdvance() {
   }
 
   const idx = getChildIndex();
-const childData = collectChildData();
-childData.__saved = true;               // ✅ mark as completed/saved
-window.__aed_child_applications[idx] = childData;
+  const childData = collectChildData();
+  childData.__saved = true;               
+  window.__aed_child_applications[idx] = childData;
 
-
-  // NEW: remember child 1's chosen State so we can reuse it for child 2+
   captureFirstChildStateIfNeeded();
 
   const total = getChildrenCount();
@@ -1370,10 +1369,12 @@ window.__aed_child_applications[idx] = childData;
   setChildIndex(nextIdx);
 
   if (nextIdx >= total) {
-    setActive(STEP_PAYMENT);
+    // All children are complete! Move to Step 4 (Environment)
+    setActive(STEP_ENVIRONMENT);
     return;
   }
 
+  // Otherwise, loop back to Step 1 for the next child
   resetChildFields();
   setActive(STEP_FIRST_CHILD);
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
@@ -1810,17 +1811,34 @@ document.addEventListener("click", function (e) {
   const action = (btn.getAttribute("data-step-action") || "").trim();
 
 if (action === "back") {
-    // If we are on Step 6 (Review), go to the last child's details instead of Step 5
     if (currentStepNum === 6) {
+        // From Step 6, go back to Step 4 (Environment)
+        setActive(4);
+    } else if (currentStepNum === 4) {
+        // From Step 4, go back to the LAST child's Step 3
         const lastChildIdx = getChildrenCount() - 1;
-        window.jumpToChild(lastChildIdx); 
+        setChildIndex(lastChildIdx);
+        loadChildData(lastChildIdx);
+        setActive(3);
+        renderChildNavBar();
+    } else if (currentStepNum === 1) {
+        // From Step 1, go back to previous child's Step 3, OR Step 0
+        const idx = getChildIndex();
+        if (idx > 0) {
+            setChildIndex(idx - 1);
+            loadChildData(idx - 1);
+            setActive(3);
+            renderChildNavBar();
+        } else {
+            setActive(0);
+        }
     } else if (currentStepNum > 0) {
         setActive(currentStepNum - 1);
     }
     return;
   }
 
-if (action === "next") {
+  if (action === "next") {
     if (!validateStep(currentStepNum)) return;
     
     // FOOLPROOF VISIBILITY CHECK: Run validations based on what is actually on screen!
@@ -1840,10 +1858,22 @@ if (action === "next") {
 
     recalcOrderSummaryUIAndHidden();
 
+    // --- NEW LOOPING & ROUTING LOGIC ---
+    if (currentStepNum === 3) {
+      // Step 3 is the new last child step. Trigger the save & loop!
+      saveCurrentChildAndAdvance();
+      return;
+    }
+
+    if (currentStepNum === 4) {
+      // Step 4 jumps straight to 6 (Review), skipping redundant Step 5
+      setActive(6);
+      return;
+    }
+
     if (currentStepNum < STEP_PAYMENT) setActive(currentStepNum + 1);
     return;
   }
-});
 
 
 /* =========================
