@@ -13,6 +13,35 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     pointer-events: none !important;
     opacity: 0.8;
   }
+  
+  /* CHILD NAVIGATION PILLS STYLING */
+  #child-nav-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .child-nav-btn {
+    background-color: #f4f7f4;
+    color: #7a7f87;
+    border: 1px solid #DDe4dd;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: Montserrat, sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .child-nav-btn.is-active {
+    background-color: #799377;
+    color: #ffffff;
+    border-color: #799377;
+  }
+  .child-nav-btn:hover:not(.is-active) {
+    background-color: #eef4ee;
+  }
 </style>`);
 
 // Remove locked-checkbox from Languages — it is optional
