@@ -1874,7 +1874,7 @@ if (action === "back") {
     if (currentStepNum < STEP_PAYMENT) setActive(currentStepNum + 1);
     return;
   }
-
+});
 
 /* =========================
    CHILD NAVIGATION & DATA LOADING
