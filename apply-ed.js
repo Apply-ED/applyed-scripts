@@ -44,12 +44,6 @@ document.head.insertAdjacentHTML("beforeend", `<style>
   }
 </style>`);
 
-// Remove locked-checkbox from Languages — it is optional
-setTimeout(function() {
-  var langCb = document.getElementById('languages');
-  if (langCb) langCb.classList.remove('locked-checkbox');
-}, 500);
-
 window.Webflow ||= [];
 window.Webflow.push(function () {
   "use strict";
@@ -2918,7 +2912,7 @@ function bindYearLevelPills() {
   updatePills();
 }
 /* =========================
-   CURRICULUM VISIBILITY & LOCKING (F-10 Logic)
+   CURRICULUM VISIBILITY, LOCKING & BANNERS (F-10 Logic)
    ========================= */
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -2931,13 +2925,25 @@ function bindCurriculumVisibility() {
 
   if (!yearDropdown) return;
 
+  // 1. Create the Guidance Banner Container
+  var bannerContainer = document.getElementById('aed-curriculum-banner');
+  if (!bannerContainer) {
+    bannerContainer = document.createElement('div');
+    bannerContainer.id = 'aed-curriculum-banner';
+    bannerContainer.style.cssText = 'color:#263358; background:#eef4ee; border:1px solid #c3d9c3; border-radius:8px; padding:12px 16px; font-size:14px; line-height:1.6; margin-bottom:16px; font-family:Montserrat,sans-serif; display:none;';
+    
+    // Insert it right before the F-8 curriculum container
+    var parentWrap = coreF8Container ? coreF8Container.parentNode : null;
+    if (parentWrap) parentWrap.insertBefore(bannerContainer, coreF8Container);
+  }
+
   function lockSpecificElements(container) {
     if (!container) return;
     var lockedItems = container.querySelectorAll('.locked-checkbox');
     lockedItems.forEach(function(item) {
       if (item.type === 'checkbox') {
         item.checked = true;
-        item.dispatchEvent(new Event('change', { bubbles: true })); // Nudge Webflow UI
+        item.dispatchEvent(new Event('change', { bubbles: true })); 
       }
       var wrapper = item.closest('.w-checkbox') || item;
       if (wrapper) {
@@ -2947,14 +2953,40 @@ function bindCurriculumVisibility() {
     });
   }
 
+  // Helper to strictly lock or unlock specific checkboxes (like Languages)
+  function setCheckboxLock(selector, lockAndCheck) {
+    var cbs = document.querySelectorAll(selector);
+    cbs.forEach(function(cb) {
+      var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
+      var realInput = cb.tagName === 'INPUT' ? cb : (wrapper ? wrapper.querySelector('input[type="checkbox"]') : null);
+      
+      if (lockAndCheck) {
+        if (realInput) {
+          realInput.checked = true;
+          realInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (wrapper) {
+          wrapper.style.pointerEvents = 'none';
+          wrapper.style.opacity = '0.7';
+        }
+      } else {
+        if (wrapper) {
+          wrapper.style.pointerEvents = 'auto';
+          wrapper.style.opacity = '1';
+        }
+      }
+    });
+  }
+
   function checkYearLevel() {
     var rawValue = yearDropdown.value;
     
-    // 1. Hide EVERYTHING by default
+    // Hide EVERYTHING by default
     if (coreF8Container) coreF8Container.style.display = 'none';
     if (artsPillsY78) artsPillsY78.style.display = 'none';
     if (y9Container) y9Container.style.display = 'none';
     if (y10Container) y10Container.style.display = 'none';
+    if (bannerContainer) bannerContainer.style.display = 'none';
 
     if (!rawValue) return;
 
@@ -2963,7 +2995,7 @@ function bindCurriculumVisibility() {
     var isY9 = false;
     var isY10 = false;
 
-    // 2. Figure out the year level
+    // Figure out the year level
     if (rawValue === 'FOUNDATION') {
       isF6 = true;
     } else {
@@ -2977,46 +3009,69 @@ function bindCurriculumVisibility() {
       }
     }
 
-    // 3. Apply Core F-8 Rules
+    // Apply Core F-8 Rules
     if (isF6 || isY78) {
       if (coreF8Container) {
         coreF8Container.style.display = 'block';
         lockSpecificElements(coreF8Container); // Locks English, Maths, etc.
         
-        // --- THE SMART ARTS FIX ---
+        // LOCK Languages for F-8
+        setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', true);
+        
+        // The Arts Logic
         var artsCb = document.getElementById('y78-arts-cb');
         if (artsCb) {
            var artsWrap = artsCb.closest('.w-checkbox') || artsCb.parentElement;
            var realInput = artsCb.tagName === 'INPUT' ? artsCb : artsWrap.querySelector('input[type="checkbox"]');
            
            if (isF6) {
-             // F-6: Mandatory and Locked
              if (realInput) {
                realInput.checked = true;
                realInput.dispatchEvent(new Event('change', { bubbles: true }));
              }
              artsWrap.style.pointerEvents = 'none';
              artsWrap.style.opacity = '0.7';
+             
+             // F-6 Banner
+             bannerContainer.innerHTML = '<strong>Curriculum Requirements (F-6)</strong><br>To meet standard home education requirements, your child will explore all 8 Key Learning Areas. This ensures a broad, foundational education.';
+             bannerContainer.style.display = 'block';
+
            } else if (isY78) {
-             // 7-8: Optional and Unlocked
-             artsWrap.style.pointerEvents = 'auto';
-             artsWrap.style.opacity = '1';
+             // 7-8: Checkbox locked, but pills show (handled below)
+             if (realInput) {
+               realInput.checked = true;
+               realInput.dispatchEvent(new Event('change', { bubbles: true }));
+             }
+             artsWrap.style.pointerEvents = 'none';
+             artsWrap.style.opacity = '0.7';
+
+             // 7-8 Banner
+             bannerContainer.innerHTML = '<strong>Curriculum Requirements (Years 7-8)</strong><br>All 8 core areas are still required, but your child can now choose their specific focus within The Arts (select at least 1).';
+             bannerContainer.style.display = 'block';
            }
         }
       }
     }
 
-    // 4. Apply Specific Elective Rules
+    // Apply Specific Elective Rules
     if (isY78 && artsPillsY78) {
       artsPillsY78.style.display = 'block';
     }
     if (isY9 && y9Container) {
       y9Container.style.display = 'block';
       lockSpecificElements(y9Container); 
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); // Unlock Languages
+      
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History or Geography). You can then select 2 or more electives from different areas to suit their interests.';
+      bannerContainer.style.display = 'block';
     }
     if (isY10 && y10Container) {
       y10Container.style.display = 'block';
       lockSpecificElements(y10Container);
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); // Unlock Languages
+      
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History or Geography). You can then select 2 or more electives from different areas to shape their future pathway.';
+      bannerContainer.style.display = 'block';
     }
   }
 
