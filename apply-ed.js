@@ -1875,6 +1875,9 @@ if (action === "back") {
       if (typeof validateInterestLedStep4 === 'function' && !validateInterestLedStep4()) return;
     }
 
+    // NEW CODE: Check the curriculum rules!
+    if (typeof window.validateCurriculum === 'function' && !window.validateCurriculum()) return;
+
     if (currentStepNum === 0) {
       recalcOrderSummaryUIAndHidden();
     }
@@ -2911,13 +2914,13 @@ function bindYearLevelPills() {
   if (stateDropdown) stateDropdown.addEventListener('change', updatePills);
   updatePills();
 }
+
 /* =========================
    CURRICULUM VISIBILITY, LOCKING & BANNERS (F-10 Logic)
    ========================= */
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
   
-  // All Our Containers
   var coreF8Container = document.getElementById('f6-curriculum-container'); 
   var artsPillsY78 = document.getElementById('y78-arts-pills');
   var y9Container = document.getElementById('y9-curriculum-container');
@@ -2925,14 +2928,11 @@ function bindCurriculumVisibility() {
 
   if (!yearDropdown) return;
 
-  // 1. Create the Guidance Banner Container
   var bannerContainer = document.getElementById('aed-curriculum-banner');
   if (!bannerContainer) {
     bannerContainer = document.createElement('div');
     bannerContainer.id = 'aed-curriculum-banner';
     bannerContainer.style.cssText = 'color:#263358; background:#eef4ee; border:1px solid #c3d9c3; border-radius:8px; padding:12px 16px; font-size:14px; line-height:1.6; margin-bottom:16px; font-family:Montserrat,sans-serif; display:none;';
-    
-    // Insert it right before the F-8 curriculum container
     var parentWrap = coreF8Container ? coreF8Container.parentNode : null;
     if (parentWrap) parentWrap.insertBefore(bannerContainer, coreF8Container);
   }
@@ -2953,7 +2953,6 @@ function bindCurriculumVisibility() {
     });
   }
 
-  // Helper to strictly lock or unlock specific checkboxes (like Languages)
   function setCheckboxLock(selector, lockAndCheck) {
     var cbs = document.querySelectorAll(selector);
     cbs.forEach(function(cb) {
@@ -2978,10 +2977,45 @@ function bindCurriculumVisibility() {
     });
   }
 
+  // NEW: Bulletproof function to force History to be selected and locked
+  function forceSelectHistory(prefix) {
+    var hassPills = document.getElementById(prefix + '-hass-pills');
+    if (!hassPills) return;
+    
+    // Find the pill by data-value or text content
+    var historyPill = hassPills.querySelector('.ms-option[data-value="history"]') || hassPills.querySelector('.ms-option[data-value="History"]');
+    if (!historyPill) {
+       var allPills = hassPills.querySelectorAll('.ms-option');
+       for (var i = 0; i < allPills.length; i++) {
+          if (allPills[i].textContent.toLowerCase().includes('history')) {
+             historyPill = allPills[i]; break;
+          }
+       }
+    }
+    
+    if (!historyPill) return;
+
+    if (!historyPill.classList.contains('is-selected')) {
+      historyPill.classList.add('is-selected');
+      var input = hassPills.querySelector('.ms-input');
+      if (input) {
+         var val = historyPill.getAttribute('data-value');
+         var currentVals = [];
+         try { currentVals = JSON.parse(input.value || "[]"); } catch(e){}
+         if (!currentVals.includes(val)) currentVals.push(val);
+         input.value = JSON.stringify(currentVals);
+         input.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+    }
+    
+    historyPill.style.pointerEvents = 'none';
+    historyPill.style.opacity = '0.9';
+    historyPill.style.boxShadow = '0 0 0 2px #799377 inset'; 
+  }
+
   function checkYearLevel() {
     var rawValue = yearDropdown.value;
     
-    // Hide EVERYTHING by default
     if (coreF8Container) coreF8Container.style.display = 'none';
     if (artsPillsY78) artsPillsY78.style.display = 'none';
     if (y9Container) y9Container.style.display = 'none';
@@ -2990,12 +3024,8 @@ function bindCurriculumVisibility() {
 
     if (!rawValue) return;
 
-    var isF6 = false;
-    var isY78 = false;
-    var isY9 = false;
-    var isY10 = false;
+    var isF6 = false, isY78 = false, isY9 = false, isY10 = false;
 
-    // Figure out the year level
     if (rawValue === 'FOUNDATION') {
       isF6 = true;
     } else {
@@ -3009,16 +3039,12 @@ function bindCurriculumVisibility() {
       }
     }
 
-    // Apply Core F-8 Rules
     if (isF6 || isY78) {
       if (coreF8Container) {
         coreF8Container.style.display = 'block';
-        lockSpecificElements(coreF8Container); // Locks English, Maths, etc.
-        
-        // LOCK Languages for F-8
+        lockSpecificElements(coreF8Container); 
         setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', true);
         
-        // The Arts Logic
         var artsCb = document.getElementById('y78-arts-cb');
         if (artsCb) {
            var artsWrap = artsCb.closest('.w-checkbox') || artsCb.parentElement;
@@ -3031,21 +3057,16 @@ function bindCurriculumVisibility() {
              }
              artsWrap.style.pointerEvents = 'none';
              artsWrap.style.opacity = '0.7';
-             
-             // F-6 Banner
              bannerContainer.innerHTML = '<strong>Curriculum Requirements (F-6)</strong><br>To meet standard home education requirements, your child will explore all 8 Key Learning Areas. This ensures a broad, foundational education.';
              bannerContainer.style.display = 'block';
 
            } else if (isY78) {
-             // 7-8: Checkbox locked, but pills show (handled below)
              if (realInput) {
                realInput.checked = true;
                realInput.dispatchEvent(new Event('change', { bubbles: true }));
              }
              artsWrap.style.pointerEvents = 'none';
              artsWrap.style.opacity = '0.7';
-
-             // 7-8 Banner
              bannerContainer.innerHTML = '<strong>Curriculum Requirements (Years 7-8)</strong><br>All 8 core areas are still required, but your child can now choose their specific focus within The Arts (select at least 1).';
              bannerContainer.style.display = 'block';
            }
@@ -3053,24 +3074,27 @@ function bindCurriculumVisibility() {
       }
     }
 
-    // Apply Specific Elective Rules
-    if (isY78 && artsPillsY78) {
-      artsPillsY78.style.display = 'block';
-    }
+    if (isY78 && artsPillsY78) artsPillsY78.style.display = 'block';
+    
     if (isY9 && y9Container) {
       y9Container.style.display = 'block';
       lockSpecificElements(y9Container); 
-      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); // Unlock Languages
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); 
+      setCheckboxLock('#y9-hass-cb', true); // Lock HASS checkbox
+      forceSelectHistory('y9'); // Auto-select History
       
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History or Geography). You can then select 2 or more electives from different areas to suit their interests.';
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to suit their interests.';
       bannerContainer.style.display = 'block';
     }
+    
     if (isY10 && y10Container) {
       y10Container.style.display = 'block';
       lockSpecificElements(y10Container);
-      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); // Unlock Languages
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); 
+      setCheckboxLock('#y10-hass-cb', true); // Lock HASS checkbox
+      forceSelectHistory('y10'); // Auto-select History
       
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History or Geography). You can then select 2 or more electives from different areas to shape their future pathway.';
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
       bannerContainer.style.display = 'block';
     }
   }
@@ -3078,6 +3102,90 @@ function bindCurriculumVisibility() {
   yearDropdown.addEventListener('change', checkYearLevel);
   checkYearLevel(); 
 }
+
+/* =========================
+   CURRICULUM VALIDATION (Checks Rules on "Next" Click)
+   ========================= */
+window.validateCurriculum = function() {
+  var existingErr = document.getElementById('curriculum-error-msg');
+  if (existingErr) existingErr.style.display = 'none';
+
+  function showCurrError(msg, targetContainerId) {
+    var errEl = document.getElementById('curriculum-error-msg');
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.id = 'curriculum-error-msg';
+      errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+    }
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    
+    var container = document.getElementById(targetContainerId);
+    if (container) {
+      container.insertAdjacentElement('afterbegin', errEl);
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  var yearDropdown = document.querySelector('select[name="student_year_level"]');
+  if (!yearDropdown) return true;
+  var rawValue = yearDropdown.value;
+  if (!rawValue || rawValue === 'FOUNDATION') return true;
+
+  var match = rawValue.match(/\d+/);
+  if (!match) return true;
+  var yearNum = parseInt(match[0], 10);
+
+  // RULE 1: Years 7-8 Must Select at Least 1 Arts subject
+  if (yearNum === 7 || yearNum === 8) {
+    var artsPills = document.getElementById('y78-arts-pills');
+    if (artsPills && artsPills.offsetParent !== null) { 
+      var selectedArts = artsPills.querySelectorAll('.ms-option.is-selected').length;
+      if (selectedArts < 1) {
+        showCurrError('Please select at least 1 Arts elective for Years 7-8.', 'y78-arts-pills');
+        return false;
+      }
+    }
+  }
+
+  // RULE 2: Years 9-10 Must Have 2 Electives from DIFFERENT Learning Areas
+  if (yearNum === 9 || yearNum === 10) {
+    var prefix = yearNum === 9 ? 'y9' : 'y10';
+    var containerId = prefix + '-curriculum-container';
+
+    // Count how many "buckets" they have pulled electives from
+    var electiveBuckets = 0;
+
+    // Bucket 1: Technologies
+    var techPills = document.getElementById(prefix + '-tech-pills');
+    if (techPills && techPills.querySelectorAll('.ms-option.is-selected').length > 0) electiveBuckets++;
+
+    // Bucket 2: The Arts
+    var artsPills910 = document.getElementById(prefix + '-arts-pills');
+    if (artsPills910 && artsPills910.querySelectorAll('.ms-option.is-selected').length > 0) electiveBuckets++;
+
+    // Bucket 3: Languages
+    var hasLang = false;
+    document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]').forEach(function(cb) {
+       if (cb.checked && cb.offsetParent !== null) hasLang = true;
+    });
+    if (hasLang) electiveBuckets++;
+
+    // Bucket 4: Additional HASS Subject (Because History is Core, a 2nd HASS counts as an elective!)
+    var hassPills = document.getElementById(prefix + '-hass-pills');
+    if (hassPills) {
+       var hassCount = hassPills.querySelectorAll('.ms-option.is-selected').length;
+       if (hassCount > 1) electiveBuckets++;
+    }
+
+    if (electiveBuckets < 2) {
+      showCurrError('Please select at least 2 electives from different learning areas (e.g., one from Technologies, and one from The Arts, Languages, or an additional HASS subject).', containerId);
+      return false;
+    }
+  }
+
+  return true;
+};
 
 /* =========================
    WORKLOAD TRACKER (Duplicate ID Immunity v8)
