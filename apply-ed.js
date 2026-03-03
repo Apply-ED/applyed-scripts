@@ -1875,9 +1875,10 @@ if (action === "back") {
       if (typeof validateInterestLedStep4 === 'function' && !validateInterestLedStep4()) return;
     }
 
-    // NEW CODE: Check the curriculum rules!
-    if (typeof window.validateCurriculum === 'function' && !window.validateCurriculum()) return;
-
+   // NEW CODE: Check the curriculum rules! (ONLY on Step 3)
+    if (currentStepNum === 3) {
+      if (typeof window.validateCurriculum === 'function' && !window.validateCurriculum()) return;
+    }
     if (currentStepNum === 0) {
       recalcOrderSummaryUIAndHidden();
     }
