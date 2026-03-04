@@ -1506,22 +1506,46 @@ function renderChildSummary() {
       ).join(", ");
     };
 
-    // 1. DATA PREPARATION
+// 1. DATA PREPARATION
     const yearLevel = child.student_year_level || "Not Specified";
     
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
-    const curriculum = formatPills(child.curriculum_coverage) || "Australian Curriculum";
+    // Ensure curriculum pulls correctly
+    let curriculumVal = child.curriculum_coverage;
+    if (curriculumVal === "[]" || !curriculumVal) {
+        curriculumVal = null;
+    }
+    const curriculum = formatPills(curriculumVal) || "Australian Curriculum";
 
-    const focusItems = [
+    // Pulling in your specific Interest fields
+    const interestItems = [
+      formatPills(child.interests),
+      formatPills(child.interest_animals),
+      formatPills(child.interest_coding),
+      formatPills(child.interest_art),
+      formatPills(child.interest_building),
+      formatPills(child.interest_writing),
+      formatPills(child.interest_space),
+      formatPills(child.interest_games),
+      formatPills(child.interest_tech),
+      formatPills(child.interest_history),
+      formatPills(child.interest_cooking),
+      formatPills(child.interest_chemistry),
+      formatPills(child.interest_music),
+      formatPills(child.interest_sport)
+    ].filter(Boolean).join(", ");
+
+    // Combining your General Goals with the Specific Short/Long Term Goals
+    const goalItems = [
+      formatPills(child.general_academic_goals),
+      formatPills(child.general_independence_goals),
+      formatPills(child.general_social_goals),
       formatPills(child.short_term_academic),
       formatPills(child.short_term_social),
       formatPills(child.short_term_independence),
-      child.short_term_custom
-    ].filter(Boolean).join(", ");
-
-    const horizonItems = [
+      child.short_term_custom,
       formatPills(child.long_term_academic),
       formatPills(child.long_term_social),
       formatPills(child.long_term_independence),
@@ -1549,12 +1573,12 @@ function renderChildSummary() {
           </button>
         </div>
 
-        <div style="padding-right: 10px;">
+<div style="padding-right: 10px;">
           ${renderRow("Year Level", yearLevel)}
           ${renderRow("Program Type", programType)}
           ${renderRow("Curriculum", curriculum)}
-          ${renderRow("Focus", focusItems || "General Focus Area")}
-          ${renderRow("Long-term", horizonItems || "General Long-term Goals")}
+          ${renderRow("Interests", interestItems || "General Interests")}
+          ${renderRow("Goals", goalItems || "General Goals")}
         </div>
       </div>
     `;
