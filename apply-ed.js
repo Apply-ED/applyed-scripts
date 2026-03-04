@@ -1518,7 +1518,7 @@ function renderChildSummary() {
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
-    // Build curriculum from individual checkboxes since curriculum_coverage is empty
+// Build curriculum from individual checkboxes since curriculum_coverage is empty
     let currArray = [];
     if (child.english === "on") currArray.push("English");
     if (child.mathematics === "on") currArray.push("Mathematics");
@@ -1528,6 +1528,23 @@ function renderChildSummary() {
     if (child.technologies === "on") currArray.push("Technologies");
     if (child.the_arts === "on") currArray.push("The Arts");
     if (child.languages === "on") currArray.push("Languages");
+
+    // NEW: Pull in specific elective pill selections!
+    const electiveItems = [
+      formatPills(child.hass_selections),
+      formatPills(child.arts_selections),
+      formatPills(child.tech_selections),
+      formatPills(child.english_elective),
+      formatPills(child.hpe_elective),
+      formatPills(child.maths_pathways),
+      formatPills(child.science_specialist),
+      child.Language_of_study || child.language_of_study // Added this to ensure your language fix gets displayed!
+    ].filter(Boolean);
+
+    // Combine them all
+    if (electiveItems.length > 0) {
+       currArray = currArray.concat(electiveItems);
+    }
     
     let curriculum = currArray.length > 0 ? currArray.join(", ") : formatPills(child.curriculum_coverage);
     if (!curriculum || curriculum === "[]" || curriculum === "") curriculum = "Australian Curriculum";
