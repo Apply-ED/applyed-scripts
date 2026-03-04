@@ -1004,47 +1004,39 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v3)
+   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v4)
    ========================= */
 function bindLanguageToggle() {
   function syncAll() {
-    // Find ALL language checkboxes on the page
-    var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
-    
-    langCbs.forEach(function(cb) {
-      // Find the wrapper that specifically belongs to this checkbox
-      var wrap = null;
-      var parent = cb.parentElement;
-      while (parent && parent !== document.body) {
-        wrap = parent.querySelector('.language-of-study-wrap');
-        if (wrap) break;
-        parent = parent.parentElement;
+    // 1. Check if ANY visible Language checkbox is checked
+    let isLanguageChecked = false;
+    document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]').forEach(function(cb) {
+      // Webflow hides the native input, so we check if its parent wrapper is visible on the screen
+      const wrapper = cb.closest('.w-checkbox') || cb.parentElement;
+      if (cb.checked && wrapper && wrapper.offsetParent !== null) {
+        isLanguageChecked = true;
       }
-      
-      if (!wrap) return;
-      var select = wrap.querySelector("select");
+    });
 
-      if (cb.checked) {
-        wrap.style.display = "block";
-        if (select) select.required = true;
-      } else {
-        wrap.style.display = "none";
-        if (select) {
-          select.required = false;
-          select.value = "";
-        }
+    // 2. Show or hide EVERY language dropdown wrapper based on that result
+    document.querySelectorAll('.language-of-study-wrap').forEach(function(wrap) {
+      wrap.style.display = isLanguageChecked ? "block" : "none";
+      var select = wrap.querySelector("select");
+      if (select) {
+        select.required = isLanguageChecked;
+        if (!isLanguageChecked) select.value = "";
       }
     });
   }
 
-  // Listen for changes globally
+  // Listen for native checkbox changes
   document.addEventListener("change", function(e) {
     if (e.target && (e.target.getAttribute('data-value') === 'languages' || e.target.name === 'languages' || e.target.id === 'languages')) {
       setTimeout(syncAll, 50);
     }
   }, true);
   
-  // Catch Webflow's custom wrapper clicks
+  // Listen for Webflow custom checkbox clicks
   document.addEventListener("click", function(e) {
     var target = e.target.closest('.w-checkbox') || e.target;
     var input = target.querySelector('input[type="checkbox"]') || target;
@@ -1053,8 +1045,19 @@ function bindLanguageToggle() {
     }
   }, true);
 
-  syncAll(); // run on load
+  // Auto-run when switching between children
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(syncAll, 50);
+      }
+    });
+  });
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  syncAll(); // Run on load
 }
+
 /* =========================
    FOUNDATION LABEL BY STATE (Year Level display)
    ========================= */
@@ -1256,9 +1259,14 @@ function collectChildData() {
         continue;
       }
 
-      // Fix for Checkboxes
+// Fix for Checkboxes
       if (type === "checkbox") {
-        data[name] = el.checked ? (el.value || "on") : "";
+        // Only save as checked. If unchecked, only overwrite if it isn't ALREADY saved as 'on'!
+        if (el.checked) {
+          data[name] = (el.value || "on");
+        } else if (data[name] !== "on" && data[name] !== true) {
+          data[name] = "";
+        }
         continue;
       }
 
