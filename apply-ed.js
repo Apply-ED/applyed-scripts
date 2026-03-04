@@ -3896,7 +3896,6 @@ function bindGoalCounter() {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'aed-goal-counter';
-    // Removed position: fixed, now it's a neat inline block above the goals
     banner.style.cssText = `
       display: none; background: #fdfdfd; border: 1px solid #DDe4dd; padding: 12px 20px;
       border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -3904,7 +3903,6 @@ function bindGoalCounter() {
       font-size: 14px; color: #263358;
     `;
     
-// Injects just under the instruction banner inside 3B
     const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (container3B) {
       container3B.insertAdjacentElement('afterbegin', banner);
@@ -3913,16 +3911,15 @@ function bindGoalCounter() {
     }
   }
 
-function updateCounter() {
+  function updateCounter() {
     const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
-    // FOOLPROOF CHECK: Look across the entire screen for any visible short-term goal pills
+    // Check if goal section is visible
     let hasVisibleGoals = false;
     document.querySelectorAll('.ms-option[data-goal-type="short"]').forEach(pill => {
        if (pill.offsetWidth > 0 || pill.offsetParent !== null) hasVisibleGoals = true;
     });
 
-    // If we aren't on Goal Directed, or the goals are hidden, sleep the counter.
     if (pType !== 'goal_directed' || !hasVisibleGoals) {
       banner.style.setProperty('display', 'none', 'important');
       return;
@@ -3933,10 +3930,28 @@ function updateCounter() {
     let shortCount = 0;
     let longCount = 0;
 
+    // 1. Count clicked pills
     document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
       if (pill.offsetParent !== null) { 
         if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
         if (pill.getAttribute('data-goal-type') === 'long') longCount++;
+      }
+    });
+
+    // 2. NEW: Count custom "Other" text inputs (Short-Term)
+    ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      // If the field is visible and actually has text typed in it, count it!
+      if (el && el.offsetParent !== null && el.value.trim() !== '') {
+        shortCount++;
+      }
+    });
+
+    // 3. NEW: Count custom "Other" text inputs (Long-Term)
+    ['long_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') {
+        longCount++;
       }
     });
 
@@ -3949,10 +3964,20 @@ function updateCounter() {
     `;
   }
 
+  // Listen for pill clicks
   document.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
   }, true);
 
+  // NEW: Listen for typing in the custom text fields
+  document.addEventListener('input', function(e) {
+    const n = e.target.name || "";
+    if (n.includes('other_goal') || n.includes('custom')) {
+      setTimeout(updateCounter, 50);
+    }
+  }, true);
+
+  // Watch for step changes
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((m) => {
       if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(updateCounter, 50);
@@ -3962,6 +3987,7 @@ function updateCounter() {
 
   setTimeout(updateCounter, 100);
 }
+
 setTimeout(bindGoalCounter, 500);
 /* =========================================
    PROGRAM TYPE HELPER
