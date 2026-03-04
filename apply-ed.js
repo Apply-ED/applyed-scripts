@@ -1242,9 +1242,15 @@ function collectChildData() {
       const name = el.getAttribute("name");
       if (!name) continue;
 
+      // THE FIX: Prevent hidden duplicate groups (like in Container 3B) from overwriting good data!
+      const group = el.closest(".ms-group");
+      if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) {
+        continue; // Skip this input entirely if it is hidden on the screen
+      }
+
       const type = (el.getAttribute("type") || "").toLowerCase();
 
-      // Fix for Radio Buttons (Program Type is usually a radio)
+      // Fix for Radio Buttons
       if (type === "radio") {
         if (el.checked) data[name] = el.value;
         continue;
@@ -1279,7 +1285,7 @@ function collectChildData() {
     if (progEl) data.program_type = progEl.value;
   }
 
-  console.log("✅ Child Data Captured:", data); // This lets you see the 'truth' in your console
+  console.log("✅ Child Data Captured:", data); 
   return data;
 }
 
@@ -1512,15 +1518,23 @@ function renderChildSummary() {
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
-    // Ensure curriculum pulls correctly
-    let curriculumVal = child.curriculum_coverage;
-    if (curriculumVal === "[]" || !curriculumVal) {
-        curriculumVal = null;
-    }
-    const curriculum = formatPills(curriculumVal) || "Australian Curriculum";
+    // Build curriculum from individual checkboxes since curriculum_coverage is empty
+    let currArray = [];
+    if (child.english === "on") currArray.push("English");
+    if (child.mathematics === "on") currArray.push("Mathematics");
+    if (child.science === "on") currArray.push("Science");
+    if (child.health_physical_ed === "on") currArray.push("HPE");
+    if (child.hass === "on") currArray.push("HASS");
+    if (child.technologies === "on") currArray.push("Technologies");
+    if (child.the_arts === "on") currArray.push("The Arts");
+    if (child.languages === "on") currArray.push("Languages");
+    
+    let curriculum = currArray.length > 0 ? currArray.join(", ") : formatPills(child.curriculum_coverage);
+    if (!curriculum || curriculum === "[]" || curriculum === "") curriculum = "Australian Curriculum";
 
-    // Pulling in your specific Interest fields
+    // Pulling in your Interests (added 'curiosities' back to catch the current Webflow data!)
     const interestItems = [
+      formatPills(child.curiosities),
       formatPills(child.interests),
       formatPills(child.interest_animals),
       formatPills(child.interest_coding),
@@ -1534,10 +1548,12 @@ function renderChildSummary() {
       formatPills(child.interest_cooking),
       formatPills(child.interest_chemistry),
       formatPills(child.interest_music),
-      formatPills(child.interest_sport)
+      formatPills(child.interest_sport),
+      child.curiosities_custom,
+      child.interests_custom
     ].filter(Boolean).join(", ");
 
-    // Combining your General Goals with the Specific Short/Long Term Goals
+    // Combining your General Goals with Specific Goals AND the "other_goal" fields
     const goalItems = [
       formatPills(child.general_academic_goals),
       formatPills(child.general_independence_goals),
@@ -1549,7 +1565,10 @@ function renderChildSummary() {
       formatPills(child.long_term_academic),
       formatPills(child.long_term_social),
       formatPills(child.long_term_independence),
-      child.long_term_custom
+      child.long_term_custom,
+      child.other_goal_1,
+      child.other_goal_2,
+      child.other_goal_3
     ].filter(Boolean).join(", ");
 
     // 2. HELPER TO CREATE CONSISTENT ROWS (Tighter spacing)
