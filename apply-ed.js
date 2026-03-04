@@ -3344,32 +3344,46 @@ function bindWorkloadTracker() {
     }
   
     countText.innerHTML = `<strong>Total subjects selected: ${total}</strong>`;
+    
+    // Reset to default "Standard" styling first
     trackerWrap.style.backgroundColor = '#f4f7f4'; 
     trackerWrap.style.border = '1px solid #c3d9c3';
     warningText.style.color = '#263358';
 
     if (yearNum === 7 || yearNum === 8) {
        warningText.textContent = "This is a highly manageable, standard workload for this year level.";
-    } else if (yearNum === 9) {
-      if (total >= 10) { 
-        trackerWrap.style.backgroundColor = '#fff8e1'; 
-        trackerWrap.style.border = '1px solid #ffe082';
-        warningText.style.color = '#8f6c00';
-        warningText.innerHTML = "<strong>Advisory:</strong> 10 or more subjects is a heavy workload for Year 9. Please ensure this is manageable for your child.";
-      } else {
-        warningText.textContent = "This is a standard, balanced workload for Year 9.";
-      }
-    } else if (yearNum === 10) {
-      if (total >= 11) { 
+    } 
+    else if (yearNum === 9) {
+      if (total <= 6) {
         trackerWrap.style.backgroundColor = '#ffebee'; 
         trackerWrap.style.border = '1px solid #ffcdd2';
         warningText.style.color = '#c62828';
-        warningText.innerHTML = "<strong>Intensive Workload:</strong> 11+ subjects is a very heavy senior workload. Please carefully consider your child's schedule before proceeding.";
-      } else if (total === 10) { 
+        warningText.innerHTML = "<strong>Warning:</strong> This is below the recommended number of learning areas and may impact your application approval.";
+      } else if (total >= 9) { 
+        trackerWrap.style.backgroundColor = '#fff8e1'; 
+        trackerWrap.style.border = '1px solid #ffe082';
+        warningText.style.color = '#8f6c00';
+        warningText.innerHTML = "<strong>Advisory:</strong> 9 or more subjects is a heavy workload for Year 9. Please ensure this is manageable for your child.";
+      } else {
+        warningText.textContent = "This is a standard, balanced workload for Year 9.";
+      }
+    } 
+    else if (yearNum === 10) {
+      if (total <= 6) {
+        trackerWrap.style.backgroundColor = '#ffebee'; 
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Warning:</strong> This is under the recommended number of learning areas (core and elective) and may impact your application approval.";
+      } else if (total >= 10) { 
+        trackerWrap.style.backgroundColor = '#ffebee'; 
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Intensive Workload:</strong> 10+ subjects is a very heavy senior workload. Please carefully consider your child's schedule before proceeding.";
+      } else if (total === 9) { 
          trackerWrap.style.backgroundColor = '#fff8e1'; 
          trackerWrap.style.border = '1px solid #ffe082';
          warningText.style.color = '#8f6c00';
-         warningText.innerHTML = "<strong>Advisory:</strong> 10 subjects is a robust workload. Ensure your child has adequate study time mapped out.";
+         warningText.innerHTML = "<strong>Advisory:</strong> 9 subjects is a robust workload. Ensure your child has adequate study time mapped out.";
       } else {
         warningText.textContent = "This is a standard, balanced workload for Year 10.";
       }
