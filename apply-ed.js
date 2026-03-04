@@ -3526,7 +3526,7 @@ function updateProgressBar() {
     progressWrap = document.createElement('div');
     progressWrap.className = 'aed-progress-wrapper';
     // Using your brand colors!
-    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
+    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 10px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
     
     const progressFill = document.createElement('div');
     progressFill.className = 'aed-progress-fill';
@@ -3543,6 +3543,26 @@ function updateProgressBar() {
       progressFill.style.width = percentage + '%';
     }
   }
+}
+
+/* =========================
+   STEP 0 INFO BANNER UPGRADE
+   ========================= */
+function upgradeStep0Banner() {
+  // Find all text elements on the page
+  var elements = document.querySelectorAll('p, div, span, h4, h5, h6');
+  
+  elements.forEach(function(el) {
+    // Look for the exact text currently sitting on the page
+    if (el.textContent.trim() === "These details apply to the whole order." && el.children.length === 0) {
+       
+       // Replace the text with our new, supportive copy
+       el.innerHTML = '<strong>Global Application Settings</strong><br>The details entered on this page will apply to your entire family\'s home education program.';
+       
+       // Apply the exact same "Green Info Banner" styling we used in the Curriculum step!
+       el.style.cssText = 'color: #263358; background-color: #eef4ee; border: 1px solid #c3d9c3; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 24px; margin-top: 8px; font-family: Montserrat, sans-serif; display: block;';
+    }
+  });
 }
 
 /* =========================
@@ -3567,6 +3587,7 @@ bindCurriculumVisibility();
 bindWorkloadTracker();
 bindCheckboxSync();
 bindPersonalisedHeading();
+upgradeStep0Banner();
 
 // --- THE NEWLY RESCUED SCRIPTS ---
 initInterestDeepDives();
