@@ -3814,7 +3814,7 @@ window.validateInterestLedStep4 = function() {
   showGoalError(null); 
   const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
- if (pType === 'interest_led' || pType === 'curriculum_based' || pType === 'curriculum_aligned') {
+  if (pType === 'interest_led' || pType === 'curriculum_based' || pType === 'curriculum_aligned') {
     const primaryGrid = document.getElementById('primary-interests-grid');
     if (primaryGrid) {
       const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
@@ -3825,10 +3825,17 @@ window.validateInterestLedStep4 = function() {
     }
   }
 
-if (pType !== 'goal_directed') {
+  if (pType !== 'goal_directed') {
     const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
     if (container3A) {
-      const count = container3A.querySelectorAll('.ms-option.is-selected').length;
+      let count = container3A.querySelectorAll('.ms-option.is-selected').length;
+      
+      // NEW: Count custom text fields!
+      ['other_goal_1', 'other_goal_2', 'other_goal_3'].forEach(name => {
+        const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+        if (el && el.offsetParent !== null && el.value.trim() !== '') count++;
+      });
+
       if (count < 3) {
         showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'container-3a-general');
         return false;
@@ -3873,7 +3880,18 @@ window.validateGoalDirectedStep4 = function() {
     }
   });
 
-if (shortCount < 4 || shortCount > 8) {
+  // NEW: Add custom text fields to the Goal-Directed validation count!
+  ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') shortCount++;
+  });
+  
+  ['long_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') longCount++;
+  });
+
+  if (shortCount < 4 || shortCount > 8) {
     showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`, 'container-3b-goaldirected');
     return false;
   }
@@ -3889,7 +3907,6 @@ if (shortCount < 4 || shortCount > 8) {
   return true;
 };
 
-// 4. Sticky Counter
 // 4. Sticky Counter
 function bindGoalCounter() {
   let banner = document.getElementById('aed-goal-counter');
