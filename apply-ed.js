@@ -2954,7 +2954,7 @@ function bindCurriculumVisibility() {
     });
   }
 
-  function setCheckboxLock(selector, lockAndCheck) {
+function setCheckboxLock(selector, lockAndCheck) {
     var cbs = document.querySelectorAll(selector);
     cbs.forEach(function(cb) {
       var wrapper = cb.closest('.w-checkbox') || cb.parentElement;
@@ -2970,6 +2970,11 @@ function bindCurriculumVisibility() {
           wrapper.style.opacity = '0.7';
         }
       } else {
+        // NEW: If unlocking, UNCHECK it automatically to prevent ghost carry-overs!
+        if (realInput && realInput.checked) {
+          realInput.checked = false;
+          realInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         if (wrapper) {
           wrapper.style.pointerEvents = 'auto';
           wrapper.style.opacity = '1';
@@ -3154,33 +3159,59 @@ window.validateCurriculum = function() {
     var prefix = yearNum === 9 ? 'y9' : 'y10';
     var containerId = prefix + '-curriculum-container';
 
-    // Count how many "buckets" they have pulled electives from
-    var electiveBuckets = 0;
+    var selectedAreas = [];
+    var totalElectivePills = 0;
 
     // Bucket 1: Technologies
     var techPills = document.getElementById(prefix + '-tech-pills');
-    if (techPills && techPills.querySelectorAll('.ms-option.is-selected').length > 0) electiveBuckets++;
+    if (techPills) {
+       var techCount = techPills.querySelectorAll('.ms-option.is-selected').length;
+       if (techCount > 0) {
+          selectedAreas.push('Technologies');
+          totalElectivePills += techCount;
+       }
+    }
 
     // Bucket 2: The Arts
     var artsPills910 = document.getElementById(prefix + '-arts-pills');
-    if (artsPills910 && artsPills910.querySelectorAll('.ms-option.is-selected').length > 0) electiveBuckets++;
+    if (artsPills910) {
+       var artsCount = artsPills910.querySelectorAll('.ms-option.is-selected').length;
+       if (artsCount > 0) {
+          selectedAreas.push('The Arts');
+          totalElectivePills += artsCount;
+       }
+    }
 
     // Bucket 3: Languages
     var hasLang = false;
     document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]').forEach(function(cb) {
        if (cb.checked && cb.offsetParent !== null) hasLang = true;
     });
-    if (hasLang) electiveBuckets++;
+    if (hasLang) {
+       selectedAreas.push('Languages');
+       totalElectivePills += 1; 
+    }
 
-    // Bucket 4: Additional HASS Subject (Because History is Core, a 2nd HASS counts as an elective!)
+    // Bucket 4: Additional HASS Subject
     var hassPills = document.getElementById(prefix + '-hass-pills');
     if (hassPills) {
        var hassCount = hassPills.querySelectorAll('.ms-option.is-selected').length;
-       if (hassCount > 1) electiveBuckets++;
+       if (hassCount > 1) { // 1 is core (History), anything above 1 is an elective!
+          selectedAreas.push('Additional HASS');
+          totalElectivePills += (hassCount - 1);
+       }
     }
 
-    if (electiveBuckets < 2) {
-      showCurrError('Please select at least 2 electives from different learning areas (e.g., one from Technologies, and one from The Arts, Languages, or an additional HASS subject).', containerId);
+    // Check A: Do they have at least 2 distinct learning areas?
+    if (selectedAreas.length < 2) {
+      var areasText = selectedAreas.length === 1 ? selectedAreas[0] : "none";
+      showCurrError('Please select electives from at least 2 DIFFERENT learning areas. Currently you only have electives from: ' + areasText + '.', containerId);
+      return false;
+    }
+
+    // Check B: Do they have at least 2 total electives?
+    if (totalElectivePills < 2) {
+      showCurrError('Please select at least 2 electives in total.', containerId);
       return false;
     }
   }
