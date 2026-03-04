@@ -673,6 +673,8 @@ updateCurrentChildHeading();
   } else {
     hideStep4GoalInfo();
   }
+  // NEW: Update the progress bar every time the step changes
+  setTimeout(updateProgressBar, 50);
 }
 
 /* -------------------------------------------------------
@@ -3484,7 +3486,64 @@ function bindGoalContainerSwapper() {
 
   setTimeout(swapContainers, 100);
 }
+/* =========================
+   DYNAMIC PROGRESS BAR
+   ========================= */
+function updateProgressBar() {
+  const activeStep = document.querySelector('.step.is-active');
+  if (!activeStep) return;
 
+  // 1. Calculate the exact math based on how many kids there are
+  const totalChildren = getChildrenCount();
+  const currentChildIdx = getChildIndex();
+  
+  // Total screens = Setup (1) + Children (Kids x 3) + Environment (1) + Review (1)
+  const totalScreens = 1 + (totalChildren * 3) + 1 + 1; 
+  let currentScreen = 1;
+
+  if (currentStepNum === 0) {
+    currentScreen = 1;
+  } else if (currentStepNum >= 1 && currentStepNum <= 3) {
+    currentScreen = 1 + (currentChildIdx * 3) + currentStepNum;
+  } else if (currentStepNum === 4) {
+    currentScreen = 1 + (totalChildren * 3) + 1;
+  } else if (currentStepNum === 6) {
+    currentScreen = totalScreens;
+  }
+
+  // Calculate percentage (ensure it never goes over 100%)
+  const percentage = Math.min(100, Math.round((currentScreen / totalScreens) * 100));
+
+  // 2. Find where to put it (right before the child nav pills)
+  const navBar = activeStep.querySelector('#child-nav-bar');
+  if (!navBar) return;
+
+  // 3. Create or update the progress bar HTML dynamically
+  let progressWrap = activeStep.querySelector('.aed-progress-wrapper');
+  
+  if (!progressWrap) {
+    // Build the bar if it doesn't exist on this step yet
+    progressWrap = document.createElement('div');
+    progressWrap.className = 'aed-progress-wrapper';
+    // Using your brand colors!
+    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
+    
+    const progressFill = document.createElement('div');
+    progressFill.className = 'aed-progress-fill';
+    progressFill.style.cssText = `width: ${percentage}%; background: #799377; height: 100%; transition: width 0.4s ease; border-radius: 10px;`;
+    
+    progressWrap.appendChild(progressFill);
+    
+    // Insert it directly above the navigation buttons
+    navBar.parentNode.insertBefore(progressWrap, navBar);
+  } else {
+    // If it already exists, just animate the width to the new percentage!
+    const progressFill = progressWrap.querySelector('.aed-progress-fill');
+    if (progressFill) {
+      progressFill.style.width = percentage + '%';
+    }
+  }
+}
 
 /* =========================
    INIT
