@@ -1004,59 +1004,62 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v5)
+   LANGUAGE DROPDOWN TOGGLE (Ultimate Fix v6)
    ========================= */
 function bindLanguageToggle() {
   function syncAll() {
-    // 1. Find every single language checkbox on the page
-    const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input.curriculum-checkbox[value="Languages"]');
+    // 1. Broadest possible selector to find the Language checkbox
+    const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input[value="Languages"], input[data-value="Languages"]');
     
     langCbs.forEach(function(cb) {
-      // 2. Find the specific container this checkbox lives inside
-      const container = cb.closest('.field-group') || cb.closest('div[id*="-curriculum"]') || cb.closest('.step');
-      if (!container) return;
+      // 2. Safely traverse up the DOM to find the matching wrapper for this specific year level
+      let wrap = null;
+      let parent = cb.parentElement;
+      while (parent && parent !== document.body) {
+        wrap = parent.querySelector('.language-of-study-wrap');
+        if (wrap) break;
+        parent = parent.parentElement;
+      }
       
-      // 3. Find the dropdown wrapper inside THAT specific container
-      const wrap = container.querySelector('.language-of-study-wrap');
       if (!wrap) return;
-      
       const select = wrap.querySelector("select");
 
-      // 4. Show or hide it based on this specific checkbox
+      // 3. Brute-force CSS to guarantee Webflow doesn't hide it
       if (cb.checked) {
-        wrap.style.setProperty('display', 'block', 'important');
-        if (select) select.required = true;
+        wrap.style.cssText = 'display: block !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; height: auto !important; margin-top: 12px;';
+        if (select) {
+          select.style.cssText = 'display: block !important; width: 100%;';
+          select.required = true;
+        }
       } else {
-        wrap.style.setProperty('display', 'none', 'important');
+        wrap.style.cssText = 'display: none !important;';
         if (select) {
           select.required = false;
           select.value = "";
-          // Trigger a change event so the form knows it was cleared
           select.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
     });
   }
 
-  // Listen aggressively for any clicks or changes
-  document.addEventListener("change", function() { setTimeout(syncAll, 50); }, true);
+  // Fire on ANY checkbox change or click to guarantee we catch Webflow's custom elements
+  document.addEventListener("change", function(e) {
+    if (e.target && e.target.type === 'checkbox') setTimeout(syncAll, 50);
+  }, true);
+  
   document.addEventListener("click", function(e) {
-    if (e.target.closest('.w-checkbox') || e.target.type === 'checkbox') {
-      setTimeout(syncAll, 50);
-    }
+    if (e.target && e.target.closest('.w-checkbox')) setTimeout(syncAll, 50);
   }, true);
 
-  // Run when changing steps
+  // Auto-run when swapping steps
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(syncAll, 50);
-      }
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(syncAll, 50);
     });
   });
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
-  syncAll(); // run on load
+  setTimeout(syncAll, 100); 
 }
 
 /* =========================
@@ -3391,10 +3394,10 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
-   SMART CHECKBOX SYNC (Duplicate ID Immunity v11 + F-6 Ceasefire)
+   SMART CHECKBOX SYNC (Duplicate ID Immunity v12 + Locked Protection)
    ========================= */
 function bindCheckboxSync() {
-  console.log("✅ Smart Checkbox Sync v13 loaded!"); 
+  console.log("✅ Smart Checkbox Sync v14 loaded!"); 
 
   var syncMap = [
     { pills: 'y10-science-pills', cb: 'y10-science-cb' },
@@ -3408,7 +3411,6 @@ function bindCheckboxSync() {
   ];
 
   function updateCheckboxes() {
-    // 1. Find out what year level we are looking at
     var yearDropdown = document.querySelector('select[name="student_year_level"]');
     var rawYear = yearDropdown ? yearDropdown.value : '';
     var isF6 = false;
@@ -3419,14 +3421,9 @@ function bindCheckboxSync() {
       if (parseInt(rawYear.match(/\d+/)[0], 10) <= 6) isF6 = true;
     }
 
-    // 2. Run the sync map
     syncMap.forEach(function(item) {
-      // THE CEASEFIRE: If it's F-6, let the Curriculum function handle the Arts box!
-      if (item.cb === 'y78-arts-cb' && isF6) {
-          return; 
-      }
+      if (item.cb === 'y78-arts-cb' && isF6) return; 
 
-      // DUPLICATE ID IMMUNITY
       var pillWraps = document.querySelectorAll('#' + item.pills);
       var pillWrap = Array.from(pillWraps).find(el => el.offsetParent !== null) || pillWraps[0];
       
@@ -3441,10 +3438,14 @@ function bindCheckboxSync() {
       var realInput = element.tagName === 'INPUT' ? element : wrapper.querySelector('input[type="checkbox"]');
       if (!realInput) return;
 
+      // NEW CEASEFIRE: If the checkbox is locked (e.g., F-8 core subjects), leave it alone!
+      if (realInput.classList.contains('locked-checkbox') || wrapper.classList.contains('locked-checkbox')) {
+          return;
+      }
+
       var selectedCount = pillWrap.querySelectorAll('.ms-option.is-selected').length;
       var shouldBeChecked = (selectedCount > 0);
 
-      // Update Native Input
       if (realInput.checked !== shouldBeChecked) {
          realInput.checked = shouldBeChecked;
          realInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -3455,21 +3456,14 @@ function bindCheckboxSync() {
     });
   }
 
-  // Listener 1: User interaction
   document.addEventListener('click', function(e) {
-    if(e.target.closest('.ms-option')) {
-      setTimeout(updateCheckboxes, 50); 
-    }
+    if(e.target.closest('.ms-option')) setTimeout(updateCheckboxes, 50); 
   }, true);
   
-  // Listener 2: Programmatic updates
   document.addEventListener('change', function(e) {
-    if(e.target && e.target.classList.contains('ms-input')) {
-      setTimeout(updateCheckboxes, 50);
-    }
+    if(e.target && e.target.classList.contains('ms-input')) setTimeout(updateCheckboxes, 50);
   }, true);
 
-  // Listener 3: Sweep UI exactly when a step becomes visible
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
       if (mutation.attributeName === 'class' && mutation.target.classList.contains('is-active')) {
