@@ -1004,48 +1004,49 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v4)
+   LANGUAGE DROPDOWN TOGGLE (Bulletproof Multi-Instance v5)
    ========================= */
 function bindLanguageToggle() {
   function syncAll() {
-    // 1. Check if ANY visible Language checkbox is checked
-    let isLanguageChecked = false;
-    document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]').forEach(function(cb) {
-      // Webflow hides the native input, so we check if its parent wrapper is visible on the screen
-      const wrapper = cb.closest('.w-checkbox') || cb.parentElement;
-      if (cb.checked && wrapper && wrapper.offsetParent !== null) {
-        isLanguageChecked = true;
-      }
-    });
+    // 1. Find every single language checkbox on the page
+    const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input.curriculum-checkbox[value="Languages"]');
+    
+    langCbs.forEach(function(cb) {
+      // 2. Find the specific container this checkbox lives inside
+      const container = cb.closest('.field-group') || cb.closest('div[id*="-curriculum"]') || cb.closest('.step');
+      if (!container) return;
+      
+      // 3. Find the dropdown wrapper inside THAT specific container
+      const wrap = container.querySelector('.language-of-study-wrap');
+      if (!wrap) return;
+      
+      const select = wrap.querySelector("select");
 
-    // 2. Show or hide EVERY language dropdown wrapper based on that result
-    document.querySelectorAll('.language-of-study-wrap').forEach(function(wrap) {
-      wrap.style.display = isLanguageChecked ? "block" : "none";
-      var select = wrap.querySelector("select");
-      if (select) {
-        select.required = isLanguageChecked;
-        if (!isLanguageChecked) select.value = "";
+      // 4. Show or hide it based on this specific checkbox
+      if (cb.checked) {
+        wrap.style.setProperty('display', 'block', 'important');
+        if (select) select.required = true;
+      } else {
+        wrap.style.setProperty('display', 'none', 'important');
+        if (select) {
+          select.required = false;
+          select.value = "";
+          // Trigger a change event so the form knows it was cleared
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
     });
   }
 
-  // Listen for native checkbox changes
-  document.addEventListener("change", function(e) {
-    if (e.target && (e.target.getAttribute('data-value') === 'languages' || e.target.name === 'languages' || e.target.id === 'languages')) {
-      setTimeout(syncAll, 50);
-    }
-  }, true);
-  
-  // Listen for Webflow custom checkbox clicks
+  // Listen aggressively for any clicks or changes
+  document.addEventListener("change", function() { setTimeout(syncAll, 50); }, true);
   document.addEventListener("click", function(e) {
-    var target = e.target.closest('.w-checkbox') || e.target;
-    var input = target.querySelector('input[type="checkbox"]') || target;
-    if (input && (input.getAttribute('data-value') === 'languages' || input.name === 'languages' || input.id === 'languages')) {
+    if (e.target.closest('.w-checkbox') || e.target.type === 'checkbox') {
       setTimeout(syncAll, 50);
     }
   }, true);
 
-  // Auto-run when switching between children
+  // Run when changing steps
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
       if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
@@ -1055,7 +1056,7 @@ function bindLanguageToggle() {
   });
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
-  syncAll(); // Run on load
+  syncAll(); // run on load
 }
 
 /* =========================
