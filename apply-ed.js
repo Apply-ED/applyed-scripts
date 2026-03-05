@@ -412,11 +412,14 @@ function bindOrderSummarySync() {
   const removeBtn = document.querySelector(".aed-weekly-remove");
 
   function hideWeeklyWarning() {
-    if (warningPanel) warningPanel.style.display = "none";
+    if (warningPanel) warningPanel.style.setProperty('display', 'none', 'important');
   }
 
   function showWeeklyWarning() {
-    if (warningPanel) warningPanel.style.display = "block";
+    if (warningPanel) {
+      // Injecting the standardized red error box CSS
+      warningPanel.style.cssText = 'display: block !important; color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px 16px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+    }
   }
 
   // Hide on load
@@ -2717,17 +2720,24 @@ function bindCustomValidation() {
     { name: 'routine_preference', label: 'Routine Preference' }
   ];
 
-  // Create or update an error message below a field
-function showError(field, message) {
+// Create or update an error message below a field
+  function showError(field, message) {
     var errorId = 'error-' + field.name;
     var errorEl = document.getElementById(errorId);
 
     if (!errorEl) {
-      errorEl = document.createElement('div'); // Changed to a div for a proper box
+      errorEl = document.createElement('div'); 
       errorEl.id = errorId;
-      // Applied the nice red box styling
       errorEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
-      field.el.parentNode.insertBefore(errorEl, field.el.nextSibling);
+      
+      // THE FIX: Flatpickr hides the original input and generates new siblings. 
+      // We append the error to the bottom of the field's wrapper instead!
+      var wrapper = field.el.closest('.field-group') || field.el.parentElement;
+      if (wrapper) {
+         wrapper.appendChild(errorEl);
+      } else {
+         field.el.parentNode.insertBefore(errorEl, field.el.nextSibling);
+      }
     }
 
     errorEl.textContent = message;
