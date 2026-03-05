@@ -3613,7 +3613,7 @@ function updateProgressBar() {
     progressWrap = document.createElement('div');
     progressWrap.className = 'aed-progress-wrapper';
     // Using your brand colors!
-    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
+    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 11px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
     
     const progressFill = document.createElement('div');
     progressFill.className = 'aed-progress-fill';
@@ -3644,7 +3644,7 @@ function upgradeStep0Banner() {
     if (el.textContent.trim() === "These details apply to the whole order." && el.children.length === 0) {
        
        // Replace the text with our new, supportive copy
-       el.innerHTML = '<strong>Global Application Settings</strong><br>The details entered on this page will apply to your entire family\'s home education program.';
+       el.innerHTML = '<strong>Settings for your whole application</strong><br>The details entered on this page will apply to your entire family\'s home education program.';
        
        // Apply the exact same "Green Info Banner" styling we used in the Curriculum step!
        el.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 24px; margin-top: 8px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box; display: block;';
@@ -3768,28 +3768,71 @@ if (paymentStatus === "failed") {
   setActive(0);
 }
 /* =========================
-   LOCK STATE PICKER ON CREATE PROGRAM PAGE (BRUTE FORCE)
+   DYNAMIC STATE PICKER LOCK & VALIDATION
    ========================= */
-function lockStatePickers() {
-  const pickers = document.querySelectorAll('select[name="state-picker"], [data-aed-state-picker="1"]');
-  
-  pickers.forEach(picker => {
-    // 1. Native HTML disable
-    picker.disabled = true;
-    
-    // 2. CSS Forcefield: Kills all click interactions instantly
-    picker.style.setProperty('pointer-events', 'none', 'important');
-    picker.style.setProperty('opacity', '0.6', 'important');
-    
-    // 3. Apply the same lock to Webflow's custom parent wrapper
-    if (picker.parentElement) {
-        picker.parentElement.style.setProperty('pointer-events', 'none', 'important');
-        picker.parentElement.style.setProperty('opacity', '0.6', 'important');
-        picker.parentElement.style.setProperty('cursor', 'not-allowed', 'important');
-        picker.parentElement.title = "State cannot be changed once you have started creating a program.";
+function bindStatePickerLock() {
+  const pickers = document.querySelectorAll('select[name="state-picker"], [data-aed-state-picker="1"], select[name="state"]');
+
+  // 1. Function to lock or unlock based on the current step
+  function updateLock() {
+    // If currentStepNum is greater than 0, they have left the setup page
+    const shouldLock = (typeof currentStepNum !== 'undefined' && currentStepNum > 0);
+
+    pickers.forEach(picker => {
+      if (shouldLock) {
+        picker.style.setProperty('pointer-events', 'none', 'important');
+        picker.style.setProperty('opacity', '0.6', 'important');
+        if (picker.parentElement) {
+            picker.parentElement.style.setProperty('pointer-events', 'none', 'important');
+            picker.parentElement.style.setProperty('opacity', '0.6', 'important');
+            picker.parentElement.title = "State cannot be changed once you have started. Please return to Setup to change.";
+        }
+      } else {
+        picker.style.setProperty('pointer-events', 'auto', 'important');
+        picker.style.setProperty('opacity', '1', 'important');
+        if (picker.parentElement) {
+            picker.parentElement.style.setProperty('pointer-events', 'auto', 'important');
+            picker.parentElement.style.setProperty('opacity', '1', 'important');
+            picker.parentElement.title = "";
+        }
+      }
+    });
+  }
+
+  // 2. Prevent leaving Step 0 if State is empty!
+  document.addEventListener('click', function(e) {
+    const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
+    if (nextBtn && typeof currentStepNum !== 'undefined' && currentStepNum === 0) {
+      let stateEmpty = false;
+      pickers.forEach(picker => {
+         if (!picker.value || picker.value.trim() === '') stateEmpty = true;
+      });
+
+      if (stateEmpty) {
+         e.preventDefault();
+         e.stopImmediatePropagation();
+         alert("Please select your State from the dropdown before starting your application.");
+      }
     }
+  }, true);
+
+  // 3. Watch for step changes to lock/unlock automatically
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(updateLock, 50);
+      }
+    });
   });
+
+  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+
+  // Run on load
+  setTimeout(updateLock, 100);
 }
+
+// Initialize the lock system
+bindStatePickerLock();
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
 /* =========================================
