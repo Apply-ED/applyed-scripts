@@ -3293,7 +3293,7 @@ window.validateCurriculum = function() {
 };
 
 /* =========================
-   WORKLOAD TRACKER (Duplicate ID Immunity v8)
+   WORKLOAD TRACKER (Teleporting + Duplicate ID Immunity v9)
    ========================= */
 function bindWorkloadTracker() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
@@ -3316,8 +3316,19 @@ function bindWorkloadTracker() {
     trackerWrap.style.display = 'block';
     var total = 0;
 
+    // 1. THE NEW TELEPORT FEATURE
+    // This finds the active container and injects the tracker right at the top!
+    var targetContainer = null;
+    if (yearNum === 7 || yearNum === 8) targetContainer = document.getElementById('f6-curriculum-container');
+    else if (yearNum === 9) targetContainer = document.getElementById('y9-curriculum-container');
+    else if (yearNum === 10) targetContainer = document.getElementById('y10-curriculum-container');
+
+    if (targetContainer && trackerWrap.parentNode !== targetContainer) {
+        targetContainer.insertAdjacentElement('afterbegin', trackerWrap);
+    }
+
+    // 2. COUNT PILLS
     function countPills(wrapperId) {
-      // DUPLICATE ID IMMUNITY: Find all, grab the visible one
       var wraps = document.querySelectorAll('#' + wrapperId);
       var wrap = Array.from(wraps).find(el => el.offsetParent !== null) || wraps[0];
       if (!wrap || wrap.style.display === 'none') return 0;
@@ -3333,6 +3344,7 @@ function bindWorkloadTracker() {
       return isChecked ? 1 : 0;
     }
 
+    // 3. DO THE MATH
     if (yearNum === 7 || yearNum === 8) {
       total = 7 + countPills('y78-arts-pills');
     } 
@@ -3342,10 +3354,9 @@ function bindWorkloadTracker() {
     else if (yearNum === 10) {
       total = 1 + countPills('y10-english-pills') + countPills('y10-maths-pills') + countPills('y10-science-pills') + countPills('y10-hass-pills') + countPills('y10-tech-pills') + countPills('y10-arts-pills') + 1 + countPills('y10-hpe-pills') + hasLanguage();
     }
-  
+
+    // 4. APPLY MESSAGES & COLORS (Your custom rules!)
     countText.innerHTML = `<strong>Total subjects selected: ${total}</strong>`;
-    
-    // Reset to default "Standard" styling first
     trackerWrap.style.backgroundColor = '#f4f7f4'; 
     trackerWrap.style.border = '1px solid #c3d9c3';
     warningText.style.color = '#263358';
@@ -3602,7 +3613,7 @@ function updateProgressBar() {
     progressWrap = document.createElement('div');
     progressWrap.className = 'aed-progress-wrapper';
     // Using your brand colors!
-    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 10px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
+    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
     
     const progressFill = document.createElement('div');
     progressFill.className = 'aed-progress-fill';
