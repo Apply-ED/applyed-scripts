@@ -3768,53 +3768,85 @@ if (paymentStatus === "failed") {
   setActive(0);
 }
 /* =========================
-   DYNAMIC STATE PICKER LOCK & VALIDATION
+   DYNAMIC STATE PICKER LOCK & VALIDATION (Ghost-Proof v2)
    ========================= */
 function bindStatePickerLock() {
   const pickers = document.querySelectorAll('select[name="state-picker"], [data-aed-state-picker="1"], select[name="state"]');
 
   // 1. Function to lock or unlock based on the current step
   function updateLock() {
-    // If currentStepNum is greater than 0, they have left the setup page
     const shouldLock = (typeof currentStepNum !== 'undefined' && currentStepNum > 0);
 
     pickers.forEach(picker => {
+      // Find Webflow's custom wrapper so we can freeze it
+      const wrapper = picker.closest('.w-select') || picker.parentElement;
+
       if (shouldLock) {
         picker.style.setProperty('pointer-events', 'none', 'important');
         picker.style.setProperty('opacity', '0.6', 'important');
-        if (picker.parentElement) {
-            picker.parentElement.style.setProperty('pointer-events', 'none', 'important');
-            picker.parentElement.style.setProperty('opacity', '0.6', 'important');
-            picker.parentElement.title = "State cannot be changed once you have started. Please return to Setup to change.";
+        
+        if (wrapper) {
+            wrapper.style.setProperty('pointer-events', 'none', 'important');
+            wrapper.style.setProperty('opacity', '0.6', 'important');
+            wrapper.title = "State cannot be changed once you have started. Please return to Setup to change.";
         }
       } else {
         picker.style.setProperty('pointer-events', 'auto', 'important');
         picker.style.setProperty('opacity', '1', 'important');
-        if (picker.parentElement) {
-            picker.parentElement.style.setProperty('pointer-events', 'auto', 'important');
-            picker.parentElement.style.setProperty('opacity', '1', 'important');
-            picker.parentElement.title = "";
+
+        if (wrapper) {
+            wrapper.style.setProperty('pointer-events', 'auto', 'important');
+            wrapper.style.setProperty('opacity', '1', 'important');
+            wrapper.title = "";
         }
       }
     });
   }
 
-  // 2. Prevent leaving Step 0 if State is empty!
+  // 2. Prevent leaving Step 0 if State is empty (Ghost-proofed + Custom Error Box)
   document.addEventListener('click', function(e) {
     const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
     if (nextBtn && typeof currentStepNum !== 'undefined' && currentStepNum === 0) {
-      let stateEmpty = false;
-      pickers.forEach(picker => {
-         if (!picker.value || picker.value.trim() === '') stateEmpty = true;
+      
+      // Find ONLY the visible state picker that the user actually interacts with
+      let visiblePicker = null;
+      pickers.forEach(p => {
+         if (p.offsetWidth > 0 && p.offsetHeight > 0 && p.name === 'state-picker') {
+            visiblePicker = p;
+         }
       });
 
-      if (stateEmpty) {
+      // If the visible picker is empty, block them and show the red box
+      if (visiblePicker && (!visiblePicker.value || visiblePicker.value.trim() === '')) {
          e.preventDefault();
          e.stopImmediatePropagation();
-         alert("Please select your State from the dropdown before starting your application.");
+         
+         let errEl = document.getElementById('state-picker-error');
+         if (!errEl) {
+           errEl = document.createElement('div');
+           errEl.id = 'state-picker-error';
+           errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+           
+           const container = visiblePicker.closest('.field-group') || visiblePicker.parentElement;
+           if (container) container.appendChild(errEl);
+         }
+         errEl.textContent = 'Please select your State from the dropdown before starting your application.';
+         errEl.style.display = 'block';
+         errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+         const errEl = document.getElementById('state-picker-error');
+         if (errEl) errEl.style.display = 'none';
       }
     }
   }, true);
+
+  // Hide the error box the moment they select a state
+  document.addEventListener('change', function(e) {
+     if (e.target && e.target.name === 'state-picker') {
+        const errEl = document.getElementById('state-picker-error');
+        if (errEl) errEl.style.display = 'none';
+     }
+  });
 
   // 3. Watch for step changes to lock/unlock automatically
   const observer = new MutationObserver(function(mutations) {
@@ -3827,11 +3859,9 @@ function bindStatePickerLock() {
 
   document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
 
-  // Run on load
   setTimeout(updateLock, 100);
 }
 
-// Initialize the lock system
 bindStatePickerLock();
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
