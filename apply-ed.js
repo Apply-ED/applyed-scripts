@@ -68,8 +68,8 @@ window.Webflow.push(function () {
 
   // Add this attribute to the intake form:
   // <form data-aed-form="intake"> ... </form>
-  //  const INTAKE_FORM_SELECTOR = 'form[data-aed-form="intake"]';
-  const INTAKE_FORM_SELECTOR = 'form';
+  const INTAKE_FORM_SELECTOR = 'form[data-aed-form="intake"]';
+  // const INTAKE_FORM_SELECTOR = 'form';
   // Step 6 CTA button
   const PAY_CTA_SELECTOR = "#pay-button";
 
@@ -1673,6 +1673,7 @@ function bindConfirmationGating() {
     const fd = new FormData(formEl);
     const obj = {};
 
+    // 1. Grab whatever FormData successfully caught
     for (const [key, value] of fd.entries()) {
       if (obj[key] !== undefined) {
         if (!Array.isArray(obj[key])) obj[key] = [obj[key]];
@@ -1682,48 +1683,82 @@ function bindConfirmationGating() {
       }
     }
 
+    // 🚨 2. THE FIX: BULLETPROOF SCRAPING FOR STEP 0 AND STEP 4 🚨
+    // Forces the script to grab these fields even if Webflow's <form> wrapper is broken
+    [0, 4].forEach(stepNum => {
+      const stepEl = getStepEl(stepNum);
+      if (!stepEl) return;
+
+      const fields = stepEl.querySelectorAll("input[name], select[name], textarea[name]");
+      fields.forEach(el => {
+        const name = el.getAttribute("name");
+        const type = (el.getAttribute("type") || "").toLowerCase();
+
+        // Skip hidden pill duplicates if they are visually hidden
+        const group = el.closest(".ms-group");
+        if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) return;
+
+        // Skip unchecked radios/checkboxes
+        if ((type === "radio" || type === "checkbox") && !el.checked) return;
+
+        // Handle multi-select pills safely
+        if (el.classList.contains("ms-input")) {
+          try { obj[name] = JSON.parse(el.value || "[]"); }
+          catch (e) { obj[name] = []; }
+        } else {
+          // Standard text, selects, and checkboxes
+          if (type === "checkbox") {
+            obj[name] = el.value || true;
+          } else {
+            obj[name] = (el.value || "").trim();
+          }
+        }
+      });
+    });
+
+    // 3. Process the children array
     const childrenArr = Array.isArray(window.__aed_child_applications)
       ? window.__aed_child_applications
       : [];
 
-   obj.children = childrenArr.map((data, i) => ({ 
-  child_index: i, 
-  data: sanitizeDataForMake(data) 
-}));
+    obj.children = childrenArr.map((data, i) => ({ 
+      child_index: i, 
+      data: sanitizeDataForMake(data) 
+    }));
 
+    // 4. Attach the order details
     obj.order = buildOrderFromStep0();
-// NEW: travel context (family-level)
-obj.travel_context = {
-  timing: obj.travel_timing || "",
-  destinations: obj.travel_destinations || "",
-  style: obj.travel_style ? safeParseJsonArray(obj.travel_style) : [],
-  learning_opportunities: obj.travel_learning_opportunities ? safeParseJsonArray(obj.travel_learning_opportunities) : [],
-  notes: obj.travel_notes || ""
-};
 
+    // 5. Travel context (family-level)
+    obj.travel_context = {
+      timing: obj.travel_timing || "",
+      destinations: obj.travel_destinations || "",
+      style: obj.travel_style ? safeParseJsonArray(obj.travel_style) : [],
+      learning_opportunities: obj.travel_learning_opportunities ? safeParseJsonArray(obj.travel_learning_opportunities) : [],
+      notes: obj.travel_notes || ""
+    };
 
-
-    // Make-side idempotency should use request_id (new per click)
+    // 6. Meta data
     obj.request_id = makeRequestId();
-
-    // Helpful context
     obj.current_child_index = getChildIndex();
     obj.children_count = getChildrenCount();
-// These lines ensure your specific names are preserved for the AI:
+
+    // 7. Fallbacks to ensure Make doesn't error out if they are truly empty
     obj.contact_first_name = obj.contact_first_name || "";
     obj.contact_email = obj.contact_email || "";
-obj.plan_start_date = obj.plan_start_date || "";
-obj.plan_end_date = obj.plan_end_date || "";
-// Force application_group_id into payload (even if FormData misses it)
-const agEl = formEl.querySelector('[name="application_group_id"], #application_group_id, [data-state-key="application_group_id"]');
-if (agEl && agEl.value) {
-  obj.application_group_id = agEl.value.trim();
-}
-if (!obj.application_group_id) {
-  const year = new Date().getFullYear();
-  const random = Math.random().toString(36).slice(2, 10).toUpperCase();
-  obj.application_group_id = `AED-${year}-${random}`;
-}
+    obj.plan_start_date = obj.plan_start_date || "";
+    obj.plan_end_date = obj.plan_end_date || "";
+
+    // 8. Force application_group_id into payload
+    const agEl = formEl.querySelector('[name="application_group_id"], #application_group_id, [data-state-key="application_group_id"]');
+    if (agEl && agEl.value) {
+      obj.application_group_id = agEl.value.trim();
+    }
+    if (!obj.application_group_id) {
+      const year = new Date().getFullYear();
+      const random = Math.random().toString(36).slice(2, 10).toUpperCase();
+      obj.application_group_id = `AED-${year}-${random}`;
+    }
 
     return obj;
   }
