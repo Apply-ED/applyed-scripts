@@ -1251,34 +1251,49 @@ window.saveProgressSilently = function() {
 
 function collectChildData() {
   const data = {};
-  // We only look at steps 1 through 5 for child-specific data
+
+  // Fields that must ALWAYS be captured even if their container is hidden.
+  // These live inside conditionally-shown wrappers (e.g. language dropdown,
+  // study_span pills, other_goal textareas) so the normal visibility filter
+  // would skip them.
+  const ALWAYS_CAPTURE = [
+    "study_span",
+    "language_of_study",
+    "other_goal_1",
+    "other_goal_2",
+    "other_goal_3"
+  ];
+
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
 
     const fields = Array.from(stepEl.querySelectorAll("input, select, textarea"));
-    
+
     for (const el of fields) {
       const name = el.getAttribute("name");
       if (!name) continue;
 
-      // THE FIX: Prevent hidden duplicate groups (like in Container 3B) from overwriting good data!
-      const group = el.closest(".ms-group");
-      if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) {
-        continue; // Skip this input entirely if it is hidden on the screen
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      const isAlwaysCapture = ALWAYS_CAPTURE.includes(name);
+
+      // For pill groups: skip hidden duplicate containers (e.g. Container 3B)
+      // BUT always capture fields in the ALWAYS_CAPTURE list regardless.
+      if (!isAlwaysCapture) {
+        const group = el.closest(".ms-group");
+        if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) {
+          continue;
+        }
       }
 
-      const type = (el.getAttribute("type") || "").toLowerCase();
-
-      // Fix for Radio Buttons
+      // Radio buttons
       if (type === "radio") {
         if (el.checked) data[name] = el.value;
         continue;
       }
 
-// Fix for Checkboxes
+      // Checkboxes
       if (type === "checkbox") {
-        // Only save as checked. If unchecked, only overwrite if it isn't ALREADY saved as 'on'!
         if (el.checked) {
           data[name] = (el.value || "on");
         } else if (data[name] !== "on" && data[name] !== true) {
@@ -1287,30 +1302,48 @@ function collectChildData() {
         continue;
       }
 
-      // THE PILL FIX: This ensures JSON lists aren't "stringified" twice
+      // Pill groups (ms-input hidden fields)
       if (el.classList.contains("ms-input")) {
-        try {
-          data[name] = JSON.parse(el.value || "[]");
-        } catch (e) {
-          data[name] = []; 
+        // For study_span: only overwrite if we get a real value,
+        // so a hidden duplicate doesn't wipe a good saved value.
+        const parsed = (() => {
+          try { return JSON.parse(el.value || "[]"); } catch (e) { return []; }
+        })();
+
+        if (isAlwaysCapture) {
+          // Only save if non-empty, so hidden duplicates don't overwrite
+          if (parsed.length > 0) data[name] = parsed;
+        } else {
+          data[name] = parsed;
         }
         continue;
       }
 
-      // Standard text/select handling
-      data[name] = (el.value || "").trim();
+      // Selects and text fields
+      const val = (el.value || "").trim();
+
+      if (isAlwaysCapture) {
+        // For language_of_study there are 3 selects with the same name.
+        // Only overwrite with a non-empty value so hidden blank ones
+        // don't wipe the real selected value.
+        if (val) data[name] = val;
+      } else {
+        data[name] = val;
+      }
     }
   }
 
-  // FORCE CAPTURE: Explicitly grab Program Type from Step 0 if it's missing
+  // FORCE CAPTURE: Grab Program Type from Step 0 if missing
   if (!data.program_type) {
     const step0 = getStepEl(0);
-    const progEl = step0.querySelector('input[name="program_type"]:checked') || 
-                   step0.querySelector('select[name="program_type"]');
-    if (progEl) data.program_type = progEl.value;
+    if (step0) {
+      const progEl = step0.querySelector('input[name="program_type"]:checked') ||
+                     step0.querySelector('select[name="program_type"]');
+      if (progEl) data.program_type = progEl.value;
+    }
   }
 
-  console.log("✅ Child Data Captured:", data); 
+  console.log("✅ Child Data Captured:", data);
   return data;
 }
 
