@@ -1810,14 +1810,6 @@ function bindConfirmationGating() {
     // 4. ATTACH ORDER DETAILS
     obj.order = buildOrderFromStep0();
 
-    // 5. TRAVEL CONTEXT (Family-Level)
-    obj.travel_context = {
-      timing: obj.travel_timing || "",
-      destinations: obj.travel_destinations || "",
-      style: obj.travel_style ? safeParseJsonArray(obj.travel_style) : [],
-      learning_opportunities: obj.travel_learning_opportunities ? safeParseJsonArray(obj.travel_learning_opportunities) : [],
-      notes: obj.travel_notes || ""
-    };
 
     // 6. METADATA
     obj.request_id = makeRequestId();
