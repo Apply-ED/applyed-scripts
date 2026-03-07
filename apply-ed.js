@@ -3935,6 +3935,7 @@ function bindStatePickerLock() {
      }
   });
 
+  
   // 4. Watch for step changes to lock/unlock automatically
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
