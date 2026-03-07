@@ -1251,7 +1251,27 @@ window.saveProgressSilently = function() {
 
 function collectChildData() {
   const data = {};
+// FORCE SYNC: These pill groups don't auto-write their ms-input on click.
+  // Read the visually selected pills and write the value manually before collecting.
+  const FORCE_SYNC_GROUPS = [
+    "learning_approaches",
+    "academic_strengths",
+    "learning_needs",
+    "improvement_areas",
+    "connections"
+  ];
 
+  FORCE_SYNC_GROUPS.forEach(fieldName => {
+    const input = document.querySelector(`.ms-input[name="${fieldName}"]`);
+    if (!input) return;
+    const group = input.closest(".ms-group");
+    if (!group) return;
+    const selected = Array.from(group.querySelectorAll(".ms-option.is-selected"))
+      .map(o => o.getAttribute("data-value"))
+      .filter(Boolean);
+    input.value = JSON.stringify(selected);
+  });
+  
   // Fields that must ALWAYS be captured even if their container is hidden.
   // These live inside conditionally-shown wrappers (e.g. language dropdown,
   // study_span pills, other_goal textareas) so the normal visibility filter
@@ -1266,7 +1286,12 @@ const ALWAYS_CAPTURE = [
     "academic_strengths_custom",
     "learning_needs_custom",
     "improvement_custom",
-    "connections_custom"
+    "connections_custom",
+    "learning_approaches",
+    "academic_strengths",
+    "learning_needs",
+    "improvement_areas",
+    "connections"
   ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
