@@ -1271,7 +1271,7 @@ function collectChildData() {
       .filter(Boolean);
     input.value = JSON.stringify(selected);
   });
-  
+
   // Fields that must ALWAYS be captured even if their container is hidden.
   // These live inside conditionally-shown wrappers (e.g. language dropdown,
   // study_span pills, other_goal textareas) so the normal visibility filter
@@ -1750,6 +1750,26 @@ function bindConfirmationGating() {
 
   function formToObject(formEl) {
     const obj = {};
+
+    // FORCE SYNC: Travel pill groups sit inside a hidden wrapper on Step 0
+    // and won't be picked up by the visibility filter. Read their selected
+    // pills directly and write the ms-input value before collecting.
+    const TRAVEL_PILL_GROUPS = [
+      "travel_timing",
+      "travel_style",
+      "travel_learning_opportunities"
+    ];
+
+    TRAVEL_PILL_GROUPS.forEach(fieldName => {
+      const input = document.querySelector(`.ms-input[name="${fieldName}"]`);
+      if (!input) return;
+      const group = input.closest(".ms-group");
+      if (!group) return;
+      const selected = Array.from(group.querySelectorAll(".ms-option.is-selected"))
+        .map(o => o.getAttribute("data-value"))
+        .filter(Boolean);
+      input.value = JSON.stringify(selected);
+    });
 
     // 1. SURGICAL SCRAPING: Only grab inputs from Step 0, Step 4, and Step 6
     const targetSteps = [0, 4, 6];
