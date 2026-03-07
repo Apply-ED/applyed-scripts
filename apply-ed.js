@@ -1668,30 +1668,20 @@ function bindConfirmationGating() {
   onChange(); // set initial state
 }
 
-
   function formToObject(formEl) {
-    const fd = new FormData(formEl);
     const obj = {};
 
-    // 1. Grab whatever FormData successfully caught
-    for (const [key, value] of fd.entries()) {
-      if (obj[key] !== undefined) {
-        if (!Array.isArray(obj[key])) obj[key] = [obj[key]];
-        obj[key].push(value);
-      } else {
-        obj[key] = value;
-      }
-    }
-
-    // 🚨 2. THE FIX: BULLETPROOF SCRAPING FOR STEP 0 AND STEP 4 🚨
-    // Forces the script to grab these fields even if Webflow's <form> wrapper is broken
-    [0, 4].forEach(stepNum => {
+    // 1. SURGICAL SCRAPING: Only grab inputs from Step 0, Step 4, and Step 6
+    const targetSteps = [0, 4, 6];
+    targetSteps.forEach(stepNum => {
       const stepEl = getStepEl(stepNum);
       if (!stepEl) return;
 
       const fields = stepEl.querySelectorAll("input[name], select[name], textarea[name]");
       fields.forEach(el => {
         const name = el.getAttribute("name");
+        if (!name) return;
+        
         const type = (el.getAttribute("type") || "").toLowerCase();
 
         // Skip hidden pill duplicates if they are visually hidden
@@ -1708,7 +1698,7 @@ function bindConfirmationGating() {
         } else {
           // Standard text, selects, and checkboxes
           if (type === "checkbox") {
-            obj[name] = el.value || true;
+             obj[name] = el.value || "on";
           } else {
             obj[name] = (el.value || "").trim();
           }
@@ -1716,7 +1706,14 @@ function bindConfirmationGating() {
       });
     });
 
-    // 3. Process the children array
+    // 2. GRAB HIDDEN FIELDS (Pricing, Confirmations, etc.)
+    const hiddenFields = formEl.querySelectorAll('input[type="hidden"][name]');
+    hiddenFields.forEach(el => {
+      const name = el.getAttribute("name");
+      if (name) obj[name] = el.value;
+    });
+
+    // 3. ATTACH THE CLEAN CHILD DATA (Leaves the F-10 mess behind!)
     const childrenArr = Array.isArray(window.__aed_child_applications)
       ? window.__aed_child_applications
       : [];
@@ -1726,10 +1723,10 @@ function bindConfirmationGating() {
       data: sanitizeDataForMake(data) 
     }));
 
-    // 4. Attach the order details
+    // 4. ATTACH ORDER DETAILS
     obj.order = buildOrderFromStep0();
 
-    // 5. Travel context (family-level)
+    // 5. TRAVEL CONTEXT (Family-Level)
     obj.travel_context = {
       timing: obj.travel_timing || "",
       destinations: obj.travel_destinations || "",
@@ -1738,18 +1735,18 @@ function bindConfirmationGating() {
       notes: obj.travel_notes || ""
     };
 
-    // 6. Meta data
+    // 6. METADATA
     obj.request_id = makeRequestId();
     obj.current_child_index = getChildIndex();
     obj.children_count = getChildrenCount();
 
-    // 7. Fallbacks to ensure Make doesn't error out if they are truly empty
+    // 7. FALLBACKS (Just in case)
     obj.contact_first_name = obj.contact_first_name || "";
     obj.contact_email = obj.contact_email || "";
     obj.plan_start_date = obj.plan_start_date || "";
     obj.plan_end_date = obj.plan_end_date || "";
 
-    // 8. Force application_group_id into payload
+    // 8. FORCE GROUP ID INTO PAYLOAD
     const agEl = formEl.querySelector('[name="application_group_id"], #application_group_id, [data-state-key="application_group_id"]');
     if (agEl && agEl.value) {
       obj.application_group_id = agEl.value.trim();
