@@ -1751,26 +1751,7 @@ function bindConfirmationGating() {
   function formToObject(formEl) {
     const obj = {};
 
-    // FORCE SYNC: Travel pill groups sit inside a hidden wrapper on Step 0
-    // and won't be picked up by the visibility filter. Read their selected
-    // pills directly and write the ms-input value before collecting.
-    const TRAVEL_PILL_GROUPS = [
-      "travel_timing",
-      "travel_style",
-      "travel_learning_opportunities"
-    ];
-
-    TRAVEL_PILL_GROUPS.forEach(fieldName => {
-      const input = document.querySelector(`.ms-input[name="${fieldName}"]`);
-      if (!input) return;
-      const group = input.closest(".ms-group");
-      if (!group) return;
-      const selected = Array.from(group.querySelectorAll(".ms-option.is-selected"))
-        .map(o => o.getAttribute("data-value"))
-        .filter(Boolean);
-      input.value = JSON.stringify(selected);
-    });
-
+   
     // 1. SURGICAL SCRAPING: Only grab inputs from Step 0, Step 4, and Step 6
     const targetSteps = [0, 4, 6];
     targetSteps.forEach(stepNum => {
@@ -1786,7 +1767,10 @@ function bindConfirmationGating() {
 
         // Skip hidden pill duplicates if they are visually hidden
         const group = el.closest(".ms-group");
-        if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) return;
+        if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) {
+          // Even if the group is hidden, still capture it if it has a value
+          if (!el.classList.contains("ms-input") || !el.value || el.value === "[]") return;
+        }
 
         // Skip unchecked radios/checkboxes
         if ((type === "radio" || type === "checkbox") && !el.checked) return;
