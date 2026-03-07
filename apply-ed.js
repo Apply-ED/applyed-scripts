@@ -1,6 +1,7 @@
 
 // 1. THE GLOBAL BRIDGE (Must be at the very top)
 window.jumpToChild = function(targetIdx) {
+    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave first!
     if (window.aed_nav) {
         window.aed_nav.jump(targetIdx);
     } else {
@@ -388,8 +389,7 @@ function bindOrderSummarySync() {
       recalcOrderSummaryUIAndHidden();
       setChildrenCount(getTotalChildrenFromStep0());
       setChildIndex(0);
-      window.__aed_child_applications = [];
-    });
+      });
   }
 
   if (travelEl) {
@@ -1239,6 +1239,18 @@ function collectValueFromField(fieldEl) {
   return (fieldEl.value || "").trim();
 }
 
+window.saveProgressSilently = function() {
+  // Only run this if we are currently looking at a Child Step (Steps 1, 2, or 3)
+  if (currentStepNum >= STEP_FIRST_CHILD && currentStepNum <= STEP_LAST_CHILD) {
+    const idx = getChildIndex();
+    const currentDOMData = collectChildData();
+    const existing = window.__aed_child_applications[idx] || {};
+    
+    // Merge them so we don't accidentally erase any previously saved hidden fields
+    window.__aed_child_applications[idx] = { ...existing, ...currentDOMData };
+  }
+};
+
 function collectChildData() {
   const data = {};
   // We only look at steps 1 through 5 for child-specific data
@@ -1942,8 +1954,10 @@ document.addEventListener("click", function (e) {
   const action = (btn.getAttribute("data-step-action") || "").trim();
 
 if (action === "back") {
+    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave first!
     if (currentStepNum === 6) {
-        // From Step 6, go back to Step 4 (Environment)
+      
+        //       // From Step 6, go back to Step 4 (Environment)
         setActive(4);
     } else if (currentStepNum === 4) {
         // From Step 4, go back to the LAST child's Step 3
@@ -1989,6 +2003,8 @@ if (action === "back") {
     }
     if (currentStepNum === 0) {
       recalcOrderSummaryUIAndHidden();
+      setChildIndex(0);
+      loadChildData(0);
     }
 
     recalcOrderSummaryUIAndHidden();
@@ -2037,7 +2053,10 @@ function renderChildNavBar() {
   setupBtn.type = "button";
   setupBtn.className = (currentStepNum === 0) ? "child-nav-btn is-active" : "child-nav-btn";
   setupBtn.textContent = "⚙️ Setup";
-  setupBtn.onclick = () => setActive(0);
+  setupBtn.onclick = () => {
+      if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave!
+      setActive(0);
+  };
   container.appendChild(setupBtn);
 
   // ---------- Child tabs ----------
@@ -2071,7 +2090,10 @@ function renderChildNavBar() {
     reviewBtn.type = "button";
     reviewBtn.className = (currentStepNum === STEP_PAYMENT) ? "child-nav-btn is-active" : "child-nav-btn";
     reviewBtn.textContent = "Review";
-    reviewBtn.onclick = () => setActive(STEP_PAYMENT); // Step 6
+    reviewBtn.onclick = () => {
+        if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave!
+        setActive(STEP_PAYMENT); // Step 6
+    };
     container.appendChild(reviewBtn);
   }
 }
