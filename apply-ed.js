@@ -1258,7 +1258,7 @@ function collectChildData() {
     "academic_strengths",
     "learning_needs",
     "improvement_areas",
-    "connections"
+    "social_community_connections"
   ];
 
   FORCE_SYNC_GROUPS.forEach(fieldName => {
@@ -1286,12 +1286,12 @@ const ALWAYS_CAPTURE = [
     "academic_strengths_custom",
     "learning_needs_custom",
     "improvement_custom",
-    "connections_custom",
+    "social_community_connections_custom",
     "learning_approaches",
     "academic_strengths",
     "learning_needs",
     "improvement_areas",
-    "connections"
+    "social_community_connections"
   ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -1626,13 +1626,13 @@ function renderChildSummary() {
 
     // NEW: Pull in specific elective pill selections!
     const electiveItems = [
-      formatPills(child.hass_selections),
-      formatPills(child.arts_selections),
-      formatPills(child.tech_selections),
-      formatPills(child.english_elective),
-      formatPills(child.hpe_elective),
-      formatPills(child.maths_pathways),
-      formatPills(child.science_specialist),
+      formatPills(child.hass_electives),
+      formatPills(child.arts_electives),
+      formatPills(child.tech_electives),
+      formatPills(child.english_electives),
+      formatPills(child.hpe_electives),
+      formatPills(child.maths_electives),
+      formatPills(child.science_electives),
       child.Language_of_study || child.language_of_study // Added this to ensure your language fix gets displayed!
     ].filter(Boolean);
 
@@ -1648,17 +1648,17 @@ function renderChildSummary() {
     const interestItems = [
       formatPills(child.curiosities),
       formatPills(child.interests),
-      formatPills(child.interest_animals),
-      formatPills(child.interest_coding),
-      formatPills(child.interest_art),
-      formatPills(child.interest_building),
-      formatPills(child.interest_writing),
-      formatPills(child.interest_space),
-      formatPills(child.interest_games),
-      formatPills(child.interest_tech),
-      formatPills(child.interest_history),
-      formatPills(child.interest_cooking),
-      formatPills(child.interest_chemistry),
+      formatPills(child.interest_animals_nature),
+      formatPills(child.interest_technology_digital_coding),
+      formatPills(child.interest_art_creativity),
+      formatPills(child.interest_building_construction),
+      formatPills(child.interest_creative_writing),
+      formatPills(child.interest_space_astronomy),
+      formatPills(child.interest_strategic_games),
+      formatPills(child.interest_online_gaming),
+      formatPills(child.interest_history_culture),
+      formatPills(child.interest_cooking_life_skills),
+      formatPills(child.interest_science_experiments),
       formatPills(child.interest_music),
       formatPills(child.interest_sport),
       child.curiosities_custom,
@@ -2890,7 +2890,7 @@ function bindCustomValidation() {
     { name: 'student_year_level', label: 'Current Year Level' },
     { name: 'previous_schooling', label: 'Previous Schooling' },
     { name: 'time_home_educated', label: 'Time Home Educated' },
-    { name: 'structured_learning_time', label: 'Structured Learning Time' },
+    { name: 'structured_hours_week', label: 'Structured Learning Time' },
     { name: 'daily_peak', label: 'Daily Energy Peak' },
     { name: 'attention_span', label: 'Attention Span' },
     { name: 'routine_preference', label: 'Routine Preference' }
@@ -4451,17 +4451,17 @@ function initInterestDeepDives() {
 
     // 3. The COMPLETE "Map" - Links Tier 1 data-value to Tier 2 Div ID
     const deepDiveMap = {
-      'animals_nature': 'deep-dive-animals',
-      'digital_coding': 'deep-dive-coding', /* Check if your main pill is digital_coding or digital_design! */
-      'art_creativity': 'deep-dive-art',
-      'building_construction': 'deep-dive-building',
-      'creative_writing': 'deep-dive-writing',
-      'space_astronomy': 'deep-dive-space',
-      'strategic_games': 'deep-dive-games',
-      'technology_gaming': 'deep-dive-tech',
-      'history_culture': 'deep-dive-history',
-      'cooking_life_skills': 'deep-dive-cooking',
-      'chemistry_experiments': 'deep-dive-chemistry',
+      'animals_nature': 'deep-dive-animals-nature',
+      'technology_digital_coding': 'deep-dive-technology-digital-coding', /* Check if your main pill is digital_coding or digital_design! */
+      'art_creativity': 'deep-dive-art-creativity',
+      'building_construction': 'deep-dive-building-construction',
+      'creative_writing': 'deep-dive-creative-writing',
+      'space_astronomy': 'deep-dive-space-astronomy',
+      'strategic_games': 'deep-dive-strategic-games',
+      'online_gaming': 'deep-dive-online-gaming',
+      'history_culture': 'deep-dive-history-culture',
+      'cooking_life_skills': 'deep-dive-cooking-life-skills',
+      'science_experiments': 'deep-dive-science-experiments',
       'music': 'deep-dive-music',
       'sport': 'deep-dive-sport'
     };
