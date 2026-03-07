@@ -1256,12 +1256,17 @@ function collectChildData() {
   // These live inside conditionally-shown wrappers (e.g. language dropdown,
   // study_span pills, other_goal textareas) so the normal visibility filter
   // would skip them.
-  const ALWAYS_CAPTURE = [
+const ALWAYS_CAPTURE = [
     "study_span",
     "language_of_study",
     "other_goal_1",
     "other_goal_2",
-    "other_goal_3"
+    "other_goal_3",
+    "learning_approaches_custom",
+    "academic_strengths_custom",
+    "learning_needs_custom",
+    "improvement_custom",
+    "connections_custom"
   ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
