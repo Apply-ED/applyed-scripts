@@ -2972,6 +2972,9 @@ function bindPillVisibility() {
   pillSection.style.display = 'none';
 
   function checkVisibility() {
+    // 🛡️ If we are loading saved data, do not hide/reset the pills section
+    if (window.__aed_is_loading_data) return;
+
     // Condition 1: do we have a start date in March or later?
     var rawDate = startDateField ? startDateField.value : '';
     if (!rawDate) {
@@ -3177,6 +3180,7 @@ function setCheckboxLock(selector, lockAndCheck) {
   }
 
   function checkYearLevel() {
+     if (window.__aed_is_loading_data) return;
     var rawValue = yearDropdown.value;
     
     if (coreF8Container) coreF8Container.style.display = 'none';
