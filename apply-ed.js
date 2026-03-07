@@ -1317,41 +1317,40 @@ function collectChildData() {
 }
 
 function resetChildFields() {
-  // A. Clear standard fields across all child steps
+  // A. Clear standard fields across all child steps safely
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     clearStepError(s);
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
 
-    Array.from(stepEl.querySelectorAll('[data-child-scope="true"]')).forEach(scope => {
-      Array.from(scope.querySelectorAll("input, select, textarea")).forEach(el => {
-        const type = (el.getAttribute("type") || "").toLowerCase();
-        const tagName = el.tagName.toLowerCase();
-        const name = el.getAttribute("name") || "";
+    // THE FIX: Target all inputs in the step directly
+    stepEl.querySelectorAll("input, select, textarea").forEach(el => {
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      const tagName = el.tagName.toLowerCase();
+      const name = el.getAttribute("name") || "";
 
-        if (name === "state" || el.hasAttribute("data-state-key") || type === "hidden") return;
+      if (name === "state" || el.hasAttribute("data-state-key") || type === "hidden") return;
 
-        if (type === "checkbox" && el.getAttribute("data-default-checked-group") === "curriculum") {
-          el.checked = true;
-        } else if (type === "checkbox" || type === "radio") {
-          el.checked = false;
-        } else if (el.classList && el.classList.contains("ms-input")) {
-          el.value = "[]";
-        } else if (tagName === "select") {
-          el.selectedIndex = 0;
-          el.value = "";
-          el.style.color = "#cbd1d6"; 
-        } else {
-          el.value = "";
-        }
-        
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      });
+      if (type === "checkbox" && el.getAttribute("data-default-checked-group") === "curriculum") {
+        el.checked = true;
+      } else if (type === "checkbox" || type === "radio") {
+        el.checked = false;
+      } else if (el.classList && el.classList.contains("ms-input")) {
+        el.value = "[]";
+      } else if (tagName === "select") {
+        el.selectedIndex = 0;
+        el.value = "";
+        el.style.color = "#cbd1d6"; 
+      } else {
+        el.value = "";
+      }
+      
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }
 
-  // B. THE STICKY BUBBLE FIX: Clear every highlight on the page first
+  // B. THE STICKY BUBBLE FIX... (leave the rest of the function exactly as it is)
   document.querySelectorAll(".ms-option").forEach(p => {
     p.classList.remove("is-selected");
   });
@@ -1423,16 +1422,24 @@ function saveCurrentChildAndAdvance() {
   const total = getChildrenCount();
   const nextIdx = idx + 1;
 
-  setChildIndex(nextIdx);
-
   if (nextIdx >= total) {
-    // All children are complete! Move to Step 4 (Environment)
+    // All children are complete! Keep index anchored and move to Step 4
+    setChildIndex(nextIdx - 1);
     setActive(STEP_ENVIRONMENT);
     return;
   }
 
-  // Otherwise, loop back to Step 1 for the next child
-  resetChildFields();
+  // Move to the next child
+  setChildIndex(nextIdx);
+
+  // THE FIX: Check if the next child already exists before wiping the screen!
+  const nextChildData = window.__aed_child_applications[nextIdx];
+  if (nextChildData && nextChildData.__saved) {
+    loadChildData(nextIdx); // Load their existing data
+  } else {
+    resetChildFields();     // Or give them a clean slate
+  }
+
   setActive(STEP_FIRST_CHILD);
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
   renderChildNavBar();
@@ -2137,10 +2144,12 @@ function loadChildData(idx) {
     return;
   }
 
-  const childScopes = document.querySelectorAll('[data-child-scope="true"]');
+  // THE FIX: Loop through the actual child steps (1 to 3) to find all inputs
+  for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
+    const stepEl = getStepEl(s);
+    if (!stepEl) continue;
 
-  childScopes.forEach(scope => {
-    scope.querySelectorAll("input, select, textarea").forEach(el => {
+    stepEl.querySelectorAll("input, select, textarea").forEach(el => {
       const name = el.getAttribute("name");
       if (!name || name === "state") return;
 
@@ -2148,7 +2157,6 @@ function loadChildData(idx) {
       const type = (el.getAttribute("type") || "").toLowerCase();
       const tag = (el.tagName || "").toLowerCase();
 
-      // ✅ FIX: radios must be checked by matching value
       if (type === "radio") {
         el.checked = (String(el.value) === String(val));
         if (el.checked) {
@@ -2160,7 +2168,7 @@ function loadChildData(idx) {
 
       if (type === "checkbox") {
         el.checked = (val === el.value || val === "on" || val === "true" || val === true);
-} else if (tag === "select") {
+      } else if (tag === "select") {
         el.value = val || "";
         el.style.color = (el.value === "") ? "#cbd1d6" : "#7a7f87";
       } else {
@@ -2170,16 +2178,15 @@ function loadChildData(idx) {
       el.dispatchEvent(new Event("change", { bubbles: true }));
       el.dispatchEvent(new Event("input", { bubbles: true }));
     });
-  });
+  }
 
-  // If you have any ms-groups elsewhere, keep this
+  // Restore pills and UI updates
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
-updateCurrentChildHeading();
+  updateCurrentChildHeading();
   updateFoundationOptionLabel();
   setTimeout(setupAutoExpandingTextareas, 50);
   setTimeout(refreshAllSelectColours, 50);
-
 }
 
 
@@ -3832,7 +3839,7 @@ if (paymentStatus === "failed") {
   setActive(0);
 }
 /* =========================
-   DYNAMIC STATE PICKER LOCK & VALIDATION (Ghost-Proof v2)
+   DYNAMIC STATE PICKER LOCK & VALIDATION (Sticky Navbar Fix v3)
    ========================= */
 function bindStatePickerLock() {
   const pickers = document.querySelectorAll('select[name="state-picker"], [data-aed-state-picker="1"], select[name="state"]');
@@ -3842,7 +3849,6 @@ function bindStatePickerLock() {
     const shouldLock = (typeof currentStepNum !== 'undefined' && currentStepNum > 0);
 
     pickers.forEach(picker => {
-      // Find Webflow's custom wrapper so we can freeze it
       const wrapper = picker.closest('.w-select') || picker.parentElement;
 
       if (shouldLock) {
@@ -3867,52 +3873,69 @@ function bindStatePickerLock() {
     });
   }
 
-  // 2. Prevent leaving Step 0 if State is empty (Ghost-proofed + Custom Error Box)
+  // 2. Prevent leaving Step 0 if State is empty (Double Navbar Proofed)
   document.addEventListener('click', function(e) {
     const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
     if (nextBtn && typeof currentStepNum !== 'undefined' && currentStepNum === 0) {
       
-      // Find ONLY the visible state picker that the user actually interacts with
-      let visiblePicker = null;
-      pickers.forEach(p => {
-         if (p.offsetWidth > 0 && p.offsetHeight > 0 && p.name === 'state-picker') {
-            visiblePicker = p;
-         }
-      });
+      // Get all state pickers on the page (static and sticky navbars)
+      const statePickers = Array.from(document.querySelectorAll('select[name="state-picker"]'));
+      
+      // Does ANY picker have a valid selection?
+      const validPicker = statePickers.find(p => p.value && p.value.trim() !== '');
 
-      // If the visible picker is empty, block them and show the red box
-      if (visiblePicker && (!visiblePicker.value || visiblePicker.value.trim() === '')) {
+      // If none of them have a value, block submission
+      if (!validPicker) {
          e.preventDefault();
          e.stopImmediatePropagation();
          
-         let errEl = document.getElementById('state-picker-error');
-         if (!errEl) {
-           errEl = document.createElement('div');
-           errEl.id = 'state-picker-error';
-           errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
-           
-           const container = visiblePicker.closest('.field-group') || visiblePicker.parentElement;
-           if (container) container.appendChild(errEl);
+         // Find the sticky/visible picker to attach the error box to
+         let visiblePicker = statePickers.reverse().find(p => p.offsetWidth > 0) || statePickers[0];
+         
+         if (visiblePicker) {
+             let errEl = document.getElementById('state-picker-error');
+             if (!errEl) {
+               errEl = document.createElement('div');
+               errEl.id = 'state-picker-error';
+               errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+               
+               const container = visiblePicker.closest('.field-group') || visiblePicker.parentElement;
+               if (container) container.appendChild(errEl);
+             }
+             errEl.textContent = 'Please select your State from the dropdown before starting your application.';
+             errEl.style.display = 'block';
+             errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
          }
-         errEl.textContent = 'Please select your State from the dropdown before starting your application.';
-         errEl.style.display = 'block';
-         errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
          const errEl = document.getElementById('state-picker-error');
          if (errEl) errEl.style.display = 'none';
+         
+         // SYNC FIX: If one has a value, silently update all the others
+         statePickers.forEach(p => {
+            if (p.value !== validPicker.value) {
+               p.value = validPicker.value;
+            }
+         });
       }
     }
   }, true);
 
-  // Hide the error box the moment they select a state
+  // 3. Keep all pickers in sync when the user changes one manually
   document.addEventListener('change', function(e) {
      if (e.target && e.target.name === 'state-picker') {
         const errEl = document.getElementById('state-picker-error');
         if (errEl) errEl.style.display = 'none';
+        
+        // Auto-sync the sticky navbar with the static one (and vice versa)
+        document.querySelectorAll('select[name="state-picker"]').forEach(p => {
+            if (p !== e.target && p.value !== e.target.value) {
+                p.value = e.target.value;
+            }
+        });
      }
   });
 
-  // 3. Watch for step changes to lock/unlock automatically
+  // 4. Watch for step changes to lock/unlock automatically
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
       if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
