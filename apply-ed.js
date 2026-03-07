@@ -2144,13 +2144,13 @@ function syncPillsFromInput(inputEl) {
 // 2. This function handles filling the form when jumping between children
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
-  console.log("LOADING CHILD DATA:", JSON.stringify(data))
+
   if (!data) {
     resetChildFields();
     return;
   }
 
-  // 🛡️ THE FIX: Activate the shield so aggressive listeners don't clear data while it's loading
+  // 🛡️ Activate the shield so aggressive listeners don't clear data while loading
   window.__aed_is_loading_data = true;
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -2177,7 +2177,6 @@ function loadChildData(idx) {
       if (type === "checkbox") {
         el.checked = (val === el.value || val === "on" || val === "true" || val === true);
       } else if (el.classList.contains("ms-input")) {
-        // 💊 THE PILL FIX: Convert arrays back into proper JSON strings!
         el.value = (typeof val === 'object' && val !== null) ? JSON.stringify(val) : (val || "[]");
       } else if (tag === "select") {
         el.value = val || "";
@@ -2191,8 +2190,52 @@ function loadChildData(idx) {
     });
   }
 
+  // Sync pill visuals
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
+
+  // FIX 1: If study_span has a saved value, make sure the pill section is visible
+  if (data.study_span) {
+    const pillSection = document.getElementById('year-level-pills');
+    if (pillSection) pillSection.style.display = '';
+  }
+
+  // FIX 2: If language_of_study has a saved value, restore it after the shield
+  // drops (so bindLanguageToggle has already shown the wrapper)
+  if (data.language_of_study) {
+    setTimeout(() => {
+      const langSelect = document.querySelector('select[name="language_of_study"]');
+      if (langSelect) {
+        langSelect.value = data.language_of_study;
+        langSelect.style.color = "#7a7f87";
+        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }, 150);
+  }
+
+  // FIX 3: If other_goal fields have saved values, show their hidden wrappers
+  ["other_goal_1", "other_goal_2", "other_goal_3"].forEach((fieldName, i) => {
+    const val = data[fieldName];
+    if (!val) return; // Nothing saved, leave hidden
+
+    // Find the textarea
+    const textarea = document.querySelector(`textarea[name="${fieldName}"], input[name="${fieldName}"]`);
+    if (!textarea) return;
+
+    // Show the wrapper div (it uses display:none to hide)
+    const wrapper = textarea.closest('[data-show]') || textarea.parentElement;
+    if (wrapper) wrapper.style.display = "block";
+
+    // Update the corresponding "Add Other" button text
+    const btnLabel = `[+ Add Other ${i + 1}]`;
+    const allAddOtherLinks = document.querySelectorAll('.add-other-link');
+    allAddOtherLinks.forEach(link => {
+      if ((link.getAttribute('data-field') || '').includes(`other_goal_${i + 1}`)) {
+        link.textContent = "[-] Remove Other";
+      }
+    });
+  });
+
   updateCurrentChildHeading();
   updateFoundationOptionLabel();
   setTimeout(setupAutoExpandingTextareas, 50);
