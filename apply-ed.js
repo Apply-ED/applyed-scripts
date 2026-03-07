@@ -1413,8 +1413,8 @@ function saveCurrentChildAndAdvance() {
   const idx = getChildIndex();
   const childData = collectChildData();
   childData.__saved = true;               
-  window.__aed_child_applications[idx] = childData;
-
+  window.__aed_child_applications[idx] = childData; 
+  console.log("SAVED CHILD DATA:", JSON.stringify(childData))
   captureFirstChildStateIfNeeded();
 
   const total = getChildrenCount();
@@ -2058,10 +2058,18 @@ function renderChildNavBar() {
   setupBtn.type = "button";
   setupBtn.className = (currentStepNum === 0) ? "child-nav-btn is-active" : "child-nav-btn";
   setupBtn.textContent = "⚙️ Setup";
-  setupBtn.onclick = () => {
-      if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave!
-      setActive(0);
-  };
+setupBtn.onclick = () => {
+    // Save the current child regardless of which step we're on
+    const idx = getChildIndex();
+    if (window.__aed_child_applications[idx] && window.__aed_child_applications[idx].__saved) {
+        const freshData = collectChildData();
+        window.__aed_child_applications[idx] = { 
+            ...window.__aed_child_applications[idx], 
+            ...freshData 
+        };
+    }
+    setActive(0);
+};
   container.appendChild(setupBtn);
 
   // ---------- Child tabs ----------
@@ -2136,7 +2144,7 @@ function syncPillsFromInput(inputEl) {
 // 2. This function handles filling the form when jumping between children
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
-
+  console.log("LOADING CHILD DATA:", JSON.stringify(data))
   if (!data) {
     resetChildFields();
     return;
