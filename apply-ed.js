@@ -1007,15 +1007,13 @@ function resyncAllMultiSelectGroups(scopeEl) {
     writeCurriculumCoverage(document);
   }
 /* =========================
-   LANGUAGE DROPDOWN TOGGLE (Ultimate Fix v6)
+   LANGUAGE DROPDOWN TOGGLE (Ultimate Fix v6 + Shield)
    ========================= */
 function bindLanguageToggle() {
   function syncAll() {
-    // 1. Broadest possible selector to find the Language checkbox
     const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input[value="Languages"], input[data-value="Languages"]');
     
     langCbs.forEach(function(cb) {
-      // 2. Safely traverse up the DOM to find the matching wrapper for this specific year level
       let wrap = null;
       let parent = cb.parentElement;
       while (parent && parent !== document.body) {
@@ -1027,7 +1025,6 @@ function bindLanguageToggle() {
       if (!wrap) return;
       const select = wrap.querySelector("select");
 
-      // 3. Brute-force CSS to guarantee Webflow doesn't hide it
       if (cb.checked) {
         wrap.style.cssText = 'display: block !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; height: auto !important; margin-top: 12px;';
         if (select) {
@@ -1038,14 +1035,16 @@ function bindLanguageToggle() {
         wrap.style.cssText = 'display: none !important;';
         if (select) {
           select.required = false;
-          select.value = "";
-          select.dispatchEvent(new Event('change', { bubbles: true }));
+          // 🛡️ THE FIX: Protect the saved language from being wiped during load!
+          if (!window.__aed_is_loading_data) {
+             select.value = "";
+             select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
         }
       }
     });
   }
 
-  // Fire on ANY checkbox change or click to guarantee we catch Webflow's custom elements
   document.addEventListener("change", function(e) {
     if (e.target && e.target.type === 'checkbox') setTimeout(syncAll, 50);
   }, true);
@@ -1054,7 +1053,6 @@ function bindLanguageToggle() {
     if (e.target && e.target.closest('.w-checkbox')) setTimeout(syncAll, 50);
   }, true);
 
-  // Auto-run when swapping steps
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
       if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(syncAll, 50);
@@ -2144,7 +2142,9 @@ function loadChildData(idx) {
     return;
   }
 
-  // THE FIX: Loop through the actual child steps (1 to 3) to find all inputs
+  // 🛡️ THE FIX: Activate the shield so aggressive listeners don't clear data while it's loading
+  window.__aed_is_loading_data = true;
+
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
@@ -2168,6 +2168,9 @@ function loadChildData(idx) {
 
       if (type === "checkbox") {
         el.checked = (val === el.value || val === "on" || val === "true" || val === true);
+      } else if (el.classList.contains("ms-input")) {
+        // 💊 THE PILL FIX: Convert arrays back into proper JSON strings!
+        el.value = (typeof val === 'object' && val !== null) ? JSON.stringify(val) : (val || "[]");
       } else if (tag === "select") {
         el.value = val || "";
         el.style.color = (el.value === "") ? "#cbd1d6" : "#7a7f87";
@@ -2180,13 +2183,15 @@ function loadChildData(idx) {
     });
   }
 
-  // Restore pills and UI updates
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
   updateCurrentChildHeading();
   updateFoundationOptionLabel();
   setTimeout(setupAutoExpandingTextareas, 50);
   setTimeout(refreshAllSelectColours, 50);
+
+  // 🛡️ Deactivate the shield once the DOM has safely settled
+  setTimeout(() => { window.__aed_is_loading_data = false; }, 100);
 }
 
 
@@ -3114,8 +3119,8 @@ function setCheckboxLock(selector, lockAndCheck) {
           wrapper.style.opacity = '0.7';
         }
       } else {
-        // NEW: If unlocking, UNCHECK it automatically to prevent ghost carry-overs!
-        if (realInput && realInput.checked) {
+        // 🛡️ THE FIX: Do not auto-uncheck if the shield is active!
+        if (!window.__aed_is_loading_data && realInput && realInput.checked) {
           realInput.checked = false;
           realInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
@@ -3935,7 +3940,7 @@ function bindStatePickerLock() {
      }
   });
 
-  
+
   // 4. Watch for step changes to lock/unlock automatically
   const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
