@@ -3246,7 +3246,42 @@ function bindYearLevelPills() {
   if (stateDropdown) stateDropdown.addEventListener('change', updatePills);
   updatePills();
 }
+// NEW: Bulletproof function to force History to be selected and locked
+function forceSelectHistory(prefix, suffix) {
+    suffix = suffix || '';
+    var hassPills = document.getElementById(prefix + '-hass-pills' + suffix);
+    if (!hassPills) return;
+    
+    // Find the pill by data-value or text content
+    var historyPill = hassPills.querySelector('.ms-option[data-value="history"]') || hassPills.querySelector('.ms-option[data-value="History"]');
+    if (!historyPill) {
+       var allPills = hassPills.querySelectorAll('.ms-option');
+       for (var i = 0; i < allPills.length; i++) {
+          if (allPills[i].textContent.toLowerCase().includes('history')) {
+             historyPill = allPills[i]; break;
+          }
+       }
+    }
+    
+    if (!historyPill) return;
 
+    if (!historyPill.classList.contains('is-selected')) {
+      historyPill.classList.add('is-selected');
+      var input = hassPills.querySelector('.ms-input');
+      if (input) {
+         var val = historyPill.getAttribute('data-value');
+         var currentVals = [];
+         try { currentVals = JSON.parse(input.value || "[]"); } catch(e){}
+         if (!currentVals.includes(val)) currentVals.push(val);
+         input.value = JSON.stringify(currentVals);
+         input.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+    }
+    
+    historyPill.style.pointerEvents = 'none';
+    historyPill.style.opacity = '0.9';
+    historyPill.style.boxShadow = '0 0 0 2px #799377 inset'; 
+  }
 /* =========================
    CURRICULUM VISIBILITY, LOCKING & BANNERS (F-10 Logic)
    ========================= */
@@ -3314,42 +3349,7 @@ function setCheckboxLock(selector, lockAndCheck) {
     });
   }
 
-  // NEW: Bulletproof function to force History to be selected and locked
-function forceSelectHistory(prefix, suffix) {
-    suffix = suffix || '';
-    var hassPills = document.getElementById(prefix + '-hass-pills' + suffix);
-    if (!hassPills) return;
-    
-    // Find the pill by data-value or text content
-    var historyPill = hassPills.querySelector('.ms-option[data-value="history"]') || hassPills.querySelector('.ms-option[data-value="History"]');
-    if (!historyPill) {
-       var allPills = hassPills.querySelectorAll('.ms-option');
-       for (var i = 0; i < allPills.length; i++) {
-          if (allPills[i].textContent.toLowerCase().includes('history')) {
-             historyPill = allPills[i]; break;
-          }
-       }
-    }
-    
-    if (!historyPill) return;
-
-    if (!historyPill.classList.contains('is-selected')) {
-      historyPill.classList.add('is-selected');
-      var input = hassPills.querySelector('.ms-input');
-      if (input) {
-         var val = historyPill.getAttribute('data-value');
-         var currentVals = [];
-         try { currentVals = JSON.parse(input.value || "[]"); } catch(e){}
-         if (!currentVals.includes(val)) currentVals.push(val);
-         input.value = JSON.stringify(currentVals);
-         input.dispatchEvent(new Event('change', {bubbles: true}));
-      }
-    }
-    
-    historyPill.style.pointerEvents = 'none';
-    historyPill.style.opacity = '0.9';
-    historyPill.style.boxShadow = '0 0 0 2px #799377 inset'; 
-  }
+  
 
   function checkYearLevel() {
      if (window.__aed_is_loading_data) return;
