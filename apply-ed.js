@@ -1015,6 +1015,7 @@ function bindLanguageToggle() {
     const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input[value="Languages"], input[data-value="Languages"]');
     
     langCbs.forEach(function(cb) {
+      // First try searching upward through parents (Step 3 behaviour)
       let wrap = null;
       let parent = cb.parentElement;
       while (parent && parent !== document.body) {
@@ -1022,7 +1023,13 @@ function bindLanguageToggle() {
         if (wrap) break;
         parent = parent.parentElement;
       }
-      
+
+      // If not found upward, try finding the wrap inside the same step panel (Step 4 behaviour)
+      if (!wrap) {
+        const stepPanel = cb.closest('.step');
+        if (stepPanel) wrap = stepPanel.querySelector('.language-of-study-wrap');
+      }
+
       if (!wrap) return;
       const select = wrap.querySelector("select");
 
@@ -1036,10 +1043,9 @@ function bindLanguageToggle() {
         wrap.style.cssText = 'display: none !important;';
         if (select) {
           select.required = false;
-          // 🛡️ THE FIX: Protect the saved language from being wiped during load!
           if (!window.__aed_is_loading_data) {
-             select.value = "";
-             select.dispatchEvent(new Event('change', { bubbles: true }));
+            select.value = "";
+            select.dispatchEvent(new Event('change', { bubbles: true }));
           }
         }
       }
@@ -3309,8 +3315,9 @@ function setCheckboxLock(selector, lockAndCheck) {
   }
 
   // NEW: Bulletproof function to force History to be selected and locked
-  function forceSelectHistory(prefix) {
-    var hassPills = document.getElementById(prefix + '-hass-pills');
+function forceSelectHistory(prefix, suffix) {
+    suffix = suffix || '';
+    var hassPills = document.getElementById(prefix + '-hass-pills' + suffix);
     if (!hassPills) return;
     
     // Find the pill by data-value or text content
@@ -3672,6 +3679,140 @@ function bindWorkloadTracker() {
 }
 
 /* =========================
+   WORKLOAD TRACKER — STEP 4 (Y2)
+   ========================= */
+function bindY2WorkloadTracker() {
+  var trackerWrap = document.getElementById('workload-tracker_y2');
+  var countText = document.getElementById('workload-count-text_y2');
+  var warningText = document.getElementById('workload-warning-text_y2');
+
+  if (!trackerWrap || !countText || !warningText) return;
+
+  function getNextYearNum() {
+    var yearDropdown = document.querySelector('select[name="student_year_level"]');
+    if (!yearDropdown || !yearDropdown.value) return 0;
+    var raw = yearDropdown.value;
+    if (raw === 'FOUNDATION') return 1;
+    var match = raw.match(/\d+/);
+    return match ? parseInt(match[0], 10) + 1 : 0;
+  }
+
+  function calculateY2Workload() {
+    var yearNum = getNextYearNum();
+    if (yearNum <= 6) { trackerWrap.style.display = 'none'; return; }
+
+    trackerWrap.style.display = 'block';
+    var total = 0;
+
+    // Teleport tracker to the correct container
+    var targetContainer = null;
+    if (yearNum === 7 || yearNum === 8) targetContainer = document.getElementById('f6-curriculum-container_y2');
+    else if (yearNum === 9) targetContainer = document.getElementById('y9-curriculum-container_y2');
+    else if (yearNum === 10) targetContainer = document.getElementById('y10-curriculum-container_y2');
+
+    if (targetContainer && trackerWrap.parentNode !== targetContainer) {
+      targetContainer.insertAdjacentElement('afterbegin', trackerWrap);
+    }
+
+    function countPills(wrapperId) {
+      var wrap = document.getElementById(wrapperId);
+      if (!wrap || wrap.style.display === 'none') return 0;
+      return wrap.querySelectorAll('.ms-option.is-selected').length;
+    }
+
+    function hasLanguageY2() {
+      var step4 = document.querySelector('.step[data-step="4"]');
+      if (!step4) return 0;
+      var langCbs = step4.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages_y2"], input[id="languages_y2"]');
+      var isChecked = false;
+      langCbs.forEach(function(cb) {
+        if (cb.checked && cb.offsetParent !== null) isChecked = true;
+      });
+      return isChecked ? 1 : 0;
+    }
+
+    if (yearNum === 7 || yearNum === 8) {
+      total = 7 + countPills('y78-arts-pills_y2');
+    } else if (yearNum === 9) {
+      total = 4 + countPills('y9-hass-pills_y2') + countPills('y9-tech-pills_y2') + countPills('y9-arts-pills_y2') + hasLanguageY2();
+    } else if (yearNum === 10) {
+      total = 1 + countPills('y10-english-pills_y2') + countPills('y10-maths-pills_y2') + countPills('y10-science-pills_y2') + countPills('y10-hass-pills_y2') + countPills('y10-tech-pills_y2') + countPills('y10-arts-pills_y2') + 1 + countPills('y10-hpe-pills_y2') + hasLanguageY2();
+    }
+
+    countText.innerHTML = '<strong>Total subjects selected: ' + total + '</strong>';
+    trackerWrap.style.backgroundColor = '#f4f7f4';
+    trackerWrap.style.border = '1px solid #c3d9c3';
+    warningText.style.color = '#263358';
+
+    if (yearNum === 7 || yearNum === 8) {
+      warningText.textContent = "This is a highly manageable, standard workload for this year level.";
+    } else if (yearNum === 9) {
+      if (total <= 6) {
+        trackerWrap.style.backgroundColor = '#ffebee';
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Warning:</strong> This is below the recommended number of learning areas and may impact your application approval.";
+      } else if (total >= 9) {
+        trackerWrap.style.backgroundColor = '#fff8e1';
+        trackerWrap.style.border = '1px solid #ffe082';
+        warningText.style.color = '#8f6c00';
+        warningText.innerHTML = "<strong>Advisory:</strong> 9 or more subjects is a heavy workload for Year 9. Please ensure this is manageable for your child.";
+      } else {
+        warningText.textContent = "This is a standard, balanced workload for Year 9.";
+      }
+    } else if (yearNum === 10) {
+      if (total <= 6) {
+        trackerWrap.style.backgroundColor = '#ffebee';
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Warning:</strong> This is under the recommended number of learning areas and may impact your application approval.";
+      } else if (total >= 10) {
+        trackerWrap.style.backgroundColor = '#ffebee';
+        trackerWrap.style.border = '1px solid #ffcdd2';
+        warningText.style.color = '#c62828';
+        warningText.innerHTML = "<strong>Intensive Workload:</strong> 10+ subjects is a very heavy senior workload. Please carefully consider your child's schedule before proceeding.";
+      } else if (total === 9) {
+        trackerWrap.style.backgroundColor = '#fff8e1';
+        trackerWrap.style.border = '1px solid #ffe082';
+        warningText.style.color = '#8f6c00';
+        warningText.innerHTML = "<strong>Advisory:</strong> 9 subjects is a robust workload. Ensure your child has adequate study time mapped out.";
+      } else {
+        warningText.textContent = "This is a standard, balanced workload for Year 10.";
+      }
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.ms-option') || e.target.closest('input[type="checkbox"]') || e.target.closest('.w-checkbox')) {
+      setTimeout(calculateY2Workload, 50);
+    }
+  }, true);
+
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('ms-input')) {
+      setTimeout(calculateY2Workload, 50);
+    } else {
+      calculateY2Workload();
+    }
+  }, true);
+
+  // Also run when Step 4 becomes active
+  const step4 = document.querySelector('.step[data-step="4"]');
+  if (step4) {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+          setTimeout(calculateY2Workload, 100);
+        }
+      });
+    });
+    observer.observe(step4, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  setTimeout(calculateY2Workload, 100);
+}
+
+/* =========================
    SMART CHECKBOX SYNC (Duplicate ID Immunity v12 + Locked Protection)
    ========================= */
 function bindCheckboxSync() {
@@ -3966,7 +4107,9 @@ bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
 bindCurriculumVisibility();
+bindY1StepHeading();
 bindWorkloadTracker();
+bindY2WorkloadTracker();
 bindCheckboxSync();
 bindPersonalisedHeading();
 upgradeStep0Banner();
@@ -4688,6 +4831,58 @@ function initGoalDirectedDeepDives() {
 
   setTimeout(updateGoalDeepDives, 100);
 }
+/* =========================
+   STEP 3: DYNAMIC HEADING (Y1)
+   ========================= */
+function bindY1StepHeading() {
+  const heading = document.getElementById('y1-step-heading');
+  if (!heading) return;
+
+  function updateY1Heading() {
+    const yearDropdown = document.querySelector('select[name="student_year_level"]');
+    const nameInput = document.querySelector('input[name="student_first_name"]');
+
+    const yearVal = yearDropdown ? yearDropdown.value : '';
+    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : null;
+
+    let yearLabel = '';
+    if (yearVal === 'FOUNDATION') {
+      yearLabel = 'Prep';
+    } else {
+      const match = yearVal.match(/\d+/);
+      yearLabel = match ? 'Year ' + match[0] : '';
+    }
+
+    if (name && yearLabel) {
+      heading.textContent = "Select " + name + "'s " + yearLabel + " curriculum & electives";
+    } else if (yearLabel) {
+      heading.textContent = "Select " + yearLabel + " curriculum & electives";
+    }
+  }
+
+  // Run when year level or name changes
+  document.addEventListener('change', function(e) {
+    if (e.target.name === 'student_year_level') setTimeout(updateY1Heading, 50);
+  });
+  document.addEventListener('input', function(e) {
+    if (e.target.name === 'student_first_name') setTimeout(updateY1Heading, 50);
+  });
+
+  // Run when Step 3 becomes active
+  const step3 = document.querySelector('.step[data-step="3"]');
+  if (step3) {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+          setTimeout(updateY1Heading, 50);
+        }
+      });
+    });
+    observer.observe(step3, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  setTimeout(updateY1Heading, 100);
+}
 
 /* =========================
    STEP 4: CURRICULUM YEAR 2 WIRING
@@ -4776,16 +4971,18 @@ function bindY2CurriculumVisibility() {
       bannerContainer.style.display = 'block';
     }
 
-    if (isY9) {
+if (isY9) {
       if (y9Container) y9Container.style.display = 'block';
       bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to suit their interests.';
       bannerContainer.style.display = 'block';
+      forceSelectHistory('y9', '_y2');
     }
 
     if (isY10) {
       if (y10Container) y10Container.style.display = 'block';
       bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
       bannerContainer.style.display = 'block';
+      forceSelectHistory('y10', '_y2');
     }
   }
 
