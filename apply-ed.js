@@ -1302,6 +1302,7 @@ function collectChildData() {
 const ALWAYS_CAPTURE = [
     "study_span",
     "language_of_study",
+    "language_of_study_y2",
     "other_goal_1",
     "other_goal_2",
     "other_goal_3",
@@ -1314,7 +1315,23 @@ const ALWAYS_CAPTURE = [
     "academic_strengths",
     "learning_needs",
     "improvement_areas",
-    "social_community_connections"
+    "social_community_connections",
+    // Y1 electives (Step 3)
+    "arts_electives",
+    "hass_electives",
+    "tech_electives",
+    "english_electives",
+    "maths_electives",
+    "science_electives",
+    "hpe_electives",
+    // Y2 electives (Step 4)
+    "arts_electives_y2",
+    "hass_electives_y2",
+    "tech_electives_y2",
+    "english_electives_y2",
+    "maths_electives_y2",
+    "science_electives_y2",
+    "hpe_electives_y2"
   ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -1825,11 +1842,11 @@ const targetSteps = [0, 6, 7];
       });
     });
 
-    // 2. GRAB HIDDEN FIELDS (Pricing, Confirmations, etc.)
+// 2. GRAB HIDDEN FIELDS (Pricing, Confirmations, etc.)
     const hiddenFields = formEl.querySelectorAll('input[type="hidden"][name]');
     hiddenFields.forEach(el => {
       const name = el.getAttribute("name");
-      if (name) obj[name] = el.value;
+      if (name && !TOP_LEVEL_BLOCKLIST.has(name)) obj[name] = el.value;
     });
 
     // 3. ATTACH THE CLEAN CHILD DATA (Leaves the F-10 mess behind!)
