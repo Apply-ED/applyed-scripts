@@ -2110,13 +2110,30 @@ if (action === "back") {
       return;
     }
 
-    if (currentStepNum === 3) {
+ if (currentStepNum === 3) {
       // Step 3 (Curriculum Y1) — check if split year or all_one_year
-      const childIdx = getChildIndex();
-      const childData = window.__aed_child_applications[childIdx] || {};
-      const studySpan = Array.isArray(childData.study_span)
-        ? childData.study_span[0]
-        : childData.study_span;
+      // Read study_span from the DOM first, fall back to saved data
+      let studySpan = null;
+
+      const spanInput = document.querySelector('.ms-input[name="study_span"]');
+      if (spanInput && spanInput.value) {
+        try {
+          const parsed = JSON.parse(spanInput.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            studySpan = parsed[0];
+          }
+        } catch (e) {}
+      }
+
+      // Fall back to saved data if DOM read failed
+      if (!studySpan) {
+        const childIdx = getChildIndex();
+        const childData = window.__aed_child_applications[childIdx] || {};
+        studySpan = Array.isArray(childData.study_span)
+          ? childData.study_span[0]
+          : childData.study_span;
+      }
+
       const isSplit = studySpan && studySpan !== 'all_one_year';
 
       if (isSplit) {
