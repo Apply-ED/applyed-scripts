@@ -671,12 +671,20 @@ updateCurrentChildHeading();
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
 }
 
-  // Show/hide the Step 4 goal-directed info banner
+// Show/hide the Step 3 goal-directed info banner
   if (stepNum === 3) {
     setTimeout(showStep4GoalInfo, 0);
   } else {
     hideStep4GoalInfo();
   }
+
+  // Directly trigger Y2 workload tracker when entering Step 4
+  if (stepNum === STEP_Y2) {
+    setTimeout(function() {
+      if (typeof window.__calculateY2Workload === 'function') window.__calculateY2Workload();
+    }, 100);
+  }
+
   // NEW: Update the progress bar every time the step changes
   setTimeout(updateProgressBar, 50);
 }
@@ -1767,8 +1775,19 @@ function bindConfirmationGating() {
     const obj = {};
 
    
-    // 1. SURGICAL SCRAPING: Only grab inputs from Step 0, Step 4, and Step 6
-    const targetSteps = [0, 4, 6];
+// 1. SURGICAL SCRAPING: Only grab inputs from Step 0 (family setup),
+//    Step 6 (learning environment), and Step 7 (review & payment).
+//    Child-specific data (Steps 1–5) is captured via collectChildData()
+//    and lives inside obj.children[].data — NOT at the top level.
+const targetSteps = [0, 6, 7];
+// Fields that must never appear at the top level of the payload.
+    const TOP_LEVEL_BLOCKLIST = new Set([
+      'block1_year_level',
+      'block2_year_level',
+      'block3_year_level',
+      'block4_year_level'
+    ]);
+
     targetSteps.forEach(stepNum => {
       const stepEl = getStepEl(stepNum);
       if (!stepEl) return;
@@ -1777,6 +1796,7 @@ function bindConfirmationGating() {
       fields.forEach(el => {
         const name = el.getAttribute("name");
         if (!name) return;
+        if (TOP_LEVEL_BLOCKLIST.has(name)) return;
         
         const type = (el.getAttribute("type") || "").toLowerCase();
 
@@ -3696,11 +3716,22 @@ function bindY2WorkloadTracker() {
 
   if (!trackerWrap || !countText || !warningText) return;
 
-  function getNextYearNum() {
-    var yearDropdown = document.querySelector('select[name="student_year_level"]');
-    if (!yearDropdown || !yearDropdown.value) return 0;
-    var raw = yearDropdown.value;
-    if (raw === 'FOUNDATION') return 1;
+function getNextYearNum() {
+    // Primary: read from saved child data (reliable when Step 4 becomes active
+    // and the year dropdown in Step 2 may not reflect the current value).
+    var raw = null;
+    try {
+      var idx = getChildIndex();
+      var savedData = window.__aed_child_applications && window.__aed_child_applications[idx];
+      if (savedData && savedData.student_year_level) raw = savedData.student_year_level;
+    } catch (e) {}
+    // Fallback: read from the year dropdown in the DOM
+    if (!raw) {
+      var yearDropdown = document.querySelector('select[name="student_year_level"]');
+      if (yearDropdown && yearDropdown.value) raw = yearDropdown.value;
+    }
+    if (!raw) return 0;
+    if (raw === 'Foundation Year' || raw === 'FOUNDATION') return 1;
     var match = raw.match(/\d+/);
     return match ? parseInt(match[0], 10) + 1 : 0;
   }
@@ -3788,6 +3819,7 @@ function bindY2WorkloadTracker() {
         warningText.textContent = "This is a standard, balanced workload for Year 10.";
       }
     }
+    window.__calculateY2Workload = calculateY2Workload;
   }
 
   document.addEventListener('click', function(e) {
