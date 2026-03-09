@@ -3833,21 +3833,50 @@ function updateProgressBar() {
   const activeStep = document.querySelector('.step.is-active');
   if (!activeStep) return;
 
-  // 1. Calculate the exact math based on how many kids there are
   const totalChildren = getChildrenCount();
   const currentChildIdx = getChildIndex();
-  
-  // Total screens = Setup (1) + Children (Kids x 3) + Environment (1) + Review (1)
-  const totalScreens = 1 + (totalChildren * 3) + 1 + 1; 
+
+  // Work out how many per-child screens each child has
+  // (4 if split year, 4 if all_one_year — Step 4 is skipped but Steps 1,2,3,5 always show)
+  // We count Step 4 for split children only
+  function childScreenCount(idx) {
+    const childData = window.__aed_child_applications[idx] || {};
+    const studySpan = Array.isArray(childData.study_span)
+      ? childData.study_span[0]
+      : childData.study_span;
+    return (studySpan && studySpan !== 'all_one_year') ? 5 : 4;
+  }
+
+  // Total screens = Setup (1) + sum of per-child screens + Environment (1) + Review (1)
+  let totalScreens = 1 + 1 + 1;
+  for (let i = 0; i < totalChildren; i++) {
+    totalScreens += childScreenCount(i);
+  }
+
+  // Work out how many screens have been completed before the current child
+  let screensBeforeCurrentChild = 1; // Setup
+  for (let i = 0; i < currentChildIdx; i++) {
+    screensBeforeCurrentChild += childScreenCount(i);
+  }
+
   let currentScreen = 1;
 
   if (currentStepNum === 0) {
     currentScreen = 1;
-  } else if (currentStepNum >= 1 && currentStepNum <= 3) {
-    currentScreen = 1 + (currentChildIdx * 3) + currentStepNum;
-  } else if (currentStepNum === 4) {
-    currentScreen = 1 + (totalChildren * 3) + 1;
-  } else if (currentStepNum === 6) {
+  } else if (currentStepNum === 1) {
+    currentScreen = screensBeforeCurrentChild + 1;
+  } else if (currentStepNum === 2) {
+    currentScreen = screensBeforeCurrentChild + 2;
+  } else if (currentStepNum === 3) {
+    currentScreen = screensBeforeCurrentChild + 3;
+  } else if (currentStepNum === STEP_Y2) {
+    currentScreen = screensBeforeCurrentChild + 4;
+  } else if (currentStepNum === STEP_LAST_CHILD) {
+    const isSplit = childScreenCount(currentChildIdx) === 5;
+    currentScreen = screensBeforeCurrentChild + (isSplit ? 5 : 4);
+  } else if (currentStepNum === STEP_ENVIRONMENT) {
+    currentScreen = totalScreens - 1;
+  } else if (currentStepNum === STEP_PAYMENT) {
     currentScreen = totalScreens;
   }
 
