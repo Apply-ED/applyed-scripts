@@ -585,9 +585,9 @@ function applyStateDefaultForCurrentChild() {
   }
 
   const STEP_FIRST_CHILD = 1;
-  const STEP_LAST_CHILD = 3;  // Reduced from 5
-  const STEP_ENVIRONMENT = 4; // The new Learning Environment step
-  const STEP_PAYMENT = 6;
+  const STEP_LAST_CHILD = 5;  // Reduced from 5
+  const STEP_ENVIRONMENT = 6; // The new Learning Environment step
+  const STEP_PAYMENT = 7;
 
   let currentStepNum = 0;
 
