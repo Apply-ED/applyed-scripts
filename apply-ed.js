@@ -584,10 +584,11 @@ function applyStateDefaultForCurrentChild() {
     return;
   }
 
-  const STEP_FIRST_CHILD = 1;
-  const STEP_LAST_CHILD = 5;  // Reduced from 5
-  const STEP_ENVIRONMENT = 6; // The new Learning Environment step
-  const STEP_PAYMENT = 7;
+const STEP_FIRST_CHILD = 1;
+const STEP_LAST_CHILD = 5;
+const STEP_Y2 = 4;
+const STEP_ENVIRONMENT = 6;
+const STEP_PAYMENT = 7;
 
   let currentStepNum = 0;
 
@@ -2018,29 +2019,52 @@ document.addEventListener("click", function (e) {
   const action = (btn.getAttribute("data-step-action") || "").trim();
 
 if (action === "back") {
-    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave first!
-    if (currentStepNum === 6) {
-      
-        //       // From Step 6, go back to Step 4 (Environment)
-        setActive(4);
-    } else if (currentStepNum === 4) {
-        // From Step 4, go back to the LAST child's Step 3
+    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
+
+    if (currentStepNum === STEP_PAYMENT) {
+        // From Review & Payment, go back to Environment
+        setActive(STEP_ENVIRONMENT);
+
+    } else if (currentStepNum === STEP_ENVIRONMENT) {
+        // From Environment, go back to the LAST child's Step 5 (Interests & Goals)
         const lastChildIdx = getChildrenCount() - 1;
         setChildIndex(lastChildIdx);
         loadChildData(lastChildIdx);
-        setActive(3);
+        setActive(STEP_LAST_CHILD);
         renderChildNavBar();
+
+    } else if (currentStepNum === STEP_LAST_CHILD) {
+        // From Step 5 (Interests & Goals), go back to Step 4 or Step 3
+        // depending on whether this child is a split year
+        const childIdx = getChildIndex();
+        const childData = window.__aed_child_applications[childIdx] || {};
+        const studySpan = Array.isArray(childData.study_span)
+            ? childData.study_span[0]
+            : childData.study_span;
+        const isSplit = studySpan && studySpan !== 'all_one_year';
+
+        if (isSplit) {
+            setActive(STEP_Y2);
+        } else {
+            setActive(3);
+        }
+
+    } else if (currentStepNum === STEP_Y2) {
+        // From Step 4 (Y2 curriculum), go back to Step 3 (Y1 curriculum)
+        setActive(3);
+
     } else if (currentStepNum === 1) {
-        // From Step 1, go back to previous child's Step 3, OR Step 0
+        // From Step 1, go back to previous child's Step 5, OR Step 0
         const idx = getChildIndex();
         if (idx > 0) {
             setChildIndex(idx - 1);
             loadChildData(idx - 1);
-            setActive(3);
+            setActive(STEP_LAST_CHILD);
             renderChildNavBar();
         } else {
             setActive(0);
         }
+
     } else if (currentStepNum > 0) {
         setActive(currentStepNum - 1);
     }
@@ -2074,15 +2098,37 @@ if (action === "back") {
     recalcOrderSummaryUIAndHidden();
 
     // --- NEW LOOPING & ROUTING LOGIC ---
-    if (currentStepNum === 3) {
-      // Step 3 is the new last child step. Trigger the save & loop!
+    if (currentStepNum === STEP_Y2) {
+      // Step 4 (Y2 curriculum) always advances to Step 5 (Interests & Goals)
+      setActive(STEP_LAST_CHILD);
+      return;
+    }
+
+    if (currentStepNum === STEP_LAST_CHILD) {
+      // Step 5 (Interests & Goals) is the last child step. Trigger save & loop!
       saveCurrentChildAndAdvance();
       return;
     }
 
-    if (currentStepNum === 4) {
-      // Step 4 jumps straight to 6 (Review), skipping redundant Step 5
-      setActive(6);
+    if (currentStepNum === 3) {
+      // Step 3 (Curriculum Y1) — check if split year or all_one_year
+      const childIdx = getChildIndex();
+      const childData = window.__aed_child_applications[childIdx] || {};
+      const studySpan = Array.isArray(childData.study_span)
+        ? childData.study_span[0]
+        : childData.study_span;
+      const isSplit = studySpan && studySpan !== 'all_one_year';
+
+      if (isSplit) {
+        setActive(STEP_Y2);
+      } else {
+        setActive(STEP_LAST_CHILD);
+      }
+      return;
+    }
+
+    if (currentStepNum === STEP_ENVIRONMENT) {
+      setActive(STEP_PAYMENT);
       return;
     }
 
