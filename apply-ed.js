@@ -3839,11 +3839,24 @@ function updateProgressBar() {
   // Work out how many per-child screens each child has
   // (4 if split year, 4 if all_one_year — Step 4 is skipped but Steps 1,2,3,5 always show)
   // We count Step 4 for split children only
-  function childScreenCount(idx) {
+function childScreenCount(idx) {
     const childData = window.__aed_child_applications[idx] || {};
-    const studySpan = Array.isArray(childData.study_span)
+    let studySpan = Array.isArray(childData.study_span)
       ? childData.study_span[0]
       : childData.study_span;
+
+    // If still not found, try reading from the DOM directly (current child only)
+    if (!studySpan && idx === getChildIndex()) {
+      const spanInput = document.querySelector('.ms-input[name="study_span"]');
+      if (spanInput && spanInput.value) {
+        try {
+          const parsed = JSON.parse(spanInput.value);
+          if (Array.isArray(parsed) && parsed.length > 0) studySpan = parsed[0];
+        } catch (e) {}
+      }
+    }
+
+    // If still unknown (future unsaved children), default to 4 (conservative estimate)
     return (studySpan && studySpan !== 'all_one_year') ? 5 : 4;
   }
 
