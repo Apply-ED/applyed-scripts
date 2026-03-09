@@ -1012,8 +1012,16 @@ function resyncAllMultiSelectGroups(scopeEl) {
    ========================= */
 function bindLanguageToggle() {
   function syncAll() {
-    const langCbs = document.querySelectorAll('input[data-value="languages"], input[name="languages"], input[id="languages"], input[value="Languages"], input[data-value="Languages"]');
-    
+    const langCbs = document.querySelectorAll([
+      'input[data-value="languages"]',
+      'input[data-value="Languages"]',
+      'input[name="languages"]',
+      'input[id="languages"]',
+      'input[name="languages_y2"]',
+      'input[id="languages_y2"]',
+      'input[id="Languages_y2"]',
+      'input[name="Languages_y2"]'
+    ].join(', '));
     langCbs.forEach(function(cb) {
       // First try searching upward through parents (Step 3 behaviour)
       let wrap = null;
@@ -3797,17 +3805,18 @@ function bindY2WorkloadTracker() {
   }, true);
 
   // Also run when Step 4 becomes active
-  const step4 = document.querySelector('.step[data-step="4"]');
-  if (step4) {
+  // Run when Step 4 becomes active
+  document.querySelectorAll('.step').forEach(function(step) {
     const observer = new MutationObserver(function(mutations) {
       mutations.forEach(function(m) {
-        if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-          setTimeout(calculateY2Workload, 100);
+        if (m.attributeName === 'class' && m.target === step && m.target.classList.contains('is-active')) {
+          const stepNum = parseInt(step.getAttribute('data-step'), 10);
+          if (stepNum === 4) setTimeout(calculateY2Workload, 100);
         }
       });
     });
-    observer.observe(step4, { attributes: true, attributeFilter: ['class'] });
-  }
+    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
+  });
 
   setTimeout(calculateY2Workload, 100);
 }
@@ -4978,11 +4987,10 @@ if (isY9) {
       forceSelectHistory('y9', '_y2');
     }
 
-    if (isY10) {
+if (isY10) {
       if (y10Container) y10Container.style.display = 'block';
       bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
       bannerContainer.style.display = 'block';
-      forceSelectHistory('y10', '_y2');
     }
   }
 
