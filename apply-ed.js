@@ -4689,4 +4689,121 @@ function initGoalDirectedDeepDives() {
   setTimeout(updateGoalDeepDives, 100);
 }
 
+/* =========================
+   STEP 4: CURRICULUM YEAR 2 WIRING
+   ========================= */
+function bindY2CurriculumVisibility() {
+  const step4 = document.querySelector('.step[data-step="4"]');
+  if (!step4) return;
+
+  // Container IDs in Step 4
+  const f6Container   = document.getElementById('f6-curriculum-container_y2');
+  const artsPillsY78  = document.getElementById('y78-arts-pills_y2');
+  const y9Container   = document.getElementById('y9-curriculum-container_y2');
+  const y10Container  = document.getElementById('y10-curriculum-container_y2');
+  const heading       = document.getElementById('y2-step-heading');
+
+  // Reuse the banner container logic from Step 3
+  let bannerContainer = document.getElementById('aed-curriculum-banner_y2');
+  if (!bannerContainer) {
+    bannerContainer = document.createElement('div');
+    bannerContainer.id = 'aed-curriculum-banner_y2';
+    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box; display: none;';
+    if (f6Container && f6Container.parentNode) {
+      f6Container.parentNode.insertBefore(bannerContainer, f6Container);
+    }
+  }
+
+  function getNextYearLevel() {
+    // Read the selected year level from Step 2
+    const yearDropdown = document.querySelector('select[name="student_year_level"]');
+    if (!yearDropdown || !yearDropdown.value) return null;
+
+    const raw = yearDropdown.value;
+    if (raw === 'FOUNDATION') return 'Year 1';
+
+    const match = raw.match(/\d+/);
+    if (!match) return null;
+
+    const nextNum = parseInt(match[0], 10) + 1;
+    if (nextNum > 10) return null; // No Year 11
+    return 'Year ' + nextNum;
+  }
+
+  function updateY2Heading(nextYearLevel) {
+    if (!heading || !nextYearLevel) return;
+    // Get student name for personalisation
+    const nameInput = document.querySelector('input[name="student_first_name"]');
+    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : null;
+    if (name) {
+      heading.textContent = "Select " + name + "'s " + nextYearLevel + " curriculum & electives";
+    } else {
+      heading.textContent = "Select " + nextYearLevel + " curriculum & electives";
+    }
+  }
+
+  function checkY2YearLevel() {
+    // Hide all containers first
+    if (f6Container)  f6Container.style.display  = 'none';
+    if (artsPillsY78) artsPillsY78.style.display  = 'none';
+    if (y9Container)  y9Container.style.display   = 'none';
+    if (y10Container) y10Container.style.display  = 'none';
+    if (bannerContainer) bannerContainer.style.display = 'none';
+
+    const nextYearLevel = getNextYearLevel();
+    if (!nextYearLevel) return;
+
+    updateY2Heading(nextYearLevel);
+
+    const match = nextYearLevel.match(/\d+/);
+    if (!match) return;
+    const yearNum = parseInt(match[0], 10);
+
+    const isF6  = yearNum <= 6;
+    const isY78 = yearNum === 7 || yearNum === 8;
+    const isY9  = yearNum === 9;
+    const isY10 = yearNum === 10;
+
+    if (isF6 || isY78) {
+      if (f6Container) f6Container.style.display = 'block';
+
+      if (isF6) {
+        bannerContainer.innerHTML = '<strong>Curriculum Requirements (F-6)</strong><br>To meet standard home education requirements, your child will explore all 8 Key Learning Areas. This ensures a broad, foundational education.';
+      } else {
+        bannerContainer.innerHTML = '<strong>Curriculum Requirements (Years 7-8)</strong><br>All 8 core areas are still required, but your child can now choose their specific focus within The Arts (select at least 1).';
+        if (artsPillsY78) artsPillsY78.style.display = 'block';
+      }
+      bannerContainer.style.display = 'block';
+    }
+
+    if (isY9) {
+      if (y9Container) y9Container.style.display = 'block';
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to suit their interests.';
+      bannerContainer.style.display = 'block';
+    }
+
+    if (isY10) {
+      if (y10Container) y10Container.style.display = 'block';
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
+      bannerContainer.style.display = 'block';
+    }
+  }
+
+  // Run whenever Step 4 becomes active
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
+        setTimeout(checkY2YearLevel, 50);
+      }
+    });
+  });
+
+  if (step4) observer.observe(step4, { attributes: true, attributeFilter: ['class'] });
+
+  // Also run once on load in case Step 4 is already active
+  setTimeout(checkY2YearLevel, 100);
+}
+
+setTimeout(bindY2CurriculumVisibility, 500);
+
 });
