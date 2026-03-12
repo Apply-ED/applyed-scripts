@@ -1,4 +1,3 @@
-
 // 1. THE GLOBAL BRIDGE (Must be at the very top)
 window.jumpToChild = function(targetIdx) {
     if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave first!
@@ -653,10 +652,12 @@ const CURRICULUM_CONFIG = {
           ]
         },
         hass: {
-          label: "Humanities and Social Sciences Electives",
-          helpText: "History is mandatory. You may also select:",
-          min: 0, max: 2,
+          label: "Humanities and Social Sciences",
+          helpText: "History is included. Select up to 1 additional subject:",
+          min: 0, max: 1,
+          lockedNote: "History",
           options: [
+            { id: "History",               value: "History",               label: "History",               locked: true },
             { id: "Geography",              value: "Geography",              label: "Geography" },
             { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
             { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
@@ -719,10 +720,11 @@ const CURRICULUM_CONFIG = {
           ]
         },
         hass: {
-          label: "Humanities and Social Sciences Electives",
-          helpText: "History is mandatory. You may also select:",
-          min: 0, max: 2,
+          label: "Humanities and Social Sciences",
+          helpText: "History is included. Select up to 1 additional subject:",
+          min: 0, max: 1,
           options: [
+            { id: "History",               value: "History",               label: "History",               locked: true },
             { id: "Geography",              value: "Geography",              label: "Geography" },
             { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
             { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
@@ -833,7 +835,7 @@ console.log("✅ Curriculum helper functions loaded");
       // ── Wrapper injected into each container ──
       ".aed-dynamic-curriculum { font-family: Montserrat, sans-serif; }",
 
-      // ── Mandatory subjects banner (sage green, no selection needed) ──
+      // ── Mandatory subjects banner (soft header, no selection needed) ──
       ".aed-mandatory-banner {",
       "  background: #f5f7f4;",
       "  border: 1px solid #dde4dd;",
@@ -842,7 +844,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  overflow: hidden;",
       "}",
       ".aed-mandatory-banner-header {",
-      "  background: #799377;",
+      "  background: #edf1ed;",
       "  padding: 12px 16px;",
       "  display: flex;",
       "  align-items: center;",
@@ -853,7 +855,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
-      "  color: #ffffff;",
+      "  color: #263358;",
       "}",
       ".aed-mandatory-banner-body {",
       "  padding: 14px 16px;",
@@ -882,7 +884,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  font-weight: 700;",
       "}",
 
-      // ── Pathway card (always open, sage header) ──
+      // ── Pathway card (always open, soft header matching elective cards) ──
       ".aed-pathway-card {",
       "  background: #f5f7f4;",
       "  border: 1px solid #dde4dd;",
@@ -891,7 +893,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  overflow: hidden;",
       "}",
       ".aed-pathway-card-header {",
-      "  background: #799377;",
+      "  background: #edf1ed;",
       "  padding: 12px 16px;",
       "}",
       ".aed-pathway-card-title {",
@@ -899,12 +901,12 @@ console.log("✅ Curriculum helper functions loaded");
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
-      "  color: #ffffff;",
+      "  color: #263358;",
       "}",
       ".aed-pathway-card-subtitle {",
-      "  font-size: 12px;",
-      "  color: rgba(255,255,255,0.85);",
-      "  margin-top: 2px;",
+      "  font-size: 13px;",
+      "  color: #4f6a5a;",
+      "  margin-top: 3px;",
       "}",
       ".aed-pathway-card-body {",
       "  padding: 14px 16px;",
@@ -925,25 +927,27 @@ console.log("✅ Curriculum helper functions loaded");
       "  padding: 14px 16px;",
       "  cursor: pointer;",
       "  user-select: none;",
-      "  background: #f5f7f4;",
+      "  background: #edf1ed;",
       "  transition: background 0.15s ease;",
       "}",
       ".aed-elective-card-trigger:hover {",
-      "  background: #edf1ed;",
+      "  background: #e4ebe4;",
       "}",
       ".aed-elective-card-trigger-left {",
       "  display: flex;",
       "  flex-direction: column;",
-      "  gap: 2px;",
+      "  gap: 3px;",
       "}",
       ".aed-elective-card-name {",
-      "  font-size: 14px;",
-      "  font-weight: 600;",
+      "  font-size: 12px;",
+      "  font-weight: 700;",
+      "  letter-spacing: 0.08em;",
+      "  text-transform: uppercase;",
       "  color: #263358;",
       "}",
       ".aed-elective-card-hint {",
-      "  font-size: 12px;",
-      "  color: #7a7f87;",
+      "  font-size: 13px;",
+      "  color: #4f6a5a;",
       "}",
       ".aed-elective-card-right {",
       "  display: flex;",
@@ -951,7 +955,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  gap: 10px;",
       "}",
       ".aed-elective-card-count {",
-      "  font-size: 12px;",
+      "  font-size: 13px;",
       "  font-weight: 600;",
       "  color: #799377;",
       "  min-width: 20px;",
@@ -978,7 +982,7 @@ console.log("✅ Curriculum helper functions loaded");
       "}",
       ".aed-elective-card.is-open .aed-elective-card-body {",
       "  max-height: 600px;",
-      "  padding: 0 16px 16px;",
+      "  padding: 14px 16px 16px;",
       "}",
       ".aed-elective-help {",
       "  font-size: 13px;",
@@ -1019,9 +1023,48 @@ console.log("✅ Curriculum helper functions loaded");
       "  background: #1d2744;",
       "  border-color: #1d2744;",
       "}",
+      ".aed-dynamic-pill.is-locked {",
+      "  background: #263358;",
+      "  color: #ffffff;",
+      "  border-color: #263358;",
+      "  cursor: default;",
+      "  opacity: 0.75;",
+      "}",
+      ".aed-dynamic-pill.is-locked:hover {",
+      "  background: #263358;",
+      "  border-color: #263358;",
+      "}",
 
       // ── Hidden input ──
       ".aed-hidden-input { position:absolute; opacity:0; pointer-events:none; height:0; width:0; }",
+
+      // ── Languages section ──
+      ".aed-languages-card {",
+      "  background: #f5f7f4;",
+      "  border: 1px solid #dde4dd;",
+      "  border-radius: 8px;",
+      "  margin-bottom: 12px;",
+      "  overflow: hidden;",
+      "}",
+      ".aed-languages-card-header {",
+      "  background: #edf1ed;",
+      "  padding: 12px 16px;",
+      "}",
+      ".aed-languages-card-title {",
+      "  font-size: 12px;",
+      "  font-weight: 700;",
+      "  letter-spacing: 0.08em;",
+      "  text-transform: uppercase;",
+      "  color: #263358;",
+      "}",
+      ".aed-languages-card-subtitle {",
+      "  font-size: 13px;",
+      "  color: #4f6a5a;",
+      "  margin-top: 3px;",
+      "}",
+      ".aed-languages-card-body {",
+      "  padding: 14px 16px;",
+      "}",
 
       // ── Shake animation for max-hit ──
       "@keyframes aed-pill-shake {",
@@ -1073,35 +1116,47 @@ console.log("✅ Curriculum helper functions loaded");
     pill.className = "aed-dynamic-pill ms-option";
     pill.setAttribute("data-value", option.id);
     pill.setAttribute("data-submit-value", option.value);
-    pill.setAttribute("data-learning-area", learningArea);
     if (option.category) pill.setAttribute("data-category", option.category);
+    if (option.locked) {
+      pill.setAttribute("data-locked", "true");
+      pill.classList.add("is-selected", "is-locked");
+    }
     pill.textContent = option.label;
 
     pill.addEventListener("click", function(e) {
       e.preventDefault();
       e.stopPropagation();
 
-      var section = this.closest("[data-learning-area]");
+      // Locked pills cannot be toggled
+      if (this.getAttribute("data-locked") === "true") return;
+
+      // Walk up to the card (has data-learning-area), skipping the pill itself
+      var section = this.parentElement;
+      while (section && !section.hasAttribute("data-learning-area")) {
+        section = section.parentElement;
+      }
 
       if (this.classList.contains("is-selected")) {
-        var selectedCount = section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+        var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+        var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
         var minAllowed = config.min || 0;
-        if (selectedCount > minAllowed) {
+        if (selectableSelected.length > minAllowed) {
           this.classList.remove("is-selected");
         }
       } else {
-        var currentSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
-        var maxAllowed = config.max || 99;
-        if (currentSelected >= maxAllowed) {
+        var allSelectedNow = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+        var selectableSelectedNow = Array.prototype.filter.call(allSelectedNow, function(p) { return p.getAttribute("data-locked") !== "true"; });
+        var maxAllowed = config.max !== undefined ? config.max : 99;
+        if (selectableSelectedNow.length >= maxAllowed) {
           var self = this;
           self.style.animation = "aed-pill-shake 0.3s ease";
           setTimeout(function() { self.style.animation = ""; }, 300);
           return;
         }
-        // Pathway (max:1) — deselect others first
+        // Pathway (max:1) — deselect others first (non-locked only)
         if (config.max === 1) {
           section.querySelectorAll(".aed-dynamic-pill.is-selected").forEach(function(o) {
-            o.classList.remove("is-selected");
+            if (o.getAttribute("data-locked") !== "true") o.classList.remove("is-selected");
           });
         }
         this.classList.add("is-selected");
@@ -1283,6 +1338,69 @@ console.log("✅ Curriculum helper functions loaded");
     parentEl.appendChild(card);
   }
 
+  // ─── RENDER LANGUAGES SECTION ────────────────────────────────────────────
+  function renderLanguagesSection(parentEl) {
+    // Find the existing Webflow languages checkbox and language_of_study dropdown
+    var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+    var langSelect = document.querySelector('select[name="language_of_study"]');
+    if (!langCb && !langSelect) return; // Nothing to show
+
+    var card = document.createElement("div");
+    card.className = "aed-languages-card";
+
+    var header = document.createElement("div");
+    header.className = "aed-languages-card-header";
+
+    var title = document.createElement("div");
+    title.className = "aed-languages-card-title";
+    title.textContent = "Languages";
+    header.appendChild(title);
+
+    var sub = document.createElement("div");
+    sub.className = "aed-languages-card-subtitle";
+    sub.textContent = "Optional — select a language of study";
+    header.appendChild(sub);
+
+    card.appendChild(header);
+
+    var body = document.createElement("div");
+    body.className = "aed-languages-card-body";
+
+    // Clone the language_of_study dropdown into this card so it's visible
+    if (langSelect) {
+      var selectWrap = langSelect.closest(".w-form-formradioinput--inputType-custom") || langSelect.closest("div") || langSelect.parentElement;
+      // Don't clone the whole form block — just clone the select itself and style it
+      var cloneSelect = langSelect.cloneNode(true);
+      cloneSelect.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
+      cloneSelect.setAttribute("data-aed-lang-mirror", "true");
+
+      // Keep the clone in sync with the real select
+      cloneSelect.addEventListener("change", function() {
+        langSelect.value = this.value;
+        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        // Also check/uncheck the languages checkbox
+        if (langCb) {
+          var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
+          if (realCb) {
+            realCb.checked = (this.value !== "");
+            realCb.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+      });
+
+      // Keep real select in sync back to clone
+      langSelect.addEventListener("change", function() {
+        var mirror = document.querySelector("select[data-aed-lang-mirror='true']");
+        if (mirror && mirror.value !== this.value) mirror.value = this.value;
+      });
+
+      body.appendChild(cloneSelect);
+    }
+
+    card.appendChild(body);
+    parentEl.appendChild(card);
+  }
+
   // ─── PATHWAY SECTION KEYS ─────────────────────────────────────────────────
   // These render as always-open pathway cards, everything else is accordion
   var PATHWAY_KEYS = ["english_pathway", "mathematics_pathway", "science_pathway"];
@@ -1324,6 +1442,9 @@ console.log("✅ Curriculum helper functions loaded");
         }
       });
     }
+
+    // 3. Languages section (uses existing Webflow dropdown, mirrored into card)
+    renderLanguagesSection(wrap);
 
     container.appendChild(wrap);
     console.log("✅ AED: Curriculum rendered for " + targetContainerId);
@@ -4773,25 +4894,14 @@ function setCheckboxLock(selector, lockAndCheck) {
     if (isY78 && artsPillsY78) artsPillsY78.style.display = 'block';
     
     if (isY9 && y9Container) {
-      y9Container.style.display = 'block';
-      lockSpecificElements(y9Container); 
-      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); 
-      setCheckboxLock('#y9-hass-cb', true); // Lock HASS checkbox
-      forceSelectHistory('y9'); // Auto-select History
-      
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to suit their interests.';
-      bannerContainer.style.display = 'block';
+      // Y9 container is owned by the dynamic rendering system — do not show old static content.
+      // Dynamic system handles visibility via refreshCurriculumDisplay.
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false);
     }
     
     if (isY10 && y10Container) {
-      y10Container.style.display = 'block';
-      lockSpecificElements(y10Container);
-      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false); 
-      setCheckboxLock('#y10-hass-cb', true); // Lock HASS checkbox
-      forceSelectHistory('y10'); // Auto-select History
-      
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
-      bannerContainer.style.display = 'block';
+      // Y10 container is owned by the dynamic rendering system — do not show old static content.
+      setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false);
     }
   }
 
