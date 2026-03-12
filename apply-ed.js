@@ -817,276 +817,584 @@ window.__aed_getCurriculumPathway  = getCurriculumPathway;
 console.log("✅ Curriculum helper functions loaded");
 
 /* =========================
-   CURRICULUM PILL RENDERING SYSTEM
+   CURRICULUM PILL RENDERING SYSTEM (v2)
+   Accordion-style elective cards, mandatory pathway cards always open.
+   Colours match existing form design language.
    ========================= */
 
-// Inject styles once
-if (!document.getElementById("aed-curriculum-styles")) {
-  var aedStyleEl = document.createElement("style");
-  aedStyleEl.id = "aed-curriculum-styles";
-  aedStyleEl.textContent = [
-    ".aed-dynamic-pill{display:inline-flex;align-items:center;padding:8px 16px;margin:4px;border-radius:20px;font-size:14px;font-family:Montserrat,sans-serif;font-weight:500;cursor:pointer;transition:all 0.2s ease;background-color:#f4f7f4;color:#263358;border:1px solid #dde4dd;user-select:none;}",
-    ".aed-dynamic-pill:hover{background-color:#e8f0e8;border-color:#799377;}",
-    ".aed-dynamic-pill.is-selected{background-color:#799377;color:#ffffff;border-color:#799377;}",
-    ".aed-dynamic-pill.is-disabled{opacity:0.5;cursor:not-allowed;pointer-events:none;}",
-    ".aed-pills-container{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}",
-    ".aed-learning-area-section{margin-bottom:24px;padding:16px;background-color:#fafbfa;border-radius:8px;border:1px solid #eef2ee;}",
-    ".aed-learning-area-section.is-pathway{background-color:#f0f4f0;}",
-    ".aed-learning-area-label{font-size:15px;font-weight:600;color:#263358;margin-bottom:4px;font-family:Montserrat,sans-serif;}",
-    ".aed-learning-area-help{font-size:13px;color:#6b7280;margin-bottom:12px;font-family:Montserrat,sans-serif;}",
-    ".aed-mandatory-display{background-color:#e2e8e2;border:1px solid #c3d9c3;border-radius:8px;padding:16px;margin-bottom:20px;}",
-    ".aed-mandatory-title{font-size:14px;font-weight:600;color:#263358;margin-bottom:8px;font-family:Montserrat,sans-serif;}",
-    ".aed-mandatory-list{display:flex;flex-wrap:wrap;gap:8px;}",
-    ".aed-mandatory-pill{display:inline-flex;align-items:center;padding:6px 12px;border-radius:16px;font-size:13px;font-family:Montserrat,sans-serif;font-weight:500;background-color:#799377;color:#ffffff;border:none;}",
-    ".aed-mandatory-pill::before{content:'✓';margin-right:6px;font-size:11px;}",
-    ".aed-smart-defaults-msg{background-color:#e8f4e8;border:1px solid #c3d9c3;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-family:Montserrat,sans-serif;color:#263358;}",
-    ".aed-hidden-input{position:absolute;opacity:0;pointer-events:none;}",
-    "@keyframes aed-shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}"
-  ].join("");
-  document.head.appendChild(aedStyleEl);
-}
+(function() {
 
-function createPillElement(option, learningArea, isSelected) {
-  var pill = document.createElement("div");
-  pill.className = "aed-dynamic-pill ms-option";
-  pill.setAttribute("data-value", option.id);
-  pill.setAttribute("data-submit-value", option.value);
-  pill.setAttribute("data-learning-area", learningArea);
-  if (option.category) pill.setAttribute("data-category", option.category);
-  pill.textContent = option.label;
-  if (isSelected) pill.classList.add("is-selected");
+  // ─── INJECT STYLES ────────────────────────────────────────────────────────
+  if (!document.getElementById("aed-curriculum-styles")) {
+    var s = document.createElement("style");
+    s.id = "aed-curriculum-styles";
+    s.textContent = [
 
-  pill.addEventListener("click", function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var section = this.closest(".aed-learning-area-section");
-    var config  = section ? section.__aedConfig : null;
+      // ── Wrapper injected into each container ──
+      ".aed-dynamic-curriculum { font-family: Montserrat, sans-serif; }",
 
-    if (this.classList.contains("is-selected")) {
-      // Only allow deselect if above min or no min set
-      var selectedCount = section ? section.querySelectorAll(".aed-dynamic-pill.is-selected").length : 0;
-      var minAllowed = config ? (config.min || 0) : 0;
-      if (selectedCount > minAllowed) {
-        this.classList.remove("is-selected");
-      }
-    } else {
-      var currentSelected = section ? section.querySelectorAll(".aed-dynamic-pill.is-selected").length : 0;
-      var maxAllowed = config ? (config.max || 99) : 99;
-      if (currentSelected >= maxAllowed) {
-        this.style.animation = "aed-shake 0.3s ease";
-        var self = this;
-        setTimeout(function() { self.style.animation = ""; }, 300);
-        return;
-      }
-      // For pathway sections (max:1) deselect others first
-      if (config && config.max === 1 && section) {
-        var others = section.querySelectorAll(".aed-dynamic-pill.is-selected");
-        others.forEach(function(o) { o.classList.remove("is-selected"); });
-      }
-      this.classList.add("is-selected");
+      // ── Mandatory subjects banner (sage green, no selection needed) ──
+      ".aed-mandatory-banner {",
+      "  background: #f5f7f4;",
+      "  border: 1px solid #dde4dd;",
+      "  border-radius: 8px;",
+      "  margin-bottom: 16px;",
+      "  overflow: hidden;",
+      "}",
+      ".aed-mandatory-banner-header {",
+      "  background: #799377;",
+      "  padding: 12px 16px;",
+      "  display: flex;",
+      "  align-items: center;",
+      "  gap: 8px;",
+      "}",
+      ".aed-mandatory-banner-title {",
+      "  font-size: 12px;",
+      "  font-weight: 700;",
+      "  letter-spacing: 0.08em;",
+      "  text-transform: uppercase;",
+      "  color: #ffffff;",
+      "}",
+      ".aed-mandatory-banner-body {",
+      "  padding: 14px 16px;",
+      "}",
+      ".aed-mandatory-pills-row {",
+      "  display: flex;",
+      "  flex-wrap: wrap;",
+      "  gap: 8px;",
+      "}",
+      ".aed-mandatory-pill {",
+      "  display: inline-flex;",
+      "  align-items: center;",
+      "  gap: 6px;",
+      "  padding: 6px 12px;",
+      "  border-radius: 20px;",
+      "  font-size: 13px;",
+      "  font-weight: 500;",
+      "  color: #4f6a5a;",
+      "  background: #e7ece8;",
+      "  border: 1px solid #dde4dd;",
+      "}",
+      ".aed-mandatory-pill::before {",
+      "  content: '✓';",
+      "  font-size: 11px;",
+      "  color: #799377;",
+      "  font-weight: 700;",
+      "}",
+
+      // ── Pathway card (always open, sage header) ──
+      ".aed-pathway-card {",
+      "  background: #f5f7f4;",
+      "  border: 1px solid #dde4dd;",
+      "  border-radius: 8px;",
+      "  margin-bottom: 12px;",
+      "  overflow: hidden;",
+      "}",
+      ".aed-pathway-card-header {",
+      "  background: #799377;",
+      "  padding: 12px 16px;",
+      "}",
+      ".aed-pathway-card-title {",
+      "  font-size: 12px;",
+      "  font-weight: 700;",
+      "  letter-spacing: 0.08em;",
+      "  text-transform: uppercase;",
+      "  color: #ffffff;",
+      "}",
+      ".aed-pathway-card-subtitle {",
+      "  font-size: 12px;",
+      "  color: rgba(255,255,255,0.85);",
+      "  margin-top: 2px;",
+      "}",
+      ".aed-pathway-card-body {",
+      "  padding: 14px 16px;",
+      "}",
+
+      // ── Elective accordion card (collapsed by default) ──
+      ".aed-elective-card {",
+      "  background: #f5f7f4;",
+      "  border: 1px solid #dde4dd;",
+      "  border-radius: 8px;",
+      "  margin-bottom: 12px;",
+      "  overflow: hidden;",
+      "}",
+      ".aed-elective-card-trigger {",
+      "  display: flex;",
+      "  align-items: center;",
+      "  justify-content: space-between;",
+      "  padding: 14px 16px;",
+      "  cursor: pointer;",
+      "  user-select: none;",
+      "  background: #f5f7f4;",
+      "  transition: background 0.15s ease;",
+      "}",
+      ".aed-elective-card-trigger:hover {",
+      "  background: #edf1ed;",
+      "}",
+      ".aed-elective-card-trigger-left {",
+      "  display: flex;",
+      "  flex-direction: column;",
+      "  gap: 2px;",
+      "}",
+      ".aed-elective-card-name {",
+      "  font-size: 14px;",
+      "  font-weight: 600;",
+      "  color: #263358;",
+      "}",
+      ".aed-elective-card-hint {",
+      "  font-size: 12px;",
+      "  color: #7a7f87;",
+      "}",
+      ".aed-elective-card-right {",
+      "  display: flex;",
+      "  align-items: center;",
+      "  gap: 10px;",
+      "}",
+      ".aed-elective-card-count {",
+      "  font-size: 12px;",
+      "  font-weight: 600;",
+      "  color: #799377;",
+      "  min-width: 20px;",
+      "  text-align: right;",
+      "}",
+      ".aed-elective-chevron {",
+      "  width: 20px;",
+      "  height: 20px;",
+      "  display: flex;",
+      "  align-items: center;",
+      "  justify-content: center;",
+      "  color: #799377;",
+      "  transition: transform 0.2s ease;",
+      "  flex-shrink: 0;",
+      "}",
+      ".aed-elective-card.is-open .aed-elective-chevron {",
+      "  transform: rotate(180deg);",
+      "}",
+      ".aed-elective-card-body {",
+      "  max-height: 0;",
+      "  overflow: hidden;",
+      "  transition: max-height 0.25s ease, padding 0.2s ease;",
+      "  padding: 0 16px;",
+      "}",
+      ".aed-elective-card.is-open .aed-elective-card-body {",
+      "  max-height: 600px;",
+      "  padding: 0 16px 16px;",
+      "}",
+      ".aed-elective-help {",
+      "  font-size: 13px;",
+      "  color: #7a7f87;",
+      "  margin-bottom: 12px;",
+      "}",
+
+      // ── Pills ──
+      ".aed-pills-row {",
+      "  display: flex;",
+      "  flex-wrap: wrap;",
+      "  gap: 8px;",
+      "}",
+      ".aed-dynamic-pill {",
+      "  display: inline-flex;",
+      "  align-items: center;",
+      "  padding: 7px 14px;",
+      "  border-radius: 20px;",
+      "  font-size: 13px;",
+      "  font-weight: 500;",
+      "  cursor: pointer;",
+      "  user-select: none;",
+      "  transition: all 0.15s ease;",
+      "  color: #4f6a5a;",
+      "  background: #e7ece8;",
+      "  border: 1px solid #dde4dd;",
+      "}",
+      ".aed-dynamic-pill:hover {",
+      "  background: #dde5dd;",
+      "  border-color: #799377;",
+      "}",
+      ".aed-dynamic-pill.is-selected {",
+      "  background: #263358;",
+      "  color: #ffffff;",
+      "  border-color: #263358;",
+      "}",
+      ".aed-dynamic-pill.is-selected:hover {",
+      "  background: #1d2744;",
+      "  border-color: #1d2744;",
+      "}",
+
+      // ── Hidden input ──
+      ".aed-hidden-input { position:absolute; opacity:0; pointer-events:none; height:0; width:0; }",
+
+      // ── Shake animation for max-hit ──
+      "@keyframes aed-pill-shake {",
+      "  0%,100%{transform:translateX(0)}",
+      "  25%{transform:translateX(-4px)}",
+      "  75%{transform:translateX(4px)}",
+      "}"
+
+    ].join("\n");
+    document.head.appendChild(s);
+  }
+
+  // ─── CHEVRON SVG ──────────────────────────────────────────────────────────
+  function chevronSVG() {
+    return '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 5L7 10L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  // ─── UPDATE HIDDEN INPUT ──────────────────────────────────────────────────
+  function updateHiddenInput(learningArea, section) {
+    if (!section) return;
+    var selectedPills = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+    var values = [];
+    selectedPills.forEach(function(p) {
+      values.push(p.getAttribute("data-submit-value"));
+    });
+    var hiddenInput = section.querySelector(".aed-hidden-input");
+    if (!hiddenInput) {
+      hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.className = "aed-hidden-input ms-input";
+      hiddenInput.name = learningArea;
+      section.appendChild(hiddenInput);
     }
-
-    updateHiddenInput(learningArea, section);
-    document.dispatchEvent(new CustomEvent("aed:pillsChanged", { detail: { learningArea: learningArea } }));
-  });
-
-  return pill;
-}
-
-function updateHiddenInput(learningArea, section) {
-  if (!section) section = document.querySelector(".aed-learning-area-section[data-learning-area=\"" + learningArea + "\"]");
-  if (!section) return;
-  var selectedPills = section.querySelectorAll(".aed-dynamic-pill.is-selected");
-  var values = [];
-  selectedPills.forEach(function(p) {
-    values.push(p.getAttribute("data-submit-value"));
-  });
-  var hiddenInput = section.querySelector(".aed-hidden-input");
-  if (!hiddenInput) {
-    hiddenInput = document.createElement("input");
-    hiddenInput.type  = "hidden";
-    hiddenInput.className = "aed-hidden-input ms-input";
-    hiddenInput.name  = learningArea;
-    section.appendChild(hiddenInput);
-  }
-  hiddenInput.value = JSON.stringify(values);
-  hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function renderLearningAreaSection(learningArea, config, parentContainer, preSelected) {
-  preSelected = preSelected || [];
-  var section = document.createElement("div");
-  section.className = "aed-learning-area-section" + (config.max === 1 ? " is-pathway" : "");
-  section.setAttribute("data-learning-area", learningArea);
-  section.__aedConfig = config;
-
-  var labelEl = document.createElement("div");
-  labelEl.className = "aed-learning-area-label";
-  labelEl.textContent = config.label;
-  section.appendChild(labelEl);
-
-  if (config.helpText) {
-    var helpEl = document.createElement("div");
-    helpEl.className = "aed-learning-area-help";
-    helpEl.textContent = config.helpText;
-    section.appendChild(helpEl);
+    hiddenInput.value = JSON.stringify(values);
+    hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  var pillsWrap = document.createElement("div");
-  pillsWrap.className = "aed-pills-container";
-  config.options.forEach(function(opt) {
-    var isSelected = preSelected.indexOf(opt.id) !== -1;
-    pillsWrap.appendChild(createPillElement(opt, learningArea, isSelected));
-  });
-  section.appendChild(pillsWrap);
+  // ─── UPDATE ELECTIVE COUNT BADGE ─────────────────────────────────────────
+  function updateCountBadge(card) {
+    var countEl = card.querySelector(".aed-elective-card-count");
+    if (!countEl) return;
+    var selected = card.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+    countEl.textContent = selected > 0 ? selected + " selected" : "";
+  }
 
-  var hiddenInput = document.createElement("input");
-  hiddenInput.type      = "hidden";
-  hiddenInput.className = "aed-hidden-input ms-input";
-  hiddenInput.name      = learningArea;
-  var preSelectedValues = config.options
-    .filter(function(o) { return preSelected.indexOf(o.id) !== -1; })
-    .map(function(o) { return o.value; });
-  hiddenInput.value = JSON.stringify(preSelectedValues);
-  section.appendChild(hiddenInput);
-
-  parentContainer.appendChild(section);
-  return section;
-}
-
-function renderMandatoryDisplay(mandatoryConfig, parentContainer) {
-  if (!mandatoryConfig || !mandatoryConfig.display) return;
-  var container = document.createElement("div");
-  container.className = "aed-mandatory-display";
-
-  var title = document.createElement("div");
-  title.className = "aed-mandatory-title";
-  title.textContent = "✓ Core Subjects (Mandatory)";
-  container.appendChild(title);
-
-  var list = document.createElement("div");
-  list.className = "aed-mandatory-list";
-  mandatoryConfig.display.forEach(function(subject) {
+  // ─── CREATE PILL ─────────────────────────────────────────────────────────
+  function createPill(option, learningArea, config, cardOrSection) {
     var pill = document.createElement("span");
-    pill.className = "aed-mandatory-pill";
-    pill.textContent = subject;
-    list.appendChild(pill);
-  });
-  container.appendChild(list);
-  parentContainer.appendChild(container);
-}
+    pill.className = "aed-dynamic-pill ms-option";
+    pill.setAttribute("data-value", option.id);
+    pill.setAttribute("data-submit-value", option.value);
+    pill.setAttribute("data-learning-area", learningArea);
+    if (option.category) pill.setAttribute("data-category", option.category);
+    pill.textContent = option.label;
 
-function renderCurriculumOptions(targetContainerId) {
-  var container = document.getElementById(targetContainerId);
-  if (!container) {
-    console.warn("⚠️ Container not found: " + targetContainerId);
-    return;
-  }
+    pill.addEventListener("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
 
-  var context = getCurriculumContext();
-  if (!context.yearBand || context.yearBand === "f6") return;
+      var section = this.closest("[data-learning-area]");
 
-  console.log("🎨 Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
-
-  // Remove previous dynamic content only
-  var existing = container.querySelector(".aed-dynamic-curriculum");
-  if (existing) existing.parentNode.removeChild(existing);
-
-  var dynamicArea = document.createElement("div");
-  dynamicArea.className = "aed-dynamic-curriculum";
-
-  // Mandatory subjects display
-  if (context.mandatory) {
-    renderMandatoryDisplay(context.mandatory, dynamicArea);
-  }
-
-  // Smart defaults message
-  var defaults    = SMART_DEFAULTS[context.pathwayId] && SMART_DEFAULTS[context.pathwayId][context.yearBand];
-  var preSelected = defaults ? defaults.suggested : [];
-
-  if (defaults && defaults.message) {
-    var msgEl = document.createElement("div");
-    msgEl.className = "aed-smart-defaults-msg";
-    msgEl.innerHTML = "<strong>Recommended:</strong> " + defaults.message;
-    dynamicArea.appendChild(msgEl);
-  }
-
-  // Render each elective/pathway section
-  if (context.electives) {
-    for (var areaKey in context.electives) {
-      if (context.electives.hasOwnProperty(areaKey)) {
-        renderLearningAreaSection(areaKey, context.electives[areaKey], dynamicArea, preSelected);
+      if (this.classList.contains("is-selected")) {
+        var selectedCount = section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+        var minAllowed = config.min || 0;
+        if (selectedCount > minAllowed) {
+          this.classList.remove("is-selected");
+        }
+      } else {
+        var currentSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+        var maxAllowed = config.max || 99;
+        if (currentSelected >= maxAllowed) {
+          var self = this;
+          self.style.animation = "aed-pill-shake 0.3s ease";
+          setTimeout(function() { self.style.animation = ""; }, 300);
+          return;
+        }
+        // Pathway (max:1) — deselect others first
+        if (config.max === 1) {
+          section.querySelectorAll(".aed-dynamic-pill.is-selected").forEach(function(o) {
+            o.classList.remove("is-selected");
+          });
+        }
+        this.classList.add("is-selected");
       }
-    }
-  }
 
-  container.appendChild(dynamicArea);
-  console.log("✅ Curriculum options rendered for " + targetContainerId);
-}
-
-function refreshCurriculumDisplay() {
-  var yearNum = getCurrentYearNum();
-  if (yearNum === null || yearNum <= 6) return;
-
-  var containerId = null;
-  if (yearNum === 7 || yearNum === 8) containerId = "f6-curriculum-container";
-  else if (yearNum === 9)             containerId = "y9-curriculum-container";
-  else if (yearNum === 10)            containerId = "y10-curriculum-container";
-
-  if (containerId) renderCurriculumOptions(containerId);
-}
-
-function initCurriculumIntegration() {
-  console.log("🔌 Initialising curriculum integration...");
-
-  var yearSelect = document.querySelector("select[name=\"student_year_level\"]");
-  if (yearSelect) {
-    yearSelect.addEventListener("change", function() {
-      setTimeout(refreshCurriculumDisplay, 100);
+      updateHiddenInput(learningArea, section);
+      if (cardOrSection) updateCountBadge(cardOrSection);
+      document.dispatchEvent(new CustomEvent("aed:pillsChanged", { detail: { learningArea: learningArea } }));
     });
+
+    return pill;
   }
 
-  // Watch for state changes via localStorage (already stored by existing code)
-  var lastState = getCurrentStateValue();
-  setInterval(function() {
-    var currentState = getCurrentStateValue();
-    if (currentState !== lastState) {
-      lastState = currentState;
-      setTimeout(refreshCurriculumDisplay, 100);
-    }
-  }, 500);
+  // ─── RENDER MANDATORY BANNER ──────────────────────────────────────────────
+  function renderMandatoryBanner(mandatoryConfig, parentEl) {
+    if (!mandatoryConfig || !mandatoryConfig.display || !mandatoryConfig.display.length) return;
 
-  // Re-render when Step 3 becomes visible
-  var step3Containers = ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"];
-  step3Containers.forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var observer = new MutationObserver(function() {
-      if (el.offsetParent !== null) {
-        setTimeout(refreshCurriculumDisplay, 150);
+    var banner = document.createElement("div");
+    banner.className = "aed-mandatory-banner";
+
+    var header = document.createElement("div");
+    header.className = "aed-mandatory-banner-header";
+
+    var title = document.createElement("div");
+    title.className = "aed-mandatory-banner-title";
+    title.textContent = "✓ Mandatory subjects — included automatically";
+    header.appendChild(title);
+    banner.appendChild(header);
+
+    var body = document.createElement("div");
+    body.className = "aed-mandatory-banner-body";
+
+    var row = document.createElement("div");
+    row.className = "aed-mandatory-pills-row";
+
+    mandatoryConfig.display.forEach(function(subject) {
+      var pill = document.createElement("span");
+      pill.className = "aed-mandatory-pill";
+      pill.textContent = subject;
+      row.appendChild(pill);
+    });
+
+    body.appendChild(row);
+    banner.appendChild(body);
+    parentEl.appendChild(banner);
+  }
+
+  // ─── RENDER PATHWAY CARD (always open, sage header) ──────────────────────
+  function renderPathwayCard(learningArea, config, parentEl) {
+    var card = document.createElement("div");
+    card.className = "aed-pathway-card";
+    card.setAttribute("data-learning-area", learningArea);
+
+    // Header
+    var header = document.createElement("div");
+    header.className = "aed-pathway-card-header";
+
+    var title = document.createElement("div");
+    title.className = "aed-pathway-card-title";
+    title.textContent = config.label;
+    header.appendChild(title);
+
+    if (config.helpText) {
+      var sub = document.createElement("div");
+      sub.className = "aed-pathway-card-subtitle";
+      sub.textContent = config.helpText;
+      header.appendChild(sub);
+    }
+
+    card.appendChild(header);
+
+    // Body — pills
+    var body = document.createElement("div");
+    body.className = "aed-pathway-card-body";
+
+    var pillsRow = document.createElement("div");
+    pillsRow.className = "aed-pills-row";
+
+    config.options.forEach(function(opt) {
+      pillsRow.appendChild(createPill(opt, learningArea, config, card));
+    });
+
+    body.appendChild(pillsRow);
+    card.appendChild(body);
+
+    // Hidden input
+    var hiddenInput = document.createElement("input");
+    hiddenInput.type = "hidden";
+    hiddenInput.className = "aed-hidden-input ms-input";
+    hiddenInput.name = learningArea;
+    hiddenInput.value = JSON.stringify([]);
+    card.appendChild(hiddenInput);
+
+    parentEl.appendChild(card);
+  }
+
+  // ─── RENDER ELECTIVE ACCORDION CARD ──────────────────────────────────────
+  function renderElectiveCard(learningArea, config, parentEl) {
+    var card = document.createElement("div");
+    card.className = "aed-elective-card";
+    card.setAttribute("data-learning-area", learningArea);
+
+    // Trigger row
+    var trigger = document.createElement("div");
+    trigger.className = "aed-elective-card-trigger";
+
+    var triggerLeft = document.createElement("div");
+    triggerLeft.className = "aed-elective-card-trigger-left";
+
+    var nameEl = document.createElement("div");
+    nameEl.className = "aed-elective-card-name";
+    nameEl.textContent = config.label;
+    triggerLeft.appendChild(nameEl);
+
+    // Hint text under the name
+    var hintText = config.min > 0
+      ? "Select at least " + config.min + (config.max && config.max !== 99 ? ", up to " + config.max : "")
+      : config.max && config.max !== 99
+        ? "Optional — up to " + config.max
+        : "Optional";
+    var hintEl = document.createElement("div");
+    hintEl.className = "aed-elective-card-hint";
+    hintEl.textContent = hintText;
+    triggerLeft.appendChild(hintEl);
+
+    trigger.appendChild(triggerLeft);
+
+    var triggerRight = document.createElement("div");
+    triggerRight.className = "aed-elective-card-right";
+
+    var countEl = document.createElement("div");
+    countEl.className = "aed-elective-card-count";
+    countEl.textContent = "";
+    triggerRight.appendChild(countEl);
+
+    var chevron = document.createElement("div");
+    chevron.className = "aed-elective-chevron";
+    chevron.innerHTML = chevronSVG();
+    triggerRight.appendChild(chevron);
+
+    trigger.appendChild(triggerRight);
+    card.appendChild(trigger);
+
+    // Collapsible body
+    var body = document.createElement("div");
+    body.className = "aed-elective-card-body";
+
+    if (config.helpText) {
+      var helpEl = document.createElement("div");
+      helpEl.className = "aed-elective-help";
+      helpEl.textContent = config.helpText;
+      body.appendChild(helpEl);
+    }
+
+    var pillsRow = document.createElement("div");
+    pillsRow.className = "aed-pills-row";
+
+    config.options.forEach(function(opt) {
+      pillsRow.appendChild(createPill(opt, learningArea, config, card));
+    });
+
+    body.appendChild(pillsRow);
+    card.appendChild(body);
+
+    // Hidden input
+    var hiddenInput = document.createElement("input");
+    hiddenInput.type = "hidden";
+    hiddenInput.className = "aed-hidden-input ms-input";
+    hiddenInput.name = learningArea;
+    hiddenInput.value = JSON.stringify([]);
+    card.appendChild(hiddenInput);
+
+    // Toggle behaviour
+    trigger.addEventListener("click", function() {
+      var isOpen = card.classList.contains("is-open");
+      card.classList.toggle("is-open", !isOpen);
+    });
+
+    parentEl.appendChild(card);
+  }
+
+  // ─── PATHWAY SECTION KEYS ─────────────────────────────────────────────────
+  // These render as always-open pathway cards, everything else is accordion
+  var PATHWAY_KEYS = ["english_pathway", "mathematics_pathway", "science_pathway"];
+
+  // ─── RENDER ALL CURRICULUM OPTIONS ───────────────────────────────────────
+  function renderCurriculumOptions(targetContainerId) {
+    var container = document.getElementById(targetContainerId);
+    if (!container) {
+      console.warn("⚠️ AED: Container not found: " + targetContainerId);
+      return;
+    }
+
+    var context = getCurriculumContext();
+    if (!context.yearBand) return;
+
+    console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
+
+    // Remove previous dynamic content only
+    var existing = container.querySelector(".aed-dynamic-curriculum");
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var wrap = document.createElement("div");
+    wrap.className = "aed-dynamic-curriculum";
+
+    // 1. Mandatory subjects banner
+    if (context.mandatory) {
+      renderMandatoryBanner(context.mandatory, wrap);
+    }
+
+    // 2. Elective/pathway sections
+    if (context.electives) {
+      var keys = Object.keys(context.electives);
+      keys.forEach(function(areaKey) {
+        var cfg = context.electives[areaKey];
+        if (PATHWAY_KEYS.indexOf(areaKey) !== -1) {
+          renderPathwayCard(areaKey, cfg, wrap);
+        } else {
+          renderElectiveCard(areaKey, cfg, wrap);
+        }
+      });
+    }
+
+    container.appendChild(wrap);
+    console.log("✅ AED: Curriculum rendered for " + targetContainerId);
+  }
+
+  // ─── REFRESH (called on year/state change) ───────────────────────────────
+  function refreshCurriculumDisplay() {
+    var yearNum = getCurrentYearNum();
+    if (yearNum === null) return;
+
+    var containerId = null;
+    if (yearNum >= 1 && yearNum <= 6)     containerId = "f6-curriculum-container";
+    else if (yearNum === 7 || yearNum === 8) containerId = "f6-curriculum-container";
+    else if (yearNum === 9)                 containerId = "y9-curriculum-container";
+    else if (yearNum === 10)                containerId = "y10-curriculum-container";
+    else if (yearNum === 0)                 containerId = "f6-curriculum-container"; // Foundation
+
+    if (containerId) renderCurriculumOptions(containerId);
+  }
+
+  // ─── INITIALISE ───────────────────────────────────────────────────────────
+  function initCurriculumIntegration() {
+    console.log("🔌 AED: Initialising curriculum integration...");
+
+    // Year level change
+    var yearSelect = document.querySelector('select[name="student_year_level"]');
+    if (yearSelect) {
+      yearSelect.addEventListener("change", function() {
+        setTimeout(refreshCurriculumDisplay, 100);
+      });
+    }
+
+    // State change (poll localStorage)
+    var lastState = getCurrentStateValue();
+    setInterval(function() {
+      var current = getCurrentStateValue();
+      if (current !== lastState) {
+        lastState = current;
+        setTimeout(refreshCurriculumDisplay, 100);
       }
+    }, 500);
+
+    // Re-render when containers become visible
+    ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var observer = new MutationObserver(function() {
+        if (el.offsetParent !== null) setTimeout(refreshCurriculumDisplay, 150);
+      });
+      observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
     });
-    observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
-  });
 
-  // Wire into existing pill change events
-  document.addEventListener("aed:pillsChanged", function() {
-    if (typeof calculateWorkload === "function") setTimeout(calculateWorkload, 50);
-    if (typeof updateCheckboxes  === "function") setTimeout(updateCheckboxes,  50);
-  });
+    // Wire into existing events
+    document.addEventListener("aed:pillsChanged", function() {
+      if (typeof calculateWorkload === "function") setTimeout(calculateWorkload, 50);
+      if (typeof updateCheckboxes  === "function") setTimeout(updateCheckboxes,  50);
+    });
 
-  console.log("✅ Curriculum integration initialised");
-}
+    console.log("✅ AED: Curriculum integration initialised");
+  }
 
-// Expose for debugging
-window.__aed_renderCurriculumOptions  = renderCurriculumOptions;
-window.__aed_refreshCurriculumDisplay = refreshCurriculumDisplay;
+  // Expose for debugging
+  window.__aed_renderCurriculumOptions  = renderCurriculumOptions;
+  window.__aed_refreshCurriculumDisplay = refreshCurriculumDisplay;
 
-// Initialise after existing code has run
-setTimeout(initCurriculumIntegration, 600);
+  // Boot after existing code has run
+  setTimeout(initCurriculumIntegration, 600);
 
-console.log("✅ Curriculum pill rendering system loaded");
+  console.log("✅ AED: Curriculum pill rendering system loaded (v2)");
 
+})();
 
   /* =========================
      PRICING (single source of truth)
