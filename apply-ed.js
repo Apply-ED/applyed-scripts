@@ -4495,106 +4495,169 @@ function setCheckboxLock(selector, lockAndCheck) {
    CURRICULUM VALIDATION (Checks Rules on "Next" Click)
    ========================= */
 window.validateCurriculum = function() {
-  var existingErr = document.getElementById('curriculum-error-msg');
-  if (existingErr) existingErr.style.display = 'none';
+  var existingErr = document.getElementById("curriculum-error-msg");
+  if (existingErr) existingErr.style.display = "none";
 
   function showCurrError(msg, targetContainerId) {
-    var errEl = document.getElementById('curriculum-error-msg');
+    var errEl = document.getElementById("curriculum-error-msg");
     if (!errEl) {
-      errEl = document.createElement('div');
-      errEl.id = 'curriculum-error-msg';
-      errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+      errEl = document.createElement("div");
+      errEl.id = "curriculum-error-msg";
+      errEl.style.cssText = "color:#c62828;background-color:#ffebee;border:1px solid #ffcdd2;padding:12px;border-radius:6px;margin-bottom:16px;font-family:Montserrat,sans-serif;font-size:14px;font-weight:500;";
     }
     errEl.textContent = msg;
-    errEl.style.display = 'block';
-    
+    errEl.style.display = "block";
     var container = document.getElementById(targetContainerId);
     if (container) {
-      container.insertAdjacentElement('afterbegin', errEl);
-      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      container.insertAdjacentElement("afterbegin", errEl);
+      errEl.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }
 
-  var yearDropdown = document.querySelector('select[name="student_year_level"]');
+  var yearDropdown = document.querySelector("select[name=\"student_year_level\"]");
   if (!yearDropdown) return true;
   var rawValue = yearDropdown.value;
-  if (!rawValue || rawValue === 'FOUNDATION') return true;
-
+  if (!rawValue || rawValue === "FOUNDATION") return true;
   var match = rawValue.match(/\d+/);
   if (!match) return true;
   var yearNum = parseInt(match[0], 10);
 
-  // RULE 1: Years 7-8 Must Select at Least 1 Arts subject
+  // Helper: count selected pills in a dynamic section
+  function countDynamic(learningArea, containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return 0;
+    var section = container.querySelector(".aed-learning-area-section[data-learning-area=\"" + learningArea + "\"]");
+    if (!section || section.offsetParent === null) return 0;
+    return section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+  }
+
+  // Helper: count selected pills in a static (original) pill container
+  function countStatic(wrapperId) {
+    var wraps = document.querySelectorAll("#" + wrapperId);
+    var wrap  = Array.from(wraps).find(function(el) { return el.offsetParent !== null; }) || wraps[0];
+    if (!wrap || wrap.offsetParent === null) return 0;
+    return wrap.querySelectorAll(".ms-option.is-selected").length;
+  }
+
+  // ─────────────────────────────────────────────────────
+  // RULE 1: Years 7-8 — pathway selectors must each have 1 selected
+  // ─────────────────────────────────────────────────────
   if (yearNum === 7 || yearNum === 8) {
-    var artsPills = document.getElementById('y78-arts-pills');
-    if (artsPills && artsPills.offsetParent !== null) { 
-      var selectedArts = artsPills.querySelectorAll('.ms-option.is-selected').length;
-      if (selectedArts < 1) {
-        showCurrError('Please select at least 1 Arts elective for Years 7-8.', 'y78-arts-pills');
-        return false;
+    var containerId78 = "f6-curriculum-container";
+
+    if (countDynamic("english_pathway", containerId78) < 1) {
+      showCurrError("Please select an English pathway.", containerId78);
+      return false;
+    }
+    if (countDynamic("mathematics_pathway", containerId78) < 1) {
+      showCurrError("Please select a Mathematics pathway.", containerId78);
+      return false;
+    }
+    if (countDynamic("science_pathway", containerId78) < 1) {
+      showCurrError("Please select a Science pathway.", containerId78);
+      return false;
+    }
+
+    // Arts — check dynamic first, fall back to static
+    var artsSelectedY78 = countDynamic("the_arts", containerId78) +
+                          countDynamic("creative_arts", containerId78) +
+                          countStatic("y78-arts-pills");
+    if (artsSelectedY78 < 1) {
+      showCurrError("Please select at least 1 Arts subject.", containerId78);
+      return false;
+    }
+
+    // Victoria: must have 1 performing + 1 visual
+    var context78 = getCurriculumContext();
+    if (context78.pathwayId === "vic_vcaa") {
+      var artsSection78 = document.querySelector("#" + containerId78 + " .aed-learning-area-section[data-learning-area=\"the_arts\"]");
+      if (artsSection78) {
+        var performing = artsSection78.querySelectorAll(".aed-dynamic-pill.is-selected[data-category=\"performing\"]").length;
+        var visual     = artsSection78.querySelectorAll(".aed-dynamic-pill.is-selected[data-category=\"visual\"]").length;
+        if (performing < 1 || visual < 1) {
+          showCurrError("Victorian curriculum requires at least 1 Performing Arts and 1 Visual Arts subject.", containerId78);
+          return false;
+        }
       }
     }
   }
 
-  // RULE 2: Years 9-10 Must Have 2 Electives from DIFFERENT Learning Areas
+  // ─────────────────────────────────────────────────────
+  // RULE 2: Years 9-10 — pathways + 2 electives from different areas
+  // ─────────────────────────────────────────────────────
   if (yearNum === 9 || yearNum === 10) {
-    var prefix = yearNum === 9 ? 'y9' : 'y10';
-    var containerId = prefix + '-curriculum-container';
+    var prefix      = yearNum === 9 ? "y9" : "y10";
+    var containerId = prefix + "-curriculum-container";
 
-    var selectedAreas = [];
-    var totalElectivePills = 0;
-
-    // Bucket 1: Technologies
-    var techPills = document.getElementById(prefix + '-tech-pills');
-    if (techPills) {
-       var techCount = techPills.querySelectorAll('.ms-option.is-selected').length;
-       if (techCount > 0) {
-          selectedAreas.push('Technologies');
-          totalElectivePills += techCount;
-       }
+    // Pathway checks
+    if (countDynamic("english_pathway", containerId) < 1) {
+      showCurrError("Please select an English pathway.", containerId);
+      return false;
+    }
+    if (countDynamic("mathematics_pathway", containerId) < 1) {
+      showCurrError("Please select a Mathematics pathway.", containerId);
+      return false;
+    }
+    if (countDynamic("science_pathway", containerId) < 1) {
+      showCurrError("Please select a Science pathway.", containerId);
+      return false;
     }
 
-    // Bucket 2: The Arts
-    var artsPills910 = document.getElementById(prefix + '-arts-pills');
-    if (artsPills910) {
-       var artsCount = artsPills910.querySelectorAll('.ms-option.is-selected').length;
-       if (artsCount > 0) {
-          selectedAreas.push('The Arts');
-          totalElectivePills += artsCount;
-       }
-    }
+    // Elective area counting
+    var selectedAreas    = [];
+    var totalElectives   = 0;
 
-    // Bucket 3: Languages
+    // Technologies — dynamic or static
+    var techCount = countDynamic("technologies", containerId) +
+                    countDynamic("technological_and_applied_studies", containerId) +
+                    countStatic(prefix + "-tech-pills");
+    if (techCount > 0) { selectedAreas.push("Technologies"); totalElectives += techCount; }
+
+    // The Arts — dynamic or static
+    var artsCount = countDynamic("the_arts", containerId) +
+                    countDynamic("creative_arts", containerId) +
+                    countStatic(prefix + "-arts-pills");
+    if (artsCount > 0) { selectedAreas.push("The Arts"); totalElectives += artsCount; }
+
+    // HASS electives — dynamic or static (static counts above 1 since History is locked)
+    var hassCount        = countDynamic("hass", containerId) + countDynamic("hsie", containerId) + countDynamic("humanities", containerId);
+    var hassStaticCount  = countStatic(prefix + "-hass-pills");
+    var hassElectives    = hassCount + (hassStaticCount > 1 ? hassStaticCount - 1 : 0);
+    if (hassElectives > 0) { selectedAreas.push("Humanities and Social Sciences"); totalElectives += hassElectives; }
+
+    // Languages checkbox (existing)
     var hasLang = false;
-    document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]').forEach(function(cb) {
-       if (cb.checked && cb.offsetParent !== null) hasLang = true;
+    document.querySelectorAll("input.curriculum-checkbox[data-value=\"languages\"], input[name=\"languages\"], input[id=\"languages\"]").forEach(function(cb) {
+      if (cb.checked && cb.offsetParent !== null) hasLang = true;
     });
-    if (hasLang) {
-       selectedAreas.push('Languages');
-       totalElectivePills += 1; 
-    }
+    if (hasLang) { selectedAreas.push("Languages"); totalElectives += 1; }
 
-    // Bucket 4: Additional HASS Subject
-    var hassPills = document.getElementById(prefix + '-hass-pills');
-    if (hassPills) {
-       var hassCount = hassPills.querySelectorAll('.ms-option.is-selected').length;
-       if (hassCount > 1) { // 1 is core (History), anything above 1 is an elective!
-          selectedAreas.push('Additional HASS');
-          totalElectivePills += (hassCount - 1);
-       }
-    }
+    // PDHPE electives (NSW only)
+    var hpeCount = countDynamic("pdhpe", containerId);
+    if (hpeCount > 0) { selectedAreas.push("PDHPE"); totalElectives += hpeCount; }
 
-    // Check A: Do they have at least 2 distinct learning areas?
+    // HPE electives (national)
+    var hpeNatCount = countDynamic("hpe", containerId);
+    if (hpeNatCount > 0) { selectedAreas.push("Health and Physical Education"); totalElectives += hpeNatCount; }
+
     if (selectedAreas.length < 2) {
       var areasText = selectedAreas.length === 1 ? selectedAreas[0] : "none";
-      showCurrError('Please select electives from at least 2 DIFFERENT learning areas. Currently you only have electives from: ' + areasText + '.', containerId);
+      showCurrError("Please select electives from at least 2 different learning areas. Currently you only have electives from: " + areasText + ".", containerId);
       return false;
     }
 
-    // Check B: Do they have at least 2 total electives?
-    if (totalElectivePills < 2) {
-      showCurrError('Please select at least 2 electives in total.', containerId);
+    if (totalElectives < 2) {
+      showCurrError("Please select at least 2 electives in total.", containerId);
       return false;
+    }
+
+    // Victoria Y9: must have at least 1 Arts
+    var context910 = getCurriculumContext();
+    if (context910.pathwayId === "vic_vcaa" && yearNum === 9) {
+      if (artsCount < 1) {
+        showCurrError("Victorian Year 9 requires at least 1 Arts subject.", containerId);
+        return false;
+      }
     }
   }
 
