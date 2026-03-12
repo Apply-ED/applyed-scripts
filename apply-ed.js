@@ -2959,11 +2959,15 @@ const ALWAYS_CAPTURE = [
         continue;
       }
 
-      // Checkboxes
+// Checkboxes
       if (type === "checkbox") {
         if (el.checked) {
-          data[name] = (el.value || "on");
-        } else if (data[name] !== "on" && data[name] !== true) {
+          // Don't overwrite if an array value already captured for this name
+          // (dynamic pill hidden input for the_arts, technologies, hass etc.)
+          if (!Array.isArray(data[name])) {
+            data[name] = (el.value || "on");
+          }
+        } else if (!Array.isArray(data[name]) && data[name] !== "on" && data[name] !== true) {
           data[name] = "";
         }
         continue;
@@ -3395,11 +3399,27 @@ function bindConfirmationGating() {
 //    and lives inside obj.children[].data — NOT at the top level.
 const targetSteps = [0, 6, 7];
 // Fields that must never appear at the top level of the payload.
-    const TOP_LEVEL_BLOCKLIST = new Set([
+const TOP_LEVEL_BLOCKLIST = new Set([
       'block1_year_level',
       'block2_year_level',
       'block3_year_level',
-      'block4_year_level'
+      'block4_year_level',
+      // Dynamic curriculum pill inputs — belong in child.data only
+      'english_pathway',
+      'mathematics_pathway',
+      'science_pathway',
+      'the_arts',
+      'technologies',
+      'hass',
+      'english_pathway_y2',
+      'mathematics_pathway_y2',
+      'science_pathway_y2',
+      'the_arts_y2',
+      'technologies_y2',
+      'hass_y2',
+      // Academic tracking widget — belongs in child.data only
+      'aed-tracking-needs_attention',
+      'aed-tracking-excelling'
     ]);
 
     targetSteps.forEach(stepNum => {
