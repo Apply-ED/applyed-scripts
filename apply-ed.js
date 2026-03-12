@@ -1450,19 +1450,28 @@ console.log("✅ Curriculum helper functions loaded");
     console.log("✅ AED: Curriculum rendered for " + targetContainerId);
   }
 
-  // ─── REFRESH (called on year/state change) ───────────────────────────────
   function refreshCurriculumDisplay() {
     var yearNum = getCurrentYearNum();
     if (yearNum === null) return;
 
+    // Hide all containers first
+    ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+
     var containerId = null;
-    if (yearNum >= 1 && yearNum <= 6)     containerId = "f6-curriculum-container";
+    if (yearNum === 0)                      containerId = "f6-curriculum-container"; // Foundation
+    else if (yearNum <= 6)                  containerId = "f6-curriculum-container";
     else if (yearNum === 7 || yearNum === 8) containerId = "f6-curriculum-container";
     else if (yearNum === 9)                 containerId = "y9-curriculum-container";
     else if (yearNum === 10)                containerId = "y10-curriculum-container";
-    else if (yearNum === 0)                 containerId = "f6-curriculum-container"; // Foundation
 
-    if (containerId) renderCurriculumOptions(containerId);
+    if (containerId) {
+      var el = document.getElementById(containerId);
+      if (el) el.style.display = "block";
+      renderCurriculumOptions(containerId);
+    }
   }
 
   // ─── INITIALISE ───────────────────────────────────────────────────────────
