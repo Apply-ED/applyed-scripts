@@ -84,6 +84,739 @@ window.Webflow.push(function () {
 
 	const CHILD_SUMMARY_SELECTOR = "#child-summary-display";
 
+/* =========================
+   CURRICULUM CONFIGURATION
+   State-specific subject options for Years 7-10
+   id: internal key (underscores allowed)
+   value: exact curriculum name passed to backend (spaces, exact case)
+   label: parent-friendly display name
+   ========================= */
+
+const CURRICULUM_CONFIG = {
+
+  // ── NSW (NESA) ──────────────────────────────────────────────────
+  nsw_nesa: {
+    id: "nsw_nesa",
+    states: ["NSW"],
+    mandatory: {
+      f6:  {
+        display: ["English", "Mathematics", "Science", "HSIE", "PDHPE", "Creative Arts", "Technological and Applied Studies", "Languages"],
+        bannerText: "To meet NSW home education requirements, your child will cover all 8 Key Learning Areas."
+      },
+      y78: {
+        display: ["English", "Mathematics", "Science", "HSIE", "PDHPE", "Technological and Applied Studies", "Creative Arts", "Languages"],
+        bannerText: "All 8 Key Learning Areas are required. Your child can now choose their Creative Arts focus and subject pathways.",
+        artsRequired: true, artsMin: 1
+      },
+      y9:  {
+        display: ["English", "Mathematics", "Science", "HSIE", "PDHPE"],
+        bannerText: "Five subjects are mandatory in NSW Stage 5. History AND Geography are both required within HSIE. Select subject pathways and 2 or more electives from different learning areas.",
+        historyLocked: true, geographyLocked: true
+      },
+      y10: {
+        display: ["English", "Mathematics", "Science", "HSIE", "PDHPE"],
+        bannerText: "Five subjects remain mandatory in NSW Stage 5. History AND Geography continue to be required within HSIE. Select subject pathways and 2 or more electives to shape the senior pathway.",
+        historyLocked: true, geographyLocked: true
+      }
+    },
+    electives: {
+      y78: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        creative_arts: {
+          label: "Creative Arts",
+          helpText: "Select at least 1 subject:",
+          min: 1, max: 2,
+          options: [
+            { id: "Visual_Arts", value: "Visual Arts", label: "Visual Arts" },
+            { id: "Music",       value: "Music",       label: "Music" },
+            { id: "Drama",       value: "Drama",       label: "Drama" },
+            { id: "Dance",       value: "Dance",       label: "Dance" }
+          ]
+        }
+      },
+      y9: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        technological_and_applied_studies: {
+          label: "Technological and Applied Studies (TAS) Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Agricultural_Technology",             value: "Agricultural Technology",             label: "Agricultural Technology" },
+            { id: "Design_and_Technology",               value: "Design and Technology",               label: "Design and Technology" },
+            { id: "Food_Technology",                     value: "Food Technology",                     label: "Food Technology" },
+            { id: "Graphics_Technology",                 value: "Graphics Technology",                 label: "Graphics Technology" },
+            { id: "Industrial_Technology",               value: "Industrial Technology",               label: "Industrial Technology" },
+            { id: "Information_and_Software_Technology", value: "Information and Software Technology", label: "Information and Software Technology" },
+            { id: "Marine_and_Aquaculture_Technology",   value: "Marine and Aquaculture Technology",   label: "Marine and Aquaculture Technology" },
+            { id: "Textiles_Technology",                 value: "Textiles Technology",                 label: "Textiles Technology" }
+          ]
+        },
+        creative_arts: {
+          label: "Creative Arts Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Visual_Arts",                    value: "Visual Arts",                    label: "Visual Arts" },
+            { id: "Music",                          value: "Music",                          label: "Music" },
+            { id: "Drama",                          value: "Drama",                          label: "Drama" },
+            { id: "Dance",                          value: "Dance",                          label: "Dance" },
+            { id: "Photographic_and_Digital_Media", value: "Photographic and Digital Media", label: "Photographic and Digital Media" },
+            { id: "Visual_Design",                  value: "Visual Design",                  label: "Visual Design" }
+          ]
+        },
+        hsie: {
+          label: "HSIE Electives",
+          helpText: "History and Geography are mandatory. You may also select:",
+          min: 0, max: 2,
+          options: [
+            { id: "Commerce",           value: "Commerce",           label: "Commerce" },
+            { id: "Geography_Elective", value: "Geography Elective", label: "Geography (Elective)" },
+            { id: "History_Elective",   value: "History Elective",   label: "History (Elective)" },
+            { id: "Work_Studies",       value: "Work Studies",       label: "Work Studies" }
+          ]
+        },
+        pdhpe: {
+          label: "PDHPE Electives",
+          helpText: "Select 0–1 subjects:",
+          min: 0, max: 1,
+          options: [
+            { id: "Physical_Activity_and_Sports_Studies", value: "Physical Activity and Sports Studies", label: "Physical Activity and Sports Studies" },
+            { id: "Child_Studies",                        value: "Child Studies",                        label: "Child Studies" }
+          ]
+        }
+      },
+      y10: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        technological_and_applied_studies: {
+          label: "Technological and Applied Studies (TAS) Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Agricultural_Technology",             value: "Agricultural Technology",             label: "Agricultural Technology" },
+            { id: "Design_and_Technology",               value: "Design and Technology",               label: "Design and Technology" },
+            { id: "Food_Technology",                     value: "Food Technology",                     label: "Food Technology" },
+            { id: "Graphics_Technology",                 value: "Graphics Technology",                 label: "Graphics Technology" },
+            { id: "Industrial_Technology",               value: "Industrial Technology",               label: "Industrial Technology" },
+            { id: "Information_and_Software_Technology", value: "Information and Software Technology", label: "Information and Software Technology" },
+            { id: "Marine_and_Aquaculture_Technology",   value: "Marine and Aquaculture Technology",   label: "Marine and Aquaculture Technology" },
+            { id: "Textiles_Technology",                 value: "Textiles Technology",                 label: "Textiles Technology" }
+          ]
+        },
+        creative_arts: {
+          label: "Creative Arts Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Visual_Arts",                    value: "Visual Arts",                    label: "Visual Arts" },
+            { id: "Music",                          value: "Music",                          label: "Music" },
+            { id: "Drama",                          value: "Drama",                          label: "Drama" },
+            { id: "Dance",                          value: "Dance",                          label: "Dance" },
+            { id: "Photographic_and_Digital_Media", value: "Photographic and Digital Media", label: "Photographic and Digital Media" },
+            { id: "Visual_Design",                  value: "Visual Design",                  label: "Visual Design" }
+          ]
+        },
+        hsie: {
+          label: "HSIE Electives",
+          helpText: "History and Geography are mandatory. You may also select:",
+          min: 0, max: 2,
+          options: [
+            { id: "Commerce",           value: "Commerce",           label: "Commerce" },
+            { id: "Geography_Elective", value: "Geography Elective", label: "Geography (Elective)" },
+            { id: "History_Elective",   value: "History Elective",   label: "History (Elective)" },
+            { id: "Work_Studies",       value: "Work Studies",       label: "Work Studies" }
+          ]
+        },
+        pdhpe: {
+          label: "PDHPE Electives",
+          helpText: "Select 0–1 subjects:",
+          min: 0, max: 1,
+          options: [
+            { id: "Physical_Activity_and_Sports_Studies", value: "Physical Activity and Sports Studies", label: "Physical Activity and Sports Studies" },
+            { id: "Child_Studies",                        value: "Child Studies",                        label: "Child Studies" }
+          ]
+        }
+      }
+    }
+  },
+
+  // ── VICTORIA (VCAA) ─────────────────────────────────────────────
+  vic_vcaa: {
+    id: "vic_vcaa",
+    states: ["VIC"],
+    mandatory: {
+      f6:  {
+        display: ["English", "Mathematics", "Science", "Humanities", "Health and Physical Education", "The Arts", "Technologies", "Languages"],
+        bannerText: "Victorian Curriculum requires coverage of all 8 learning areas."
+      },
+      y78: {
+        display: ["English", "Mathematics", "Science", "Humanities", "Health and Physical Education", "Technologies", "Languages"],
+        bannerText: "All learning areas remain required. Select subject pathways and at least 2 Arts disciplines — at least 1 Performing Arts and 1 Visual Arts.",
+        artsRequired: true, artsMin: 2
+      },
+      y9:  {
+        display: ["English", "Mathematics", "Science", "Humanities", "Health and Physical Education"],
+        bannerText: "Core subjects are mandatory. Select subject pathways. At least 1 Arts discipline is required. Select additional electives to personalise learning.",
+        artsMin: 1
+      },
+      y10: {
+        display: ["English", "Mathematics", "Science", "Humanities", "Health and Physical Education"],
+        bannerText: "Core subjects remain mandatory. Select subject pathways and electives to prepare for VCE pathways."
+      }
+    },
+    electives: {
+      y78: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select at least 2 — at least 1 Performing Arts and 1 Visual Arts:",
+          min: 2, max: 4,
+          options: [
+            { id: "Dance",                       value: "Dance",                       label: "Dance",                       category: "performing" },
+            { id: "Drama",                       value: "Drama",                       label: "Drama",                       category: "performing" },
+            { id: "Music",                       value: "Music",                       label: "Music",                       category: "performing" },
+            { id: "Media_Arts",                  value: "Media Arts",                  label: "Media Arts",                  category: "visual" },
+            { id: "Visual_Arts",                 value: "Visual Arts",                 label: "Visual Arts",                 category: "visual" },
+            { id: "Visual_Communication_Design", value: "Visual Communication Design", label: "Visual Communication Design", category: "visual" }
+          ]
+        }
+      },
+      y9: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select at least 1 subject:",
+          min: 1, max: 3,
+          options: [
+            { id: "Dance",                       value: "Dance",                       label: "Dance" },
+            { id: "Drama",                       value: "Drama",                       label: "Drama" },
+            { id: "Music",                       value: "Music",                       label: "Music" },
+            { id: "Media_Arts",                  value: "Media Arts",                  label: "Media Arts" },
+            { id: "Visual_Arts",                 value: "Visual Arts",                 label: "Visual Arts" },
+            { id: "Visual_Communication_Design", value: "Visual Communication Design", label: "Visual Communication Design" }
+          ]
+        },
+        technologies: {
+          label: "Technologies",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Digital_Technologies",    value: "Digital Technologies",    label: "Digital Technologies" },
+            { id: "Design_and_Technologies", value: "Design and Technologies", label: "Design and Technologies" }
+          ]
+        },
+        humanities: {
+          label: "Humanities Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Geography",              value: "Geography",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+          ]
+        }
+      },
+      y10: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Dance",                       value: "Dance",                       label: "Dance" },
+            { id: "Drama",                       value: "Drama",                       label: "Drama" },
+            { id: "Music",                       value: "Music",                       label: "Music" },
+            { id: "Media_Arts",                  value: "Media Arts",                  label: "Media Arts" },
+            { id: "Visual_Arts",                 value: "Visual Arts",                 label: "Visual Arts" },
+            { id: "Visual_Communication_Design", value: "Visual Communication Design", label: "Visual Communication Design" }
+          ]
+        },
+        technologies: {
+          label: "Technologies",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Digital_Technologies",    value: "Digital Technologies",    label: "Digital Technologies" },
+            { id: "Design_and_Technologies", value: "Design and Technologies", label: "Design and Technologies" }
+          ]
+        },
+        humanities: {
+          label: "Humanities Electives",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Geography",              value: "Geography",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+          ]
+        }
+      }
+    }
+  },
+
+  // ── NATIONAL FRAMEWORK (QLD, WA, SA, TAS, ACT, NT) ──────────────
+  national_ac: {
+    id: "national_ac",
+    states: ["QLD", "WA", "SA", "TAS", "ACT", "NT"],
+    mandatory: {
+      f6:  {
+        display: ["English", "Mathematics", "Science", "Humanities and Social Sciences", "Health and Physical Education", "The Arts", "Technologies", "Languages"],
+        bannerText: "The Australian Curriculum requires all 8 learning areas for a broad foundation."
+      },
+      y78: {
+        display: ["English", "Mathematics", "Science", "Humanities and Social Sciences", "Health and Physical Education", "Technologies", "Languages"],
+        bannerText: "All learning areas are required. Select subject pathways and your Arts focus — at least 1 subject.",
+        artsRequired: true, artsMin: 1
+      },
+      y9:  {
+        display: ["English", "Mathematics", "Science", "Humanities and Social Sciences (History)", "Health and Physical Education"],
+        bannerText: "5 core areas are mandatory. History is the required HASS focus. Select subject pathways and 2 or more electives from different learning areas.",
+        historyLocked: true
+      },
+      y10: {
+        display: ["English", "Mathematics", "Science", "Humanities and Social Sciences (History)", "Health and Physical Education"],
+        bannerText: "5 core areas are mandatory. Select subject pathways and 2 or more electives to shape the senior pathway.",
+        historyLocked: true
+      }
+    },
+    electives: {
+      y78: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select at least 1 subject:",
+          min: 1, max: 3,
+          options: [
+            { id: "Dance",       value: "Dance",       label: "Dance" },
+            { id: "Drama",       value: "Drama",       label: "Drama" },
+            { id: "Media_Arts",  value: "Media Arts",  label: "Media Arts" },
+            { id: "Music",       value: "Music",       label: "Music" },
+            { id: "Visual_Arts", value: "Visual Arts", label: "Visual Arts" }
+          ]
+        }
+      },
+      y9: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Dance",       value: "Dance",       label: "Dance" },
+            { id: "Drama",       value: "Drama",       label: "Drama" },
+            { id: "Media_Arts",  value: "Media Arts",  label: "Media Arts" },
+            { id: "Music",       value: "Music",       label: "Music" },
+            { id: "Visual_Arts", value: "Visual Arts", label: "Visual Arts" }
+          ]
+        },
+        technologies: {
+          label: "Technologies",
+          helpText: "Select from Digital Technologies and/or Design and Technologies contexts:",
+          min: 0, max: 3,
+          options: [
+            { id: "Digital_Technologies",                       value: "Digital Technologies",                       label: "Digital Technologies" },
+            { id: "Engineering_principles_and_systems",         value: "Engineering principles and systems",         label: "Design and Technologies: Engineering principles and systems" },
+            { id: "Food_and_fibre_production",                  value: "Food and fibre production",                  label: "Design and Technologies: Food and fibre production" },
+            { id: "Food_specialisations",                       value: "Food specialisations",                       label: "Design and Technologies: Food specialisations" },
+            { id: "Materials_and_technologies_specialisations", value: "Materials and technologies specialisations", label: "Design and Technologies: Materials and technologies specialisations" }
+          ]
+        },
+        hass: {
+          label: "Humanities and Social Sciences Electives",
+          helpText: "History is mandatory. You may also select:",
+          min: 0, max: 2,
+          options: [
+            { id: "Geography",              value: "Geography",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+          ]
+        }
+      },
+      y10: {
+        english_pathway: {
+          label: "English Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
+            { id: "English_Standard",   value: "English Standard",   label: "Standard" },
+            { id: "English_Extension",  value: "English Extension",  label: "Extension" }
+          ]
+        },
+        mathematics_pathway: {
+          label: "Mathematics Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
+            { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
+            { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
+          ]
+        },
+        science_pathway: {
+          label: "Science Pathway",
+          helpText: "Select the pathway that best suits your child:",
+          min: 1, max: 1,
+          options: [
+            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
+            { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
+            { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
+          ]
+        },
+        the_arts: {
+          label: "The Arts",
+          helpText: "Select 0–2 subjects:",
+          min: 0, max: 2,
+          options: [
+            { id: "Dance",       value: "Dance",       label: "Dance" },
+            { id: "Drama",       value: "Drama",       label: "Drama" },
+            { id: "Media_Arts",  value: "Media Arts",  label: "Media Arts" },
+            { id: "Music",       value: "Music",       label: "Music" },
+            { id: "Visual_Arts", value: "Visual Arts", label: "Visual Arts" }
+          ]
+        },
+        technologies: {
+          label: "Technologies",
+          helpText: "Select from Digital Technologies and/or Design and Technologies contexts:",
+          min: 0, max: 3,
+          options: [
+            { id: "Digital_Technologies",                       value: "Digital Technologies",                       label: "Digital Technologies" },
+            { id: "Engineering_principles_and_systems",         value: "Engineering principles and systems",         label: "Design and Technologies: Engineering principles and systems" },
+            { id: "Food_and_fibre_production",                  value: "Food and fibre production",                  label: "Design and Technologies: Food and fibre production" },
+            { id: "Food_specialisations",                       value: "Food specialisations",                       label: "Design and Technologies: Food specialisations" },
+            { id: "Materials_and_technologies_specialisations", value: "Materials and technologies specialisations", label: "Design and Technologies: Materials and technologies specialisations" }
+          ]
+        },
+        hass: {
+          label: "Humanities and Social Sciences Electives",
+          helpText: "History is mandatory. You may also select:",
+          min: 0, max: 2,
+          options: [
+            { id: "Geography",              value: "Geography",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+          ]
+        }
+      }
+    }
+  }
+
+};
+
+const SMART_DEFAULTS = {
+  nsw_nesa: {
+    y78: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard"], message: "We've pre-selected Standard pathways for English, Mathematics, and Science. Adjust below if needed." },
+    y9:  { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Information_and_Software_Technology", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." },
+    y10: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Information_and_Software_Technology", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." }
+  },
+  vic_vcaa: {
+    y78: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard"], message: "We've pre-selected Standard pathways for English, Mathematics, and Science. Adjust below if needed." },
+    y9:  { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Digital_Technologies", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." },
+    y10: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Digital_Technologies", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." }
+  },
+  national_ac: {
+    y78: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard"], message: "We've pre-selected Standard pathways for English, Mathematics, and Science. Adjust below if needed." },
+    y9:  { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Digital_Technologies", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." },
+    y10: { suggested: ["English_Standard", "Mathematics_Standard", "Science_Standard", "Digital_Technologies", "Visual_Arts"], message: "We've pre-selected Standard pathways and common elective choices. Adjust below if needed." }
+  }
+};
+
+console.log("✅ CURRICULUM_CONFIG loaded");
+
+/* =========================
+   CURRICULUM HELPER FUNCTIONS
+   ========================= */
+
+function getCurriculumPathway(stateCode) {
+  if (!stateCode) return CURRICULUM_CONFIG.national_ac;
+  const upperState = stateCode.toUpperCase().trim();
+  for (const pathwayId in CURRICULUM_CONFIG) {
+    const config = CURRICULUM_CONFIG[pathwayId];
+    if (config.states && config.states.indexOf(upperState) !== -1) {
+      console.log("📚 Curriculum pathway for " + upperState + ": " + pathwayId);
+      return config;
+    }
+  }
+  console.log("⚠️ No pathway found for " + upperState + ", defaulting to national_ac");
+  return CURRICULUM_CONFIG.national_ac;
+}
+
+function getCurrentStateValue() {
+  return (localStorage.getItem("aed_selected_state") || "").trim().toUpperCase() || null;
+}
+
+function getCurrentYearNum() {
+  var yearDropdown = document.querySelector('select[name="student_year_level"]');
+  if (!yearDropdown || !yearDropdown.value) return null;
+  var rawValue = yearDropdown.value;
+  if (rawValue === "FOUNDATION") return 0;
+  var match = rawValue.match(/\d+/);
+  if (match) return parseInt(match[0], 10);
+  return null;
+}
+
+function getYearBand(yearNum) {
+  if (yearNum === null || yearNum === undefined) return null;
+  if (yearNum <= 6)  return "f6";
+  if (yearNum <= 8)  return "y78";
+  if (yearNum === 9) return "y9";
+  if (yearNum === 10) return "y10";
+  return null;
+}
+
+function getCurriculumContext() {
+  var stateCode = getCurrentStateValue();
+  var pathway   = getCurriculumPathway(stateCode);
+  var yearNum   = getCurrentYearNum();
+  var yearBand  = getYearBand(yearNum);
+  return {
+    stateCode : stateCode,
+    pathway   : pathway,
+    pathwayId : pathway.id,
+    yearNum   : yearNum,
+    yearBand  : yearBand,
+    mandatory : yearBand ? (pathway.mandatory  && pathway.mandatory[yearBand])  || null : null,
+    electives : yearBand ? (pathway.electives  && pathway.electives[yearBand])  || null : null
+  };
+}
+
+window.__aed_getCurriculumContext  = getCurriculumContext;
+window.__aed_getCurriculumPathway  = getCurriculumPathway;
+
+console.log("✅ Curriculum helper functions loaded");
+
+
   /* =========================
      PRICING (single source of truth)
      ========================= */
