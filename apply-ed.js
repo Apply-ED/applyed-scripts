@@ -1056,20 +1056,32 @@ console.log("✅ Curriculum helper functions loaded");
   }
 
   // ─── UPDATE HIDDEN INPUT ──────────────────────────────────────────────────
-  function updateHiddenInput(learningArea, section) {
+ function updateHiddenInput(learningArea, section) {
     if (!section) return;
     var selectedPills = section.querySelectorAll(".aed-dynamic-pill.is-selected");
     var values = [];
     selectedPills.forEach(function(p) {
       values.push(p.getAttribute("data-submit-value"));
     });
+
+    // Use _y2 suffix when this section lives inside a Step 4 (_y2) container
+    var isY2 = false;
+    var ancestor = section.parentElement;
+    while (ancestor) {
+      if (ancestor.id && ancestor.id.endsWith("_y2")) { isY2 = true; break; }
+      ancestor = ancestor.parentElement;
+    }
+    var inputName = isY2 ? (learningArea + "_y2") : learningArea;
+
     var hiddenInput = section.querySelector(".aed-hidden-input");
     if (!hiddenInput) {
       hiddenInput = document.createElement("input");
       hiddenInput.type = "hidden";
       hiddenInput.className = "aed-hidden-input ms-input";
-      hiddenInput.name = learningArea;
+      hiddenInput.name = inputName;
       section.appendChild(hiddenInput);
+    } else {
+      hiddenInput.name = inputName;
     }
     hiddenInput.value = JSON.stringify(values);
     hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
@@ -2892,14 +2904,31 @@ const ALWAYS_CAPTURE = [
     "maths_electives",
     "science_electives",
     "hpe_electives",
-    // Y2 electives (Step 4)
+// Y2 electives (Step 4)
     "arts_electives_y2",
     "hass_electives_y2",
     "tech_electives_y2",
     "english_electives_y2",
     "maths_electives_y2",
     "science_electives_y2",
-    "hpe_electives_y2"
+    "hpe_electives_y2",
+    // Y1 dynamic pill hidden inputs (Step 3 curriculum selector)
+    "english_pathway",
+    "mathematics_pathway",
+    "science_pathway",
+    "the_arts",
+    "technologies",
+    "hass",
+    // Y2 dynamic pill hidden inputs (Step 4 curriculum selector)
+    "english_pathway_y2",
+    "mathematics_pathway_y2",
+    "science_pathway_y2",
+    "the_arts_y2",
+    "technologies_y2",
+    "hass_y2",
+    // Academic tracking widget
+    "aed-tracking-needs_attention",
+    "aed-tracking-excelling"
   ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -5941,7 +5970,7 @@ function bindAcademicTrackingWidget() {
             pill.classList.add(type === "needs_attention" ? "needs-attention" : "excelling");
           }
 
-          // Persist to hidden inputs
+// Persist to hidden inputs — stored inside widget body so collectChildData() finds them
           ["needs_attention", "excelling"].forEach(function(t) {
             var inp = document.getElementById("aed-tracking-" + t);
             if (!inp) {
@@ -5949,7 +5978,7 @@ function bindAcademicTrackingWidget() {
               inp.type = "hidden";
               inp.id = "aed-tracking-" + t;
               inp.name = "aed-tracking-" + t;
-              document.body.appendChild(inp);
+              body.appendChild(inp);
             }
             inp.value = JSON.stringify(state[t]);
           });
