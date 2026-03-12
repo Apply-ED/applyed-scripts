@@ -125,7 +125,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -135,7 +134,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -145,7 +143,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -168,7 +165,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -178,7 +174,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -188,7 +183,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -248,7 +242,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -258,7 +251,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -268,7 +260,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -356,7 +347,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -366,7 +356,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -376,7 +365,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -401,7 +389,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -411,7 +398,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -421,7 +407,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -465,7 +450,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -475,7 +459,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -485,7 +468,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -558,7 +540,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -568,7 +549,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -578,7 +558,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -602,7 +581,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -612,7 +590,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -622,7 +599,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -670,7 +646,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "English_Foundation", value: "English Foundation", label: "Foundation" },
             { id: "English_Standard",   value: "English Standard",   label: "Standard" },
             { id: "English_Extension",  value: "English Extension",  label: "Extension" }
           ]
@@ -680,7 +655,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Mathematics_Foundation", value: "Mathematics Foundation", label: "Foundation" },
             { id: "Mathematics_Standard",   value: "Mathematics Standard",   label: "Standard" },
             { id: "Mathematics_Extension",  value: "Mathematics Extension",  label: "Extension" }
           ]
@@ -690,7 +664,6 @@ const CURRICULUM_CONFIG = {
           helpText: "Select the pathway that best suits your child:",
           min: 1, max: 1,
           options: [
-            { id: "Science_Foundation", value: "Science Foundation", label: "Foundation" },
             { id: "Science_Standard",   value: "Science Standard",   label: "Standard" },
             { id: "Science_Extension",  value: "Science Extension",  label: "Extension" }
           ]
@@ -5902,7 +5875,7 @@ function bindAcademicTrackingWidget() {
     // Header
     var header = document.createElement("div");
     header.className = "aed-tracking-header";
-    header.innerHTML = '<div class="aed-tracking-title">How is your child tracking?</div><div class="aed-tracking-subtitle">Optional — helps us calibrate the program level</div>';
+    header.innerHTML = '<div class="aed-tracking-title">How is your child tracking?</div><div class="aed-tracking-subtitle">Optional — select any subjects where you\'d like the program pitched differently</div>';
     widget.appendChild(header);
 
     // Body
@@ -5911,7 +5884,7 @@ function bindAcademicTrackingWidget() {
 
     var helper = document.createElement("div");
     helper.className = "aed-tracking-helper";
-    helper.textContent = "Select any learning areas where your child needs extra support or is working ahead. We use this to pitch the program at the right level — lower-paced and scaffolded where needed, and more advanced where they are ready for a challenge.";
+    helper.textContent = "Optional. If your child is working below year level in a subject, select it under 'Studying below year level' — we'll pitch that area at a gentler pace with more scaffolding. If they're ready to push ahead, select it under 'Studying above year level' — we'll bring in more advanced content. Leave a subject unselected if they're on track.";
     body.appendChild(helper);
 
     var row = document.createElement("div");
@@ -5989,8 +5962,8 @@ function bindAcademicTrackingWidget() {
       return col;
     }
 
-    row.appendChild(buildColumn("needs_attention", "Needs extra support"));
-    row.appendChild(buildColumn("excelling", "Working ahead"));
+    row.appendChild(buildColumn("needs_attention", "Studying below year level"));
+    row.appendChild(buildColumn("excelling", "Studying above year level"));
     body.appendChild(row);
     widget.appendChild(body);
 
