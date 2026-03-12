@@ -1136,12 +1136,17 @@ console.log("✅ Curriculum helper functions loaded");
         section = section.parentElement;
       }
 
-      if (this.classList.contains("is-selected")) {
-        var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
-        var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
-        var minAllowed = config.min || 0;
-        if (selectableSelected.length > minAllowed) {
+if (this.classList.contains("is-selected")) {
+        // Pathway cards (max:1) — always allow deselect so user can swap
+        if (config.max === 1) {
           this.classList.remove("is-selected");
+        } else {
+          var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+          var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
+          var minAllowed = config.min || 0;
+          if (selectableSelected.length > minAllowed) {
+            this.classList.remove("is-selected");
+          }
         }
       } else {
         var allSelectedNow = section.querySelectorAll(".aed-dynamic-pill.is-selected");
@@ -1339,11 +1344,31 @@ console.log("✅ Curriculum helper functions loaded");
   }
 
   // ─── RENDER LANGUAGES SECTION ────────────────────────────────────────────
-  function renderLanguagesSection(parentEl) {
-    // Find the existing Webflow languages checkbox and language_of_study dropdown
-    var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
-    var langSelect = document.querySelector('select[name="language_of_study"]');
-    if (!langCb && !langSelect) return; // Nothing to show
+ // Language options — built fresh, not cloned from hidden Webflow element
+  var LANGUAGE_OPTIONS = [
+    { value: "",               label: "— Select a language —" },
+    { value: "arabic",         label: "Arabic" },
+    { value: "auslan",         label: "Auslan" },
+    { value: "chinese",        label: "Chinese (Mandarin)" },
+    { value: "classical_greek",label: "Classical Greek" },
+    { value: "french",         label: "French" },
+    { value: "german",         label: "German" },
+    { value: "hindi",          label: "Hindi" },
+    { value: "indonesian",     label: "Indonesian" },
+    { value: "italian",        label: "Italian" },
+    { value: "japanese",       label: "Japanese" },
+    { value: "korean",         label: "Korean" },
+    { value: "latin",          label: "Latin" },
+    { value: "modern_greek",   label: "Modern Greek" },
+    { value: "punjabi",        label: "Punjabi" },
+    { value: "spanish",        label: "Spanish" },
+    { value: "tamil",          label: "Tamil" },
+    { value: "turkish",        label: "Turkish" },
+    { value: "vietnamese",     label: "Vietnamese" }
+  ];
+
+  function renderLanguagesSection(parentEl, yearBand) {
+    var isMandatory = (yearBand === "f6" || yearBand === "y78");
 
     var card = document.createElement("div");
     card.className = "aed-languages-card";
@@ -1358,7 +1383,9 @@ console.log("✅ Curriculum helper functions loaded");
 
     var sub = document.createElement("div");
     sub.className = "aed-languages-card-subtitle";
-    sub.textContent = "Optional — select a language of study";
+    sub.textContent = isMandatory
+      ? "Required — select a language of study"
+      : "Optional — select a language of study";
     header.appendChild(sub);
 
     card.appendChild(header);
@@ -1366,37 +1393,36 @@ console.log("✅ Curriculum helper functions loaded");
     var body = document.createElement("div");
     body.className = "aed-languages-card-body";
 
-    // Clone the language_of_study dropdown into this card so it's visible
-    if (langSelect) {
-      var selectWrap = langSelect.closest(".w-form-formradioinput--inputType-custom") || langSelect.closest("div") || langSelect.parentElement;
-      // Don't clone the whole form block — just clone the select itself and style it
-      var cloneSelect = langSelect.cloneNode(true);
-      cloneSelect.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
-      cloneSelect.setAttribute("data-aed-lang-mirror", "true");
+    var sel = document.createElement("select");
+    sel.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
 
-      // Keep the clone in sync with the real select
-      cloneSelect.addEventListener("change", function() {
-        langSelect.value = this.value;
-        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
-        // Also check/uncheck the languages checkbox
-        if (langCb) {
-          var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
-          if (realCb) {
-            realCb.checked = (this.value !== "");
-            realCb.dispatchEvent(new Event("change", { bubbles: true }));
-          }
+    LANGUAGE_OPTIONS.forEach(function(opt) {
+      var o = document.createElement("option");
+      o.value = opt.value;
+      o.textContent = opt.label;
+      sel.appendChild(o);
+    });
+
+    // Pre-select if real input already has a value
+    var realSelect = document.querySelector('select[name="language_of_study"]');
+    if (realSelect && realSelect.value) sel.value = realSelect.value;
+
+    sel.addEventListener("change", function() {
+      if (realSelect) {
+        realSelect.value = this.value;
+        realSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+      if (langCb) {
+        var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
+        if (realCb) {
+          realCb.checked = (this.value !== "");
+          realCb.dispatchEvent(new Event("change", { bubbles: true }));
         }
-      });
+      }
+    });
 
-      // Keep real select in sync back to clone
-      langSelect.addEventListener("change", function() {
-        var mirror = document.querySelector("select[data-aed-lang-mirror='true']");
-        if (mirror && mirror.value !== this.value) mirror.value = this.value;
-      });
-
-      body.appendChild(cloneSelect);
-    }
-
+    body.appendChild(sel);
     card.appendChild(body);
     parentEl.appendChild(card);
   }
@@ -1419,8 +1445,8 @@ console.log("✅ Curriculum helper functions loaded");
     console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
 
     // Remove previous dynamic content only
-    var existing = container.querySelector(".aed-dynamic-curriculum");
-    if (existing) existing.parentNode.removeChild(existing);
+// Clear entire container so old Webflow static content doesn't reappear
+    container.innerHTML = "";
 
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
@@ -1444,7 +1470,7 @@ console.log("✅ Curriculum helper functions loaded");
     }
 
     // 3. Languages section (uses existing Webflow dropdown, mirrored into card)
-    renderLanguagesSection(wrap);
+    renderLanguagesSection(wrap, context.yearBand);
 
     container.appendChild(wrap);
     console.log("✅ AED: Curriculum rendered for " + targetContainerId);
@@ -1559,7 +1585,7 @@ console.log("✅ Curriculum helper functions loaded");
       });
     }
 
-    renderLanguagesSection(wrap);
+ renderLanguagesSection(wrap, yearBand);
     container.appendChild(wrap);
     console.log("✅ AED: Y2 curriculum rendered for " + targetContainerId);
   }
@@ -5077,11 +5103,11 @@ window.validateCurriculum = function() {
   var yearNum = parseInt(match[0], 10);
 
   // Helper: count selected pills in a dynamic section
-  function countDynamic(learningArea, containerId) {
+function countDynamic(learningArea, containerId) {
     var container = document.getElementById(containerId);
     if (!container) return 0;
-    var section = container.querySelector(".aed-learning-area-section[data-learning-area=\"" + learningArea + "\"]");
-    if (!section || section.offsetParent === null) return 0;
+    var section = container.querySelector("[data-learning-area=\"" + learningArea + "\"]");
+    if (!section) return 0;
     return section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
   }
 
@@ -5814,6 +5840,180 @@ function upgradeStep0Banner() {
 }
 
 /* =========================
+   STEP 3: ACADEMIC TRACKING WIDGET
+   ========================= */
+function bindAcademicTrackingWidget() {
+  var TRACKING_AREAS = [
+    { id: "english",     label: "English" },
+    { id: "mathematics", label: "Mathematics" },
+    { id: "science",     label: "Science" },
+    { id: "hass",        label: "Humanities & Social Sciences" },
+    { id: "technologies",label: "Technologies" },
+    { id: "the_arts",    label: "The Arts" },
+    { id: "hpe",         label: "Health & Physical Education" },
+    { id: "languages",   label: "Languages" }
+  ];
+
+  var WIDGET_ID = "aed-tracking-widget";
+  var CONTAINER_ID = "aed-tracking-widget-wrap";
+
+  // Inject styles
+  if (!document.getElementById("aed-tracking-styles")) {
+    var s = document.createElement("style");
+    s.id = "aed-tracking-styles";
+    s.textContent = [
+      ".aed-tracking-widget { font-family: Montserrat, sans-serif; margin-bottom: 20px; }",
+      ".aed-tracking-header { background: #263358; border-radius: 8px 8px 0 0; padding: 14px 18px; }",
+      ".aed-tracking-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #f6f7f5; }",
+      ".aed-tracking-subtitle { font-size: 13px; color: rgba(246,247,245,0.8); margin-top: 4px; }",
+      ".aed-tracking-body { background: #f5f7f4; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 18px; }",
+      ".aed-tracking-helper { font-size: 13px; color: #7a7f87; margin-bottom: 16px; line-height: 1.5; }",
+      ".aed-tracking-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }",
+      "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
+      ".aed-tracking-col-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
+      ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
+      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+      ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
+      ".aed-tracking-pill.needs-attention { background: #fdf0f0; color: #b94444; border-color: #f5c6c6; }",
+      ".aed-tracking-pill.excelling { background: #edf5ed; color: #2e6b3e; border-color: #b8dcbf; }"
+    ].join("\n");
+    document.head.appendChild(s);
+  }
+
+  function renderWidget() {
+    var step3 = document.querySelector('.step[data-step="3"]');
+    if (!step3) return;
+
+    // Don't render on Step 4
+    if (document.querySelector('.step[data-step="4"]') && document.querySelector('.step[data-step="4"]').classList.contains("is-active")) return;
+
+    // Find the first curriculum container in Step 3 to insert before
+    var anchor = step3.querySelector('#f6-curriculum-container, #y9-curriculum-container, #y10-curriculum-container');
+    if (!anchor) return;
+
+    // Remove existing widget first
+    var existing = document.getElementById(WIDGET_ID);
+    if (existing) existing.remove();
+
+    var widget = document.createElement("div");
+    widget.id = WIDGET_ID;
+    widget.className = "aed-tracking-widget";
+
+    // Header
+    var header = document.createElement("div");
+    header.className = "aed-tracking-header";
+    header.innerHTML = '<div class="aed-tracking-title">How is your child tracking?</div><div class="aed-tracking-subtitle">Optional — helps us calibrate the program level</div>';
+    widget.appendChild(header);
+
+    // Body
+    var body = document.createElement("div");
+    body.className = "aed-tracking-body";
+
+    var helper = document.createElement("div");
+    helper.className = "aed-tracking-helper";
+    helper.textContent = "Select any learning areas where your child needs extra support or is working ahead. We use this to pitch the program at the right level — lower-paced and scaffolded where needed, and more advanced where they are ready for a challenge.";
+    body.appendChild(helper);
+
+    var row = document.createElement("div");
+    row.className = "aed-tracking-row";
+
+    var state = { needs_attention: [], excelling: [] };
+
+    // Try restore from hidden inputs if they exist
+    ["needs_attention", "excelling"].forEach(function(type) {
+      var inp = document.getElementById("aed-tracking-" + type);
+      if (inp && inp.value) {
+        try { state[type] = JSON.parse(inp.value); } catch(e) {}
+      }
+    });
+
+    function buildColumn(type, colLabel) {
+      var col = document.createElement("div");
+      var label = document.createElement("div");
+      label.className = "aed-tracking-col-label";
+      label.textContent = colLabel;
+      col.appendChild(label);
+
+      var pillsWrap = document.createElement("div");
+      pillsWrap.className = "aed-tracking-pills";
+
+      TRACKING_AREAS.forEach(function(area) {
+        var pill = document.createElement("span");
+        pill.className = "aed-tracking-pill";
+        pill.textContent = area.label;
+        pill.setAttribute("data-area", area.id);
+        pill.setAttribute("data-type", type);
+
+        if (state[type].indexOf(area.id) !== -1) {
+          pill.classList.add(type === "needs_attention" ? "needs-attention" : "excelling");
+        }
+
+        pill.addEventListener("click", function() {
+          var idx = state[type].indexOf(area.id);
+          var otherType = type === "needs_attention" ? "excelling" : "needs_attention";
+
+          if (idx !== -1) {
+            // Deselect
+            state[type].splice(idx, 1);
+            pill.classList.remove(type === "needs_attention" ? "needs-attention" : "excelling");
+          } else {
+            // Select — also remove from the other column if present
+            var otherIdx = state[otherType].indexOf(area.id);
+            if (otherIdx !== -1) {
+              state[otherType].splice(otherIdx, 1);
+              var otherPill = row.querySelector('.aed-tracking-pill[data-area="' + area.id + '"][data-type="' + otherType + '"]');
+              if (otherPill) otherPill.classList.remove("needs-attention", "excelling");
+            }
+            state[type].push(area.id);
+            pill.classList.add(type === "needs_attention" ? "needs-attention" : "excelling");
+          }
+
+          // Persist to hidden inputs
+          ["needs_attention", "excelling"].forEach(function(t) {
+            var inp = document.getElementById("aed-tracking-" + t);
+            if (!inp) {
+              inp = document.createElement("input");
+              inp.type = "hidden";
+              inp.id = "aed-tracking-" + t;
+              inp.name = "aed-tracking-" + t;
+              document.body.appendChild(inp);
+            }
+            inp.value = JSON.stringify(state[t]);
+          });
+        });
+
+        pillsWrap.appendChild(pill);
+      });
+
+      col.appendChild(pillsWrap);
+      return col;
+    }
+
+    row.appendChild(buildColumn("needs_attention", "Needs extra support"));
+    row.appendChild(buildColumn("excelling", "Working ahead"));
+    body.appendChild(row);
+    widget.appendChild(body);
+
+    anchor.parentNode.insertBefore(widget, anchor);
+  }
+
+  // Render when Step 3 becomes active
+  var step3El = document.querySelector('.step[data-step="3"]');
+  if (step3El) {
+    var obs = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.attributeName === "class" && step3El.classList.contains("is-active")) {
+          setTimeout(renderWidget, 300);
+        }
+      });
+    });
+    obs.observe(step3El, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  setTimeout(renderWidget, 800);
+}
+
+/* =========================
    INIT
    ========================= */
 
@@ -5831,6 +6031,7 @@ bindPillVisibility();
 bindPillSelection();
 bindStep1Validation();
 bindCustomValidation();
+bindAcademicTrackingWidget();
 bindCurriculumVisibility();
 bindY1StepHeading();
 bindWorkloadTracker();
