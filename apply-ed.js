@@ -914,7 +914,7 @@ console.log("✅ Curriculum helper functions loaded");
 
       // ── Elective accordion card (collapsed by default) ──
       ".aed-elective-card {",
-      "  background: #f5f7f4;",
+      "  background: #ffffff;",
       "  border: 1px solid #dde4dd;",
       "  border-radius: 8px;",
       "  margin-bottom: 12px;",
@@ -5863,10 +5863,10 @@ function bindAcademicTrackingWidget() {
     s.id = "aed-tracking-styles";
     s.textContent = [
       ".aed-tracking-widget { font-family: Montserrat, sans-serif; margin-bottom: 20px; }",
-      ".aed-tracking-header { background: #263358; border-radius: 8px 8px 0 0; padding: 14px 18px; }",
-      ".aed-tracking-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #f6f7f5; }",
-      ".aed-tracking-subtitle { font-size: 13px; color: rgba(246,247,245,0.8); margin-top: 4px; }",
-      ".aed-tracking-body { background: #f5f7f4; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 18px; }",
+".aed-tracking-header { background: #edf1ed; border-radius: 8px 8px 0 0; padding: 12px 16px; border: 1px solid #dde4dd; border-bottom: none; }",
+      ".aed-tracking-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #263358; }",
+      ".aed-tracking-subtitle { font-size: 13px; color: #4f6a5a; margin-top: 3px; }",
+      ".aed-tracking-body { background: #ffffff; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 18px; }",
       ".aed-tracking-helper { font-size: 13px; color: #7a7f87; margin-bottom: 16px; line-height: 1.5; }",
       ".aed-tracking-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }",
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
@@ -5874,8 +5874,8 @@ function bindAcademicTrackingWidget() {
       ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
       ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
-      ".aed-tracking-pill.needs-attention { background: #fdf0f0; color: #b94444; border-color: #f5c6c6; }",
-      ".aed-tracking-pill.excelling { background: #edf5ed; color: #2e6b3e; border-color: #b8dcbf; }"
+".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
+      ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
     ].join("\n");
     document.head.appendChild(s);
   }
