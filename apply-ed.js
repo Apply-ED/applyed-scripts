@@ -1487,15 +1487,31 @@ console.log("✅ Curriculum helper functions loaded");
       }
     }, 500);
 
-    // Re-render when containers become visible
+// Re-render when Step 3 becomes active (primary trigger)
+    var step3El = document.querySelector('.step[data-step="3"]');
+    if (step3El) {
+      var step3Observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.attributeName === "class" && step3El.classList.contains("is-active")) {
+            setTimeout(refreshCurriculumDisplay, 150);
+          }
+        });
+      });
+      step3Observer.observe(step3El, { attributes: true, attributeFilter: ["class"] });
+    }
+
+    // Also re-render when individual containers become visible (fallback)
     ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
-      var observer = new MutationObserver(function() {
+      var obs = new MutationObserver(function() {
         if (el.offsetParent !== null) setTimeout(refreshCurriculumDisplay, 150);
       });
-      observer.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
+      obs.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
     });
+
+    // Initial render — year level may already be set from saved data
+    setTimeout(refreshCurriculumDisplay, 200);
 
     // Wire into existing events
     document.addEventListener("aed:pillsChanged", function() {
