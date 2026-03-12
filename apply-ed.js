@@ -5007,32 +5007,54 @@ function bindWorkloadTracker() {
         targetContainer.insertAdjacentElement('afterbegin', trackerWrap);
     }
 
-    // 2. COUNT PILLS
-    function countPills(wrapperId) {
-      var wraps = document.querySelectorAll('#' + wrapperId);
-      var wrap = Array.from(wraps).find(el => el.offsetParent !== null) || wraps[0];
-      if (!wrap || wrap.style.display === 'none') return 0;
-      return wrap.querySelectorAll('.ms-option.is-selected').length;
+    function countDynamicPills(learningArea, containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) return 0;
+      var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
+                    container.querySelector('[data-learning-area="' + learningArea + '"]');
+      if (!section || section.offsetParent === null) return 0;
+      return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
     }
 
     function hasLanguage() {
       var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
       var isChecked = false;
       langCbs.forEach(function(cb) {
-         if (cb.checked && cb.offsetParent !== null) isChecked = true;
+        if (cb.checked && cb.offsetParent !== null) isChecked = true;
       });
       return isChecked ? 1 : 0;
     }
 
     // 3. DO THE MATH
     if (yearNum === 7 || yearNum === 8) {
-      total = 7 + countPills('y78-arts-pills');
-    } 
+      var artsY78 = countDynamicPills('the_arts', 'f6-curriculum-container') +
+                    countDynamicPills('creative_arts', 'f6-curriculum-container');
+      total = 7 + artsY78;
+    }
     else if (yearNum === 9) {
-      total = 4 + countPills('y9-hass-pills') + countPills('y9-tech-pills') + countPills('y9-arts-pills') + hasLanguage();
-    } 
+      total = 4 +
+        countDynamicPills('hass', 'y9-curriculum-container') +
+        countDynamicPills('technologies', 'y9-curriculum-container') +
+        countDynamicPills('the_arts', 'y9-curriculum-container') +
+        countDynamicPills('creative_arts', 'y9-curriculum-container') +
+        hasLanguage();
+    }
     else if (yearNum === 10) {
-      total = 1 + countPills('y10-english-pills') + countPills('y10-maths-pills') + countPills('y10-science-pills') + countPills('y10-hass-pills') + countPills('y10-tech-pills') + countPills('y10-arts-pills') + 1 + countPills('y10-hpe-pills') + hasLanguage();
+      var engPath  = countDynamicPills('english_pathway',     'y10-curriculum-container') > 0 ? 1 : 0;
+      var mathPath = countDynamicPills('mathematics_pathway', 'y10-curriculum-container') > 0 ? 1 : 0;
+      var sciPath  = countDynamicPills('science_pathway',     'y10-curriculum-container') > 0 ? 1 : 0;
+      total = engPath + mathPath + sciPath +
+        countDynamicPills('hass',         'y10-curriculum-container') +
+        countDynamicPills('hsie',         'y10-curriculum-container') +
+        countDynamicPills('humanities',   'y10-curriculum-container') +
+        countDynamicPills('technologies', 'y10-curriculum-container') +
+        countDynamicPills('technological_and_applied_studies', 'y10-curriculum-container') +
+        countDynamicPills('the_arts',     'y10-curriculum-container') +
+        countDynamicPills('creative_arts','y10-curriculum-container') +
+        countDynamicPills('pdhpe',        'y10-curriculum-container') +
+        countDynamicPills('hpe',          'y10-curriculum-container') +
+        1 +
+        hasLanguage();
     }
 
     // 4. APPLY MESSAGES & COLORS (Your custom rules!)
@@ -5145,10 +5167,13 @@ function getNextYearNum() {
       targetContainer.insertAdjacentElement('afterbegin', trackerWrap);
     }
 
-    function countPills(wrapperId) {
-      var wrap = document.getElementById(wrapperId);
-      if (!wrap || wrap.style.display === 'none') return 0;
-      return wrap.querySelectorAll('.ms-option.is-selected').length;
+    function countDynamicPillsY2(learningArea, containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) return 0;
+      var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
+                    container.querySelector('[data-learning-area="' + learningArea + '"]');
+      if (!section || section.offsetParent === null) return 0;
+      return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
     }
 
     function hasLanguageY2() {
@@ -5163,11 +5188,32 @@ function getNextYearNum() {
     }
 
     if (yearNum === 7 || yearNum === 8) {
-      total = 7 + countPills('y78-arts-pills_y2');
+      var artsY78y2 = countDynamicPillsY2('the_arts', 'f6-curriculum-container_y2') +
+                      countDynamicPillsY2('creative_arts', 'f6-curriculum-container_y2');
+      total = 7 + artsY78y2;
     } else if (yearNum === 9) {
-      total = 4 + countPills('y9-hass-pills_y2') + countPills('y9-tech-pills_y2') + countPills('y9-arts-pills_y2') + hasLanguageY2();
+      total = 4 +
+        countDynamicPillsY2('hass',         'y9-curriculum-container_y2') +
+        countDynamicPillsY2('technologies', 'y9-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y9-curriculum-container_y2') +
+        countDynamicPillsY2('creative_arts','y9-curriculum-container_y2') +
+        hasLanguageY2();
     } else if (yearNum === 10) {
-      total = 1 + countPills('y10-english-pills_y2') + countPills('y10-maths-pills_y2') + countPills('y10-science-pills_y2') + countPills('y10-hass-pills_y2') + countPills('y10-tech-pills_y2') + countPills('y10-arts-pills_y2') + 1 + countPills('y10-hpe-pills_y2') + hasLanguageY2();
+      var engPathY2  = countDynamicPillsY2('english_pathway',     'y10-curriculum-container_y2') > 0 ? 1 : 0;
+      var mathPathY2 = countDynamicPillsY2('mathematics_pathway', 'y10-curriculum-container_y2') > 0 ? 1 : 0;
+      var sciPathY2  = countDynamicPillsY2('science_pathway',     'y10-curriculum-container_y2') > 0 ? 1 : 0;
+      total = engPathY2 + mathPathY2 + sciPathY2 +
+        countDynamicPillsY2('hass',         'y10-curriculum-container_y2') +
+        countDynamicPillsY2('hsie',         'y10-curriculum-container_y2') +
+        countDynamicPillsY2('humanities',   'y10-curriculum-container_y2') +
+        countDynamicPillsY2('technologies', 'y10-curriculum-container_y2') +
+        countDynamicPillsY2('technological_and_applied_studies', 'y10-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y10-curriculum-container_y2') +
+        countDynamicPillsY2('creative_arts','y10-curriculum-container_y2') +
+        countDynamicPillsY2('pdhpe',        'y10-curriculum-container_y2') +
+        countDynamicPillsY2('hpe',          'y10-curriculum-container_y2') +
+        1 +
+        hasLanguageY2();
     }
 
     countText.innerHTML = '<strong>Total subjects selected: ' + total + '</strong>';
