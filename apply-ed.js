@@ -1137,11 +1137,16 @@ console.log("✅ Curriculum helper functions loaded");
       }
 
       if (this.classList.contains("is-selected")) {
-        var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
-        var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
-        var minAllowed = config.min || 0;
-        if (selectableSelected.length > minAllowed) {
+        // For pathway cards (max:1, min:1) allow deselecting — user can pick another
+        if (config.max === 1) {
           this.classList.remove("is-selected");
+        } else {
+          var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+          var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
+          var minAllowed = config.min || 0;
+          if (selectableSelected.length > minAllowed) {
+            this.classList.remove("is-selected");
+          }
         }
       } else {
         var allSelectedNow = section.querySelectorAll(".aed-dynamic-pill.is-selected");
@@ -1339,12 +1344,30 @@ console.log("✅ Curriculum helper functions loaded");
   }
 
   // ─── RENDER LANGUAGES SECTION ────────────────────────────────────────────
-  function renderLanguagesSection(parentEl) {
-    // Find the existing Webflow languages checkbox and language_of_study dropdown
-    var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
-    var langSelect = document.querySelector('select[name="language_of_study"]');
-    if (!langCb && !langSelect) return; // Nothing to show
+  // Language options for the dynamic selector
+  var LANGUAGE_OPTIONS = [
+    { value: "", label: "— Select a language —" },
+    { value: "arabic",        label: "Arabic" },
+    { value: "auslan",        label: "Auslan" },
+    { value: "chinese",       label: "Chinese (Mandarin)" },
+    { value: "classical_greek", label: "Classical Greek" },
+    { value: "french",        label: "French" },
+    { value: "german",        label: "German" },
+    { value: "hindi",         label: "Hindi" },
+    { value: "indonesian",    label: "Indonesian" },
+    { value: "italian",       label: "Italian" },
+    { value: "japanese",      label: "Japanese" },
+    { value: "korean",        label: "Korean" },
+    { value: "latin",         label: "Latin" },
+    { value: "modern_greek",  label: "Modern Greek" },
+    { value: "punjabi",       label: "Punjabi" },
+    { value: "spanish",       label: "Spanish" },
+    { value: "tamil",         label: "Tamil" },
+    { value: "turkish",       label: "Turkish" },
+    { value: "vietnamese",    label: "Vietnamese" }
+  ];
 
+  function renderLanguagesSection(parentEl) {
     var card = document.createElement("div");
     card.className = "aed-languages-card";
 
@@ -1366,37 +1389,39 @@ console.log("✅ Curriculum helper functions loaded");
     var body = document.createElement("div");
     body.className = "aed-languages-card-body";
 
-    // Clone the language_of_study dropdown into this card so it's visible
-    if (langSelect) {
-      var selectWrap = langSelect.closest(".w-form-formradioinput--inputType-custom") || langSelect.closest("div") || langSelect.parentElement;
-      // Don't clone the whole form block — just clone the select itself and style it
-      var cloneSelect = langSelect.cloneNode(true);
-      cloneSelect.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
-      cloneSelect.setAttribute("data-aed-lang-mirror", "true");
+    // Build a fresh select — don't clone the hidden Webflow one
+    var sel = document.createElement("select");
+    sel.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
 
-      // Keep the clone in sync with the real select
-      cloneSelect.addEventListener("change", function() {
-        langSelect.value = this.value;
-        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
-        // Also check/uncheck the languages checkbox
-        if (langCb) {
-          var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
-          if (realCb) {
-            realCb.checked = (this.value !== "");
-            realCb.dispatchEvent(new Event("change", { bubbles: true }));
-          }
+    LANGUAGE_OPTIONS.forEach(function(opt) {
+      var o = document.createElement("option");
+      o.value = opt.value;
+      o.textContent = opt.label;
+      sel.appendChild(o);
+    });
+
+    // Pre-select if real input already has a value
+    var realSelect = document.querySelector('select[name="language_of_study"]');
+    if (realSelect && realSelect.value) sel.value = realSelect.value;
+
+    sel.addEventListener("change", function() {
+      // Sync to the real hidden Webflow select
+      if (realSelect) {
+        realSelect.value = this.value;
+        realSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      // Toggle the languages checkbox
+      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+      if (langCb) {
+        var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
+        if (realCb) {
+          realCb.checked = (this.value !== "");
+          realCb.dispatchEvent(new Event("change", { bubbles: true }));
         }
-      });
+      }
+    });
 
-      // Keep real select in sync back to clone
-      langSelect.addEventListener("change", function() {
-        var mirror = document.querySelector("select[data-aed-lang-mirror='true']");
-        if (mirror && mirror.value !== this.value) mirror.value = this.value;
-      });
-
-      body.appendChild(cloneSelect);
-    }
-
+    body.appendChild(sel);
     card.appendChild(body);
     parentEl.appendChild(card);
   }
@@ -1418,9 +1443,8 @@ console.log("✅ Curriculum helper functions loaded");
 
     console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
 
-    // Remove previous dynamic content only
-    var existing = container.querySelector(".aed-dynamic-curriculum");
-    if (existing) existing.parentNode.removeChild(existing);
+    // Clear entire container so old Webflow static content doesn't show
+    container.innerHTML = "";
 
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
@@ -4975,8 +4999,8 @@ window.validateCurriculum = function() {
   function countDynamic(learningArea, containerId) {
     var container = document.getElementById(containerId);
     if (!container) return 0;
-    var section = container.querySelector(".aed-learning-area-section[data-learning-area=\"" + learningArea + "\"]");
-    if (!section || section.offsetParent === null) return 0;
+    var section = container.querySelector("[data-learning-area=\"" + learningArea + "\"]");
+    if (!section) return 0;
     return section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
   }
 
