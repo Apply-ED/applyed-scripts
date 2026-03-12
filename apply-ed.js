@@ -837,14 +837,14 @@ console.log("✅ Curriculum helper functions loaded");
 
       // ── Mandatory subjects banner (soft header, no selection needed) ──
       ".aed-mandatory-banner {",
-      "  background: #f5f7f4;",
-      "  border: 1px solid #dde4dd;",
+      "  background: #263358;",
+      "  border: 1px solid #263358;",
       "  border-radius: 8px;",
       "  margin-bottom: 16px;",
       "  overflow: hidden;",
       "}",
       ".aed-mandatory-banner-header {",
-      "  background: #edf1ed;",
+      "  background: #263358;",
       "  padding: 12px 16px;",
       "  display: flex;",
       "  align-items: center;",
@@ -855,7 +855,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
-      "  color: #263358;",
+      "  color: #f6f7f5;",
       "}",
       ".aed-mandatory-banner-body {",
       "  padding: 14px 16px;",
@@ -1137,16 +1137,11 @@ console.log("✅ Curriculum helper functions loaded");
       }
 
       if (this.classList.contains("is-selected")) {
-        // For pathway cards (max:1, min:1) allow deselecting — user can pick another
-        if (config.max === 1) {
+        var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
+        var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
+        var minAllowed = config.min || 0;
+        if (selectableSelected.length > minAllowed) {
           this.classList.remove("is-selected");
-        } else {
-          var allSelected = section.querySelectorAll(".aed-dynamic-pill.is-selected");
-          var selectableSelected = Array.prototype.filter.call(allSelected, function(p) { return p.getAttribute("data-locked") !== "true"; });
-          var minAllowed = config.min || 0;
-          if (selectableSelected.length > minAllowed) {
-            this.classList.remove("is-selected");
-          }
         }
       } else {
         var allSelectedNow = section.querySelectorAll(".aed-dynamic-pill.is-selected");
@@ -1344,30 +1339,12 @@ console.log("✅ Curriculum helper functions loaded");
   }
 
   // ─── RENDER LANGUAGES SECTION ────────────────────────────────────────────
-  // Language options for the dynamic selector
-  var LANGUAGE_OPTIONS = [
-    { value: "", label: "— Select a language —" },
-    { value: "arabic",        label: "Arabic" },
-    { value: "auslan",        label: "Auslan" },
-    { value: "chinese",       label: "Chinese (Mandarin)" },
-    { value: "classical_greek", label: "Classical Greek" },
-    { value: "french",        label: "French" },
-    { value: "german",        label: "German" },
-    { value: "hindi",         label: "Hindi" },
-    { value: "indonesian",    label: "Indonesian" },
-    { value: "italian",       label: "Italian" },
-    { value: "japanese",      label: "Japanese" },
-    { value: "korean",        label: "Korean" },
-    { value: "latin",         label: "Latin" },
-    { value: "modern_greek",  label: "Modern Greek" },
-    { value: "punjabi",       label: "Punjabi" },
-    { value: "spanish",       label: "Spanish" },
-    { value: "tamil",         label: "Tamil" },
-    { value: "turkish",       label: "Turkish" },
-    { value: "vietnamese",    label: "Vietnamese" }
-  ];
-
   function renderLanguagesSection(parentEl) {
+    // Find the existing Webflow languages checkbox and language_of_study dropdown
+    var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+    var langSelect = document.querySelector('select[name="language_of_study"]');
+    if (!langCb && !langSelect) return; // Nothing to show
+
     var card = document.createElement("div");
     card.className = "aed-languages-card";
 
@@ -1389,39 +1366,37 @@ console.log("✅ Curriculum helper functions loaded");
     var body = document.createElement("div");
     body.className = "aed-languages-card-body";
 
-    // Build a fresh select — don't clone the hidden Webflow one
-    var sel = document.createElement("select");
-    sel.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
+    // Clone the language_of_study dropdown into this card so it's visible
+    if (langSelect) {
+      var selectWrap = langSelect.closest(".w-form-formradioinput--inputType-custom") || langSelect.closest("div") || langSelect.parentElement;
+      // Don't clone the whole form block — just clone the select itself and style it
+      var cloneSelect = langSelect.cloneNode(true);
+      cloneSelect.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
+      cloneSelect.setAttribute("data-aed-lang-mirror", "true");
 
-    LANGUAGE_OPTIONS.forEach(function(opt) {
-      var o = document.createElement("option");
-      o.value = opt.value;
-      o.textContent = opt.label;
-      sel.appendChild(o);
-    });
-
-    // Pre-select if real input already has a value
-    var realSelect = document.querySelector('select[name="language_of_study"]');
-    if (realSelect && realSelect.value) sel.value = realSelect.value;
-
-    sel.addEventListener("change", function() {
-      // Sync to the real hidden Webflow select
-      if (realSelect) {
-        realSelect.value = this.value;
-        realSelect.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-      // Toggle the languages checkbox
-      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
-      if (langCb) {
-        var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
-        if (realCb) {
-          realCb.checked = (this.value !== "");
-          realCb.dispatchEvent(new Event("change", { bubbles: true }));
+      // Keep the clone in sync with the real select
+      cloneSelect.addEventListener("change", function() {
+        langSelect.value = this.value;
+        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        // Also check/uncheck the languages checkbox
+        if (langCb) {
+          var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
+          if (realCb) {
+            realCb.checked = (this.value !== "");
+            realCb.dispatchEvent(new Event("change", { bubbles: true }));
+          }
         }
-      }
-    });
+      });
 
-    body.appendChild(sel);
+      // Keep real select in sync back to clone
+      langSelect.addEventListener("change", function() {
+        var mirror = document.querySelector("select[data-aed-lang-mirror='true']");
+        if (mirror && mirror.value !== this.value) mirror.value = this.value;
+      });
+
+      body.appendChild(cloneSelect);
+    }
+
     card.appendChild(body);
     parentEl.appendChild(card);
   }
@@ -1443,8 +1418,9 @@ console.log("✅ Curriculum helper functions loaded");
 
     console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
 
-    // Clear entire container so old Webflow static content doesn't show
-    container.innerHTML = "";
+    // Remove previous dynamic content only
+    var existing = container.querySelector(".aed-dynamic-curriculum");
+    if (existing) existing.parentNode.removeChild(existing);
 
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
@@ -1497,6 +1473,98 @@ console.log("✅ Curriculum helper functions loaded");
       renderCurriculumOptions(containerId);
     }
   }
+
+  // ─── REFRESH STEP 4 (Y2) ────────────────────────────────────────────────
+  function refreshY2CurriculumDisplay() {
+    var yearNum = getCurrentYearNum();
+    if (yearNum === null) return;
+
+    // Step 4 shows the NEXT year level
+    var nextYearNum = yearNum + 1;
+    if (nextYearNum > 10) return; // No Year 11
+
+    // Update the heading
+    var heading = document.getElementById('y2-step-heading');
+    if (heading) {
+      var nameInput = document.querySelector('input[name="student_first_name"]');
+      var name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : null;
+      var nextLabel = nextYearNum === 0 ? 'Foundation Year' : 'Year ' + nextYearNum;
+      heading.textContent = name
+        ? "Select " + name + "'s " + nextLabel + " curriculum & electives"
+        : "Select " + nextLabel + " curriculum & electives";
+    }
+
+    // Hide all _y2 containers first
+    ["f6-curriculum-container_y2", "y9-curriculum-container_y2", "y10-curriculum-container_y2"].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+
+    var containerId = null;
+    if (nextYearNum <= 8)       containerId = "f6-curriculum-container_y2";
+    else if (nextYearNum === 9) containerId = "y9-curriculum-container_y2";
+    else if (nextYearNum === 10) containerId = "y10-curriculum-container_y2";
+
+    if (containerId) {
+      var el = document.getElementById(containerId);
+      if (el) {
+        el.style.display = "block";
+        // Temporarily override getCurriculumContext yearNum for the Y2 render
+        var originalGetYearNum = window.__aed_getCurrentYearNum;
+        window.__aed_getCurrentYearNum = function() { return nextYearNum; };
+        var savedFn = getCurrentYearNum;
+        // Patch locally for this render
+        renderCurriculumOptionsForYear(containerId, nextYearNum);
+        window.__aed_getCurrentYearNum = originalGetYearNum;
+      }
+    }
+  }
+
+  function renderCurriculumOptionsForYear(targetContainerId, yearNum) {
+    var container = document.getElementById(targetContainerId);
+    if (!container) return;
+
+    var stateCode = getCurrentStateValue();
+    var pathway   = getCurriculumPathway(stateCode);
+    var yearBand  = getYearBand(yearNum);
+    if (!yearBand) return;
+
+    var context = {
+      stateCode : stateCode,
+      pathway   : pathway,
+      pathwayId : pathway.id,
+      yearNum   : yearNum,
+      yearBand  : yearBand,
+      mandatory : (pathway.mandatory  && pathway.mandatory[yearBand])  || null,
+      electives : (pathway.electives  && pathway.electives[yearBand])  || null
+    };
+
+    console.log("🎨 AED: Rendering Y2 curriculum for " + context.pathwayId + " / " + context.yearBand);
+
+    container.innerHTML = "";
+
+    var wrap = document.createElement("div");
+    wrap.className = "aed-dynamic-curriculum";
+
+    if (context.mandatory) renderMandatoryBanner(context.mandatory, wrap);
+
+    if (context.electives) {
+      Object.keys(context.electives).forEach(function(areaKey) {
+        var cfg = context.electives[areaKey];
+        if (PATHWAY_KEYS.indexOf(areaKey) !== -1) {
+          renderPathwayCard(areaKey, cfg, wrap);
+        } else {
+          renderElectiveCard(areaKey, cfg, wrap);
+        }
+      });
+    }
+
+    renderLanguagesSection(wrap);
+    container.appendChild(wrap);
+    console.log("✅ AED: Y2 curriculum rendered for " + targetContainerId);
+  }
+
+  window.__aed_refreshY2CurriculumDisplay = refreshY2CurriculumDisplay;
 
   // ─── INITIALISE ───────────────────────────────────────────────────────────
   function initCurriculumIntegration() {
@@ -1551,6 +1619,19 @@ console.log("✅ Curriculum helper functions loaded");
 
     // Initial render — year level may already be set from saved data
     setTimeout(refreshCurriculumDisplay, 200);
+
+    // Re-render when Step 4 becomes active
+    var step4El = document.querySelector('.step[data-step="4"]');
+    if (step4El) {
+      var step4Observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.attributeName === "class" && step4El.classList.contains("is-active")) {
+            setTimeout(refreshY2CurriculumDisplay, 150);
+          }
+        });
+      });
+      step4Observer.observe(step4El, { attributes: true, attributeFilter: ["class"] });
+    }
 
     // Wire into existing events
     document.addEventListener("aed:pillsChanged", function() {
@@ -4999,8 +5080,8 @@ window.validateCurriculum = function() {
   function countDynamic(learningArea, containerId) {
     var container = document.getElementById(containerId);
     if (!container) return 0;
-    var section = container.querySelector("[data-learning-area=\"" + learningArea + "\"]");
-    if (!section) return 0;
+    var section = container.querySelector(".aed-learning-area-section[data-learning-area=\"" + learningArea + "\"]");
+    if (!section || section.offsetParent === null) return 0;
     return section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
   }
 
@@ -6582,50 +6663,9 @@ function bindY2CurriculumVisibility() {
   }
 
   function checkY2YearLevel() {
-    // Hide all containers first
-    if (f6Container)  f6Container.style.display  = 'none';
-    if (artsPillsY78) artsPillsY78.style.display  = 'none';
-    if (y9Container)  y9Container.style.display   = 'none';
-    if (y10Container) y10Container.style.display  = 'none';
-    if (bannerContainer) bannerContainer.style.display = 'none';
-
-    const nextYearLevel = getNextYearLevel();
-    if (!nextYearLevel) return;
-
-    updateY2Heading(nextYearLevel);
-
-    const match = nextYearLevel.match(/\d+/);
-    if (!match) return;
-    const yearNum = parseInt(match[0], 10);
-
-    const isF6  = yearNum <= 6;
-    const isY78 = yearNum === 7 || yearNum === 8;
-    const isY9  = yearNum === 9;
-    const isY10 = yearNum === 10;
-
-    if (isF6 || isY78) {
-      if (f6Container) f6Container.style.display = 'block';
-
-      if (isF6) {
-        bannerContainer.innerHTML = '<strong>Curriculum Requirements (F-6)</strong><br>To meet standard home education requirements, your child will explore all 8 Key Learning Areas. This ensures a broad, foundational education.';
-      } else {
-        bannerContainer.innerHTML = '<strong>Curriculum Requirements (Years 7-8)</strong><br>All 8 core areas are still required, but your child can now choose their specific focus within The Arts (select at least 1).';
-        if (artsPillsY78) artsPillsY78.style.display = 'block';
-      }
-      bannerContainer.style.display = 'block';
-    }
-
-if (isY9) {
-      if (y9Container) y9Container.style.display = 'block';
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to suit their interests.';
-      bannerContainer.style.display = 'block';
-      forceSelectHistory('y9', '_y2');
-    }
-
-if (isY10) {
-      if (y10Container) y10Container.style.display = 'block';
-      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Your child must complete 5 core areas (English, Maths, Science, HPE, and History). You must also select 2 or more electives from different learning areas to shape their future pathway.';
-      bannerContainer.style.display = 'block';
+    // Delegate entirely to the dynamic rendering system
+    if (typeof refreshY2CurriculumDisplay === "function") {
+      refreshY2CurriculumDisplay();
     }
   }
 
