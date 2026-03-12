@@ -1509,12 +1509,18 @@ console.log("✅ Curriculum helper functions loaded");
       step3Observer.observe(step3El, { attributes: true, attributeFilter: ["class"] });
     }
 
-    // Also re-render when individual containers become visible (fallback)
+// Re-render when containers transition from hidden to visible (fallback)
     ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
+      var wasVisible = el.offsetParent !== null;
       var obs = new MutationObserver(function() {
-        if (el.offsetParent !== null) setTimeout(refreshCurriculumDisplay, 150);
+        var isVisible = el.offsetParent !== null;
+        if (isVisible && !wasVisible) {
+          wasVisible = true;
+          setTimeout(refreshCurriculumDisplay, 150);
+        }
+        if (!isVisible) wasVisible = false;
       });
       obs.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
     });
