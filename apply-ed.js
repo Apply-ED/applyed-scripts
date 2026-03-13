@@ -843,7 +843,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  display: inline-flex;",
       "  align-items: center;",
       "  gap: 6px;",
-      "  padding: 7px 7px;",
+      "  padding: 3px;",
       "  border-radius: 16px;",
       "  font-size: 13px;",
       "  font-weight: 500;",
@@ -1691,11 +1691,14 @@ renderLanguagesSection(wrap, yearBand);
       var card = hiddenInput.closest('[data-learning-area]');
       if (!card) return;
 
-      card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
-        if (pill.getAttribute('data-locked') === 'true') return;
-        var val = pill.getAttribute('data-value');
-        pill.classList.toggle('is-selected', saved.indexOf(val) !== -1);
-      });
+card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
+      if (pill.getAttribute('data-locked') === 'true') return;
+      var submitVal = pill.getAttribute('data-submit-value');
+      var dataVal   = pill.getAttribute('data-value');
+      pill.classList.toggle('is-selected',
+        saved.indexOf(submitVal) !== -1 || saved.indexOf(dataVal) !== -1
+      );
+    });
 
       hiddenInput.value = JSON.stringify(saved);
 
@@ -4160,11 +4163,14 @@ function restoreDynamicPillsForStep(stepNum) {
     if (!card) return;
 
     // Apply is-selected to matching pills
-    card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
-      const pillValue = pill.getAttribute('data-value');
+card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       const isLocked = pill.getAttribute('data-locked') === 'true';
       if (!isLocked) {
-        pill.classList.toggle('is-selected', savedValues.includes(pillValue));
+        const submitVal = pill.getAttribute('data-submit-value');
+        const dataVal   = pill.getAttribute('data-value');
+        pill.classList.toggle('is-selected',
+          savedValues.includes(submitVal) || savedValues.includes(dataVal)
+        );
       }
     });
 
@@ -6200,7 +6206,7 @@ function bindAcademicTrackingWidget() {
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
       ".aed-tracking-col-label { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
      ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
-      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 7px 7px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 3px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
 ".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
       ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
