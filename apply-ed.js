@@ -861,20 +861,21 @@ console.log("✅ Curriculum helper functions loaded");
       ".aed-pathway-card {",
       "  background: #f5f7f4;",
       "  border: 1px solid #dde4dd;",
-      "  border-radius: 8px;",
+      "  border-radius: 16px;",
       "  margin-bottom: 12px;",
       "  overflow: hidden;",
       "}",
       ".aed-pathway-card-header {",
-      "  background: #edf1ed;",
+      "  background: #f5f7f4;",
       "  padding: 12px 16px;",
       "}",
       ".aed-pathway-card-title {",
-      "  font-size: 12px;",
+      "  font-size: 14px;",
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
       "  color: #263358;",
+      "  line-height: 22px;",
       "}",
       ".aed-pathway-card-subtitle {",
       "  font-size: 13px;",
@@ -889,7 +890,7 @@ console.log("✅ Curriculum helper functions loaded");
       ".aed-elective-card {",
       "  background: #ffffff;",
       "  border: 1px solid #dde4dd;",
-      "  border-radius: 8px;",
+      "  border-radius: 16px;",
       "  margin-bottom: 12px;",
       "  overflow: hidden;",
       "}",
@@ -900,7 +901,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  padding: 14px 16px;",
       "  cursor: pointer;",
       "  user-select: none;",
-      "  background: #edf1ed;",
+      "  background: #f5f7f4;",
       "  transition: background 0.15s ease;",
       "}",
       ".aed-elective-card-trigger:hover {",
@@ -912,11 +913,12 @@ console.log("✅ Curriculum helper functions loaded");
       "  gap: 3px;",
       "}",
       ".aed-elective-card-name {",
-      "  font-size: 12px;",
+      "  font-size: 14px;",
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
       "  color: #263358;",
+      "  line-height: 22px;",
       "}",
       ".aed-elective-card-hint {",
       "  font-size: 13px;",
@@ -958,7 +960,9 @@ console.log("✅ Curriculum helper functions loaded");
       "  padding: 14px 16px 16px;",
       "}",
       ".aed-elective-help {",
-      "  font-size: 13px;",
+      "  font-size: 14px;",
+      "  font-weight: 400;",
+      "  line-height: 22px;",
       "  color: #7a7f87;",
       "  margin-bottom: 12px;",
       "}",
@@ -975,7 +979,8 @@ console.log("✅ Curriculum helper functions loaded");
       "  padding: 7px 14px;",
       "  border-radius: 20px;",
       "  font-size: 13px;",
-      "  font-weight: 500;",
+      "  line-height: 1.2em;",
+      "  font-weight: 400;",
       "  cursor: pointer;",
       "  user-select: none;",
       "  transition: all 0.15s ease;",
@@ -1015,20 +1020,21 @@ console.log("✅ Curriculum helper functions loaded");
       ".aed-languages-card {",
       "  background: #f5f7f4;",
       "  border: 1px solid #dde4dd;",
-      "  border-radius: 8px;",
+      "  border-radius: 16px;",
       "  margin-bottom: 12px;",
       "  overflow: hidden;",
       "}",
       ".aed-languages-card-header {",
-      "  background: #edf1ed;",
+      "  background: #f5f7f4;",
       "  padding: 12px 16px;",
       "}",
       ".aed-languages-card-title {",
-      "  font-size: 12px;",
+      "  font-size: 14px;",
       "  font-weight: 700;",
       "  letter-spacing: 0.08em;",
       "  text-transform: uppercase;",
       "  color: #263358;",
+      "  line-height: 22px;",
       "}",
       ".aed-languages-card-subtitle {",
       "  font-size: 13px;",
@@ -3767,6 +3773,8 @@ if (action === "back") {
 
     // --- NEW LOOPING & ROUTING LOGIC ---
     if (currentStepNum === STEP_Y2) {
+      // Validate Y2 curriculum before advancing
+      if (typeof window.validateY2Curriculum === 'function' && !window.validateY2Curriculum()) return;
       // Step 4 (Y2 curriculum) always advances to Step 5 (Interests & Goals)
       setActive(STEP_LAST_CHILD);
       return;
@@ -5142,6 +5150,31 @@ function countDynamic(learningArea, containerId) {
   }
 
   // ─────────────────────────────────────────────────────
+  // RULE 0: F–Y8 — Languages is mandatory; a language must be selected
+  // ─────────────────────────────────────────────────────
+  if (yearNum <= 8) {
+    var langContainerId = (yearNum <= 6) ? "f6-curriculum-container"
+                        : (yearNum <= 8) ? "f6-curriculum-container"
+                        : null;
+    // For Y7-8 the container is still f6-curriculum-container
+    var langContainer = document.getElementById("f6-curriculum-container");
+    var langVal = "";
+    if (langContainer) {
+      var dynSel = langContainer.querySelector("select");
+      if (dynSel) langVal = dynSel.value;
+    }
+    // Fallback: real Webflow select
+    if (!langVal) {
+      var realLangSel = document.querySelector('select[name="language_of_study"]');
+      if (realLangSel) langVal = realLangSel.value;
+    }
+    if (!langVal) {
+      showCurrError("Languages is required for this year level. Please select a language of study.", "f6-curriculum-container");
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────
   // RULE 1: Years 7-8 — pathway selectors must each have 1 selected
   // ─────────────────────────────────────────────────────
   if (yearNum === 7 || yearNum === 8) {
@@ -5261,6 +5294,103 @@ function countDynamic(learningArea, containerId) {
         return false;
       }
     }
+  }
+
+  return true;
+};
+
+/* =========================
+   VALIDATE Y2 CURRICULUM (Step 4)
+   ========================= */
+window.validateY2Curriculum = function() {
+  var existingErr = document.getElementById("curriculum-y2-error-msg");
+  if (existingErr) existingErr.style.display = "none";
+
+  function showY2Error(msg, targetContainerId) {
+    var errEl = document.getElementById("curriculum-y2-error-msg");
+    if (!errEl) {
+      errEl = document.createElement("div");
+      errEl.id = "curriculum-y2-error-msg";
+      errEl.style.cssText = "color:#c62828;background-color:#ffebee;border:1px solid #ffcdd2;padding:12px;border-radius:6px;margin-bottom:16px;font-family:Montserrat,sans-serif;font-size:14px;font-weight:500;";
+    }
+    errEl.textContent = msg;
+    errEl.style.display = "block";
+    var container = document.getElementById(targetContainerId);
+    if (container) {
+      container.insertAdjacentElement("afterbegin", errEl);
+      errEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  // Find active Y2 container and derive year
+  var y2Containers = ["f6-curriculum-container_y2","y9-curriculum-container_y2","y10-curriculum-container_y2"];
+  var activeY2Container = null;
+  var y2YearNum = null;
+  y2Containers.forEach(function(cid) {
+    var el = document.getElementById(cid);
+    if (el && el.offsetParent !== null) {
+      activeY2Container = cid;
+      if (cid === "y9-curriculum-container_y2")  y2YearNum = 9;
+      else if (cid === "y10-curriculum-container_y2") y2YearNum = 10;
+      else y2YearNum = 8; // f6 band covers F-Y8 Y2; treat as Y8 for validation purposes
+    }
+  });
+  if (!activeY2Container) return true; // Y2 panel not shown — skip
+
+  function countDynamic2(learningArea, containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return 0;
+    var section = container.querySelector("[data-learning-area=\"" + learningArea + "\"]");
+    if (!section) return 0;
+    return section.querySelectorAll(".aed-dynamic-pill.is-selected").length;
+  }
+
+  var cid = activeY2Container;
+
+  // Language: mandatory for F-Y8 band
+  if (y2YearNum !== null && y2YearNum <= 8) {
+    var langContainer = document.getElementById(cid);
+    var langVal = "";
+    if (langContainer) {
+      var dynSel = langContainer.querySelector("select");
+      if (dynSel) langVal = dynSel.value;
+    }
+    if (!langVal) {
+      var realLangSel2 = document.querySelector('select[name="language_of_study_y2"]');
+      if (realLangSel2) langVal = realLangSel2.value;
+    }
+    if (!langVal) {
+      showY2Error("Languages is required for this year level. Please select a language of study.", cid);
+      return false;
+    }
+  }
+
+  // Y7-8: pathway + arts required
+  if (y2YearNum !== null && (y2YearNum === 7 || y2YearNum === 8)) {
+    if (countDynamic2("english_pathway", cid) < 1)    { showY2Error("Please select an English pathway.", cid); return false; }
+    if (countDynamic2("mathematics_pathway", cid) < 1){ showY2Error("Please select a Mathematics pathway.", cid); return false; }
+    if (countDynamic2("science_pathway", cid) < 1)    { showY2Error("Please select a Science pathway.", cid); return false; }
+    var artsY2 = countDynamic2("the_arts", cid) + countDynamic2("creative_arts", cid);
+    if (artsY2 < 1) { showY2Error("Please select at least 1 Arts subject.", cid); return false; }
+  }
+
+  // Y9-10: pathways + 2 electives from 2 areas
+  if (y2YearNum !== null && (y2YearNum === 9 || y2YearNum === 10)) {
+    if (countDynamic2("english_pathway", cid) < 1)    { showY2Error("Please select an English pathway.", cid); return false; }
+    if (countDynamic2("mathematics_pathway", cid) < 1){ showY2Error("Please select a Mathematics pathway.", cid); return false; }
+    if (countDynamic2("science_pathway", cid) < 1)    { showY2Error("Please select a Science pathway.", cid); return false; }
+    var selectedAreas2 = [];
+    var totalElectives2 = 0;
+    var techCount2 = countDynamic2("technologies", cid) + countDynamic2("technological_and_applied_studies", cid);
+    if (techCount2 > 0) { selectedAreas2.push("Technologies"); totalElectives2 += techCount2; }
+    var artsCount2 = countDynamic2("the_arts", cid) + countDynamic2("creative_arts", cid);
+    if (artsCount2 > 0) { selectedAreas2.push("The Arts"); totalElectives2 += artsCount2; }
+    var hassCount2 = countDynamic2("hass", cid) + countDynamic2("hsie", cid) + countDynamic2("humanities", cid);
+    if (hassCount2 > 0) { selectedAreas2.push("Humanities and Social Sciences"); totalElectives2 += hassCount2; }
+    var hpeCount2 = countDynamic2("hpe", cid) + countDynamic2("pdhpe", cid);
+    if (hpeCount2 > 0) { selectedAreas2.push("Health and Physical Education"); totalElectives2 += hpeCount2; }
+    if (selectedAreas2.length < 2) { showY2Error("Please select electives from at least 2 different learning areas.", cid); return false; }
+    if (totalElectives2 < 2)       { showY2Error("Please select at least 2 electives in total.", cid); return false; }
   }
 
   return true;
