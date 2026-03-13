@@ -843,7 +843,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  display: inline-flex;",
       "  align-items: center;",
       "  gap: 6px;",
-      "  padding: 7px;",
+      "  padding: 7px 7px;",
       "  border-radius: 16px;",
       "  font-size: 13px;",
       "  font-weight: 500;",
@@ -1471,7 +1471,8 @@ if (this.classList.contains("is-selected")) {
     // 3. Languages section (uses existing Webflow dropdown, mirrored into card)
     renderLanguagesSection(wrap, context.yearBand);
 
-    container.appendChild(wrap);
+   container.appendChild(wrap);
+    restoreSavedCurriculumPills(container, false);
     console.log("✅ AED: Curriculum rendered for " + targetContainerId);
   }
 
@@ -1584,8 +1585,9 @@ if (this.classList.contains("is-selected")) {
       });
     }
 
- renderLanguagesSection(wrap, yearBand);
+renderLanguagesSection(wrap, yearBand);
     container.appendChild(wrap);
+    restoreSavedCurriculumPills(container, true);
     console.log("✅ AED: Y2 curriculum rendered for " + targetContainerId);
   }
 
@@ -1668,8 +1670,59 @@ if (this.classList.contains("is-selected")) {
   }
 
   // Expose for debugging
+// ─── RESTORE SAVED PILL SELECTIONS ───────────────────────────────────────
+  // Called at the end of every render pass to re-apply saved selections.
+  function restoreSavedCurriculumPills(containerEl, isY2) {
+    var idx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var data = (window.__aed_child_applications && window.__aed_child_applications[idx]) || {};
+
+    var fields = isY2
+      ? ["english_pathway_y2","mathematics_pathway_y2","science_pathway_y2","the_arts_y2","technologies_y2","hass_y2"]
+      : ["english_pathway","mathematics_pathway","science_pathway","the_arts","technologies","hass"];
+
+    fields.forEach(function(fieldName) {
+      var saved = data[fieldName];
+      if (!saved || !saved.length) return;
+
+      // Find the hidden input for this field inside this container
+      var hiddenInput = containerEl.querySelector('input.aed-hidden-input[name="' + fieldName + '"]');
+      if (!hiddenInput) return;
+
+      var card = hiddenInput.closest('[data-learning-area]');
+      if (!card) return;
+
+      card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
+        if (pill.getAttribute('data-locked') === 'true') return;
+        var val = pill.getAttribute('data-value');
+        pill.classList.toggle('is-selected', saved.indexOf(val) !== -1);
+      });
+
+      hiddenInput.value = JSON.stringify(saved);
+
+      // Update count badge on accordion cards
+      var countEl = card.querySelector('.aed-elective-card-count');
+      if (countEl) {
+        var n = card.querySelectorAll('.aed-dynamic-pill.is-selected').length;
+        countEl.textContent = n > 0 ? n + ' selected' : '';
+      }
+    });
+
+    // Restore language dropdown
+    var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
+    var savedLang = data[langKey] || data['language_of_study'];
+    if (savedLang) {
+      var langBody = containerEl.querySelector('.aed-languages-card-body');
+      if (langBody) {
+        var dynSel = langBody.querySelector('select');
+        if (dynSel) dynSel.value = savedLang;
+      }
+    }
+  }
+
+  // Expose for debugging
   window.__aed_renderCurriculumOptions  = renderCurriculumOptions;
   window.__aed_refreshCurriculumDisplay = refreshCurriculumDisplay;
+  window.__aed_restoreSavedCurriculumPills = restoreSavedCurriculumPills;
 
   // Boot after existing code has run
   setTimeout(initCurriculumIntegration, 600);
@@ -6147,7 +6200,7 @@ function bindAcademicTrackingWidget() {
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
       ".aed-tracking-col-label { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
      ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
-      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 7px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 7px 7px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
 ".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
       ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
