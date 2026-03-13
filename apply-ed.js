@@ -6025,16 +6025,16 @@ function bindAcademicTrackingWidget() {
     s.id = "aed-tracking-styles";
     s.textContent = [
       ".aed-tracking-widget { font-family: Montserrat, sans-serif; margin-bottom: 20px; }",
-".aed-tracking-header { background: #edf1ed; border-radius: 8px 8px 0 0; padding: 12px 16px; border: 1px solid #dde4dd; border-bottom: none; }",
-      ".aed-tracking-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #263358; }",
-      ".aed-tracking-subtitle { font-size: 13px; color: #4f6a5a; margin-top: 3px; }",
-      ".aed-tracking-body { background: #ffffff; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 18px; }",
-      ".aed-tracking-helper { font-size: 13px; color: #7a7f87; margin-bottom: 16px; line-height: 1.5; }",
+".aed-tracking-header { background: #edf1ed; border-radius: 16px 16px 0 0; padding: 12px 16px; border: 1px solid #dde4dd; border-bottom: none; }",
+      ".aed-tracking-title { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #263358; }",
+      ".aed-tracking-subtitle { font-size: 14px; color: #7a7f87; margin-top: 3px; }",
+      ".aed-tracking-body { background: #ffffff; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 16px 16px; padding: 16px 18px; }",
+      ".aed-tracking-helper { font-size: 14px; color: #7a7f87; margin-bottom: 16px; line-height: 1.5; }",
       ".aed-tracking-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }",
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
-      ".aed-tracking-col-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
+      ".aed-tracking-col-label { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
       ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
-      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
 ".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
       ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
