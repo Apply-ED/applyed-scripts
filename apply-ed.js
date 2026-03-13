@@ -3731,9 +3731,11 @@ if (action === "back") {
             setActive(3);
         }
 
-    } else if (currentStepNum === STEP_Y2) {
+} else if (currentStepNum === STEP_Y2) {
         // From Step 4 (Y2 curriculum), go back to Step 3 (Y1 curriculum)
         setActive(3);
+        // Restore Step 3 pill selections after the curriculum re-render completes
+        setTimeout(() => restoreDynamicPillsForStep(3), 400);
 
     } else if (currentStepNum === 1) {
         // From Step 1, go back to previous child's Step 5, OR Step 0
@@ -3820,11 +3822,15 @@ if (action === "back") {
 
       const isSplit = studySpan && studySpan !== 'all_one_year';
 
-      if (isSplit) {
-        setActive(STEP_Y2);
-      } else {
-        setActive(STEP_LAST_CHILD);
-      }
+if (isSplit) {
+            setActive(STEP_Y2);
+            // Restore Step 4 pill selections after the curriculum re-render completes
+            setTimeout(() => restoreDynamicPillsForStep(STEP_Y2), 400);
+        } else {
+            setActive(3);
+            // Restore Step 3 pill selections after the curriculum re-render completes
+            setTimeout(() => restoreDynamicPillsForStep(3), 400);
+        }
       return;
     }
 
@@ -4050,7 +4056,116 @@ function loadChildData(idx) {
   // 🛡️ Deactivate the shield once the DOM has safely settled
   setTimeout(() => { window.__aed_is_loading_data = false; }, 100);
 }
+/* =========================
+   RESTORE DYNAMIC PILLS (Steps 3 & 4)
+   Called after back-navigation so saved selections are re-applied
+   to freshly-rendered curriculum pill DOM.
+   ========================= */
+function restoreDynamicPillsForStep(stepNum) {
+  const idx = getChildIndex();
+  const data = window.__aed_child_applications[idx];
+  if (!data) return;
 
+  // Map of saved data keys → the input name used by the dynamic pill system
+  const DYNAMIC_PILL_FIELDS_Y1 = [
+    "english_pathway",
+    "mathematics_pathway",
+    "science_pathway",
+    "the_arts",
+    "technologies",
+    "hass"
+  ];
+  const DYNAMIC_PILL_FIELDS_Y2 = [
+    "english_pathway_y2",
+    "mathematics_pathway_y2",
+    "science_pathway_y2",
+    "the_arts_y2",
+    "technologies_y2",
+    "hass_y2"
+  ];
+
+  const TRACKING_FIELDS = [
+    "aed-tracking-needs_attention",
+    "aed-tracking-excelling"
+  ];
+
+  const fields = stepNum === STEP_Y2 ? DYNAMIC_PILL_FIELDS_Y2 : DYNAMIC_PILL_FIELDS_Y1;
+  const stepEl = getStepEl(stepNum);
+  if (!stepEl) return;
+
+  // 1. Restore dynamic curriculum pills (pathway cards + elective accordions)
+  fields.forEach(function(fieldName) {
+    const savedValues = data[fieldName];
+    if (!savedValues || !savedValues.length) return;
+
+    // Find the hidden input with this name inside the step
+    const hiddenInput = stepEl.querySelector('input[name="' + fieldName + '"].aed-hidden-input');
+    if (!hiddenInput) return;
+
+    // Walk up to find the card that owns this input
+    const card = hiddenInput.closest('[data-learning-area]');
+    if (!card) return;
+
+    // Apply is-selected to matching pills
+    card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
+      const pillValue = pill.getAttribute('data-value');
+      const isLocked = pill.getAttribute('data-locked') === 'true';
+      if (!isLocked) {
+        pill.classList.toggle('is-selected', savedValues.includes(pillValue));
+      }
+    });
+
+    // Update the hidden input value to match
+    hiddenInput.value = JSON.stringify(savedValues);
+    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Update the count badge if it's an accordion card
+    const countEl = card.querySelector('.aed-elective-card-count');
+    if (countEl) {
+      const selected = card.querySelectorAll('.aed-dynamic-pill.is-selected').length;
+      countEl.textContent = selected > 0 ? selected + ' selected' : '';
+    }
+  });
+
+  // 2. Restore language dropdown inside the dynamic Languages card
+  const langKey = stepNum === STEP_Y2 ? 'language_of_study_y2' : 'language_of_study';
+  const savedLang = data[langKey] || data['language_of_study'];
+  if (savedLang) {
+    // The dynamic select is rendered inside the step but is NOT a named form input —
+    // find it by its position inside .aed-languages-card-body
+    const langBody = stepEl.querySelector('.aed-languages-card-body');
+    if (langBody) {
+      const dynSelect = langBody.querySelector('select');
+      if (dynSelect) {
+        dynSelect.value = savedLang;
+      }
+    }
+  }
+
+  // 3. Restore tracking widget pills (Step 3 only)
+  if (stepNum === 3) {
+    TRACKING_FIELDS.forEach(function(fieldName) {
+      const savedValues = data[fieldName];
+      if (!savedValues || !savedValues.length) return;
+
+      const trackingInput = document.getElementById(fieldName);
+      if (!trackingInput) return;
+
+      // Find the pills container for this type
+      const type = fieldName.replace('aed-tracking-', '');
+      stepEl.querySelectorAll('.aed-tracking-pill[data-type="' + type + '"]').forEach(function(pill) {
+        const area = pill.getAttribute('data-area');
+        if (savedValues.includes(area)) {
+          pill.classList.add(type); // 'needs-attention' or 'excelling'
+        }
+      });
+
+      trackingInput.value = JSON.stringify(savedValues);
+    });
+  }
+
+  console.log('✅ AED: Dynamic pills restored for Step ' + stepNum);
+}
 
 /* =========================
    LIVE NAME SYNC
