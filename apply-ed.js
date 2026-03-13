@@ -1251,11 +1251,13 @@ if (this.classList.contains("is-selected")) {
     body.appendChild(pillsRow);
     card.appendChild(body);
 
-    // Hidden input
+// Hidden input — use _y2 suffix if rendering inside a Y2 container
     var hiddenInput = document.createElement("input");
     hiddenInput.type = "hidden";
     hiddenInput.className = "aed-hidden-input ms-input";
-    hiddenInput.name = learningArea;
+    hiddenInput.name = (parentEl.closest('[id$="_y2"]') || (parentEl.id && parentEl.id.endsWith('_y2')))
+      ? learningArea + "_y2"
+      : learningArea;
     hiddenInput.value = JSON.stringify([]);
     card.appendChild(hiddenInput);
 
@@ -1325,11 +1327,13 @@ if (this.classList.contains("is-selected")) {
     body.appendChild(pillsRow);
     card.appendChild(body);
 
-    // Hidden input
+// Hidden input — use _y2 suffix if rendering inside a Y2 container
     var hiddenInput = document.createElement("input");
     hiddenInput.type = "hidden";
     hiddenInput.className = "aed-hidden-input ms-input";
-    hiddenInput.name = learningArea;
+    hiddenInput.name = (parentEl.closest('[id$="_y2"]') || (parentEl.id && parentEl.id.endsWith('_y2')))
+      ? learningArea + "_y2"
+      : learningArea;
     hiddenInput.value = JSON.stringify([]);
     card.appendChild(hiddenInput);
 
