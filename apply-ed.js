@@ -1680,9 +1680,9 @@ renderLanguagesSection(wrap, yearBand);
     var idx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var data = (window.__aed_child_applications && window.__aed_child_applications[idx]) || {};
 
-    var fields = isY2
-      ? ["english_pathway_y2","mathematics_pathway_y2","science_pathway_y2","the_arts_y2","technologies_y2","hass_y2"]
-      : ["english_pathway","mathematics_pathway","science_pathway","the_arts","technologies","hass"];
+var fields = isY2
+      ? ["english_pathway_y2","mathematics_pathway_y2","science_pathway_y2","the_arts_y2","technologies_y2","hass_y2", "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2"]
+      : ["english_pathway","mathematics_pathway","science_pathway","the_arts","technologies","hass", "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe"];
 
     fields.forEach(function(fieldName) {
       var saved = data[fieldName];
@@ -2970,40 +2970,20 @@ const ALWAYS_CAPTURE = [
     "learning_needs",
     "improvement_areas",
     "social_community_connections",
-    // Y1 electives (Step 3)
-    "arts_electives",
-    "hass_electives",
-    "tech_electives",
-    "english_electives",
-    "maths_electives",
-    "science_electives",
-    "hpe_electives",
-// Y2 electives (Step 4)
-    "arts_electives_y2",
-    "hass_electives_y2",
-    "tech_electives_y2",
-    "english_electives_y2",
-    "maths_electives_y2",
-    "science_electives_y2",
-    "hpe_electives_y2",
+    // Y1 electives (Step 3 static)
+    "arts_electives", "hass_electives", "tech_electives", "english_electives", "maths_electives", "science_electives", "hpe_electives",
+    // Y2 electives (Step 4 static)
+    "arts_electives_y2", "hass_electives_y2", "tech_electives_y2", "english_electives_y2", "maths_electives_y2", "science_electives_y2", "hpe_electives_y2",
     // Y1 dynamic pill hidden inputs (Step 3 curriculum selector)
-    "english_pathway",
-    "mathematics_pathway",
-    "science_pathway",
-    "the_arts",
-    "technologies",
-    "hass",
+    "english_pathway", "mathematics_pathway", "science_pathway", "the_arts", "technologies", "hass",
+    "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe",
     // Y2 dynamic pill hidden inputs (Step 4 curriculum selector)
-    "english_pathway_y2",
-    "mathematics_pathway_y2",
-    "science_pathway_y2",
-    "the_arts_y2",
-    "technologies_y2",
-    "hass_y2",
+    "english_pathway_y2", "mathematics_pathway_y2", "science_pathway_y2", "the_arts_y2", "technologies_y2", "hass_y2",
+    "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2",
     // Academic tracking widget
     "aed-tracking-needs_attention",
     "aed-tracking-excelling"
-  ];
+];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
@@ -3775,9 +3755,8 @@ if (action === "back") {
         setActive(STEP_LAST_CHILD);
         renderChildNavBar();
 
-    } else if (currentStepNum === STEP_LAST_CHILD) {
+} else if (currentStepNum === STEP_LAST_CHILD) {
         // From Step 5 (Interests & Goals), go back to Step 4 or Step 3
-        // depending on whether this child is a split year
         const childIdx = getChildIndex();
         const childData = window.__aed_child_applications[childIdx] || {};
         const studySpan = Array.isArray(childData.study_span)
@@ -3787,8 +3766,10 @@ if (action === "back") {
 
         if (isSplit) {
             setActive(STEP_Y2);
+            setTimeout(() => restoreDynamicPillsForStep(STEP_Y2), 400);
         } else {
             setActive(3);
+            setTimeout(() => restoreDynamicPillsForStep(3), 400);
         }
 
 } else if (currentStepNum === STEP_Y2) {
@@ -3815,7 +3796,10 @@ if (action === "back") {
     return;
   }
 
-  if (action === "next") {
+if (action === "next") {
+    // FORCE AUTOSAVE BEFORE NAVIGATING FORWARD
+    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
+
     if (!validateStep(currentStepNum)) return;
     
     // FOOLPROOF VISIBILITY CHECK: Run validations based on what is actually on screen!
@@ -4127,21 +4111,15 @@ function restoreDynamicPillsForStep(stepNum) {
   if (!data) return;
 
   // Map of saved data keys → the input name used by the dynamic pill system
-  const DYNAMIC_PILL_FIELDS_Y1 = [
-    "english_pathway",
-    "mathematics_pathway",
-    "science_pathway",
-    "the_arts",
-    "technologies",
-    "hass"
+const DYNAMIC_PILL_FIELDS_Y1 = [
+    "english_pathway", "mathematics_pathway", "science_pathway",
+    "the_arts", "technologies", "hass",
+    "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe"
   ];
   const DYNAMIC_PILL_FIELDS_Y2 = [
-    "english_pathway_y2",
-    "mathematics_pathway_y2",
-    "science_pathway_y2",
-    "the_arts_y2",
-    "technologies_y2",
-    "hass_y2"
+    "english_pathway_y2", "mathematics_pathway_y2", "science_pathway_y2",
+    "the_arts_y2", "technologies_y2", "hass_y2",
+    "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2"
   ];
 
   const TRACKING_FIELDS = [
