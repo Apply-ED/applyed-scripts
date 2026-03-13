@@ -633,10 +633,10 @@ const CURRICULUM_CONFIG = {
           min: 0, max: 1,
           lockedNote: "History",
           options: [
-            { id: "History",               value: "History",               label: "History",               locked: true },
-            { id: "Geography",              value: "Geography",              label: "Geography" },
-            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
-            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+            { id: "History",               value: "History 7-10",               label: "History",               locked: true },
+            { id: "Geography",              value: "Geography 7-10",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship 7-10", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business 7-10", label: "Economics and Business" }
           ]
         }
       },
@@ -697,10 +697,10 @@ const CURRICULUM_CONFIG = {
           helpText: "History is included. Select up to 1 additional subject:",
           min: 0, max: 1,
           options: [
-            { id: "History",               value: "History",               label: "History",               locked: true },
-            { id: "Geography",              value: "Geography",              label: "Geography" },
-            { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
-            { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
+            { id: "History",               value: "History 7-10",               label: "History",               locked: true },
+            { id: "Geography",              value: "Geography 7-10",              label: "Geography" },
+            { id: "Civics_and_Citizenship", value: "Civics and Citizenship 7-10", label: "Civics and Citizenship" },
+            { id: "Economics_and_Business", value: "Economics and Business 7-10", label: "Economics and Business" }
           ]
         }
       }
@@ -1350,24 +1350,24 @@ if (this.classList.contains("is-selected")) {
  // Language options — built fresh, not cloned from hidden Webflow element
   var LANGUAGE_OPTIONS = [
     { value: "",               label: "— Select a language —" },
-    { value: "arabic",         label: "Arabic" },
-    { value: "auslan",         label: "Auslan" },
-    { value: "chinese",        label: "Chinese (Mandarin)" },
-    { value: "classical_greek",label: "Classical Greek" },
-    { value: "french",         label: "French" },
-    { value: "german",         label: "German" },
-    { value: "hindi",          label: "Hindi" },
-    { value: "indonesian",     label: "Indonesian" },
-    { value: "italian",        label: "Italian" },
-    { value: "japanese",       label: "Japanese" },
-    { value: "korean",         label: "Korean" },
-    { value: "latin",          label: "Latin" },
-    { value: "modern_greek",   label: "Modern Greek" },
-    { value: "punjabi",        label: "Punjabi" },
-    { value: "spanish",        label: "Spanish" },
-    { value: "tamil",          label: "Tamil" },
-    { value: "turkish",        label: "Turkish" },
-    { value: "vietnamese",     label: "Vietnamese" }
+    { value: "Arabic",         label: "Arabic" },
+    { value: "Auslan",         label: "Auslan" },
+    { value: "Chinese",        label: "Chinese (Mandarin)" },
+    { value: "Classical Greek 7-10",label: "Classical Greek" },
+    { value: "Framework for Aboriginal Languages and Torres Strait Islander Languages",         label: "Aboriginal and Torres Strait Islander" },
+    { value: "Framework for Classical Languages 7-10",         label: "Classical Languages" },
+    { value: "French",         label: "French" },
+    { value: "German",         label: "German" },
+    { value: "Hindi",          label: "Hindi" },
+    { value: "Indonesian",     label: "Indonesian" },
+    { value: "Italian",        label: "Italian" },
+    { value: "Japanese",       label: "Japanese" },
+    { value: "Korean",         label: "Korean" },
+    { value: "Latin 7-10",          label: "Latin" },
+    { value: "Modern Greek",   label: "Modern Greek" },
+    { value: "Spanish",        label: "Spanish" },
+    { value: "Turkish",        label: "Turkish" },
+    { value: "Vietnamese",     label: "Vietnamese" }
   ];
 
   function renderLanguagesSection(parentEl, yearBand) {
@@ -4256,6 +4256,18 @@ function sanitizeDataForMake(data) {
       }
     }
   }
+
+  // --- NEW: Force HASS F-6 formatting for younger students ---
+  const rawYear = cleanData.student_year_level || "";
+  const isF6 = rawYear === 'FOUNDATION' || (rawYear.match(/\d+/) && parseInt(rawYear.match(/\d+/)[0], 10) <= 6);
+  
+  if (isF6 && typeof cleanData.curriculum_coverage === 'string') {
+    cleanData.curriculum_coverage = cleanData.curriculum_coverage
+      .replace(/Humanities and Social Sciences/gi, "HASS F-6")
+      // Also catch it if it was just saved as "HASS"
+      .replace(/\bHASS\b(?! F-6)/gi, "HASS F-6"); 
+  }
+
   return cleanData;
 }
 
