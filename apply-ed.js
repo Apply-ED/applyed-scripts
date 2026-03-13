@@ -843,8 +843,8 @@ console.log("✅ Curriculum helper functions loaded");
       "  display: inline-flex;",
       "  align-items: center;",
       "  gap: 6px;",
-      "  padding: 6px 12px;",
-      "  border-radius: 20px;",
+      "  padding: 7px;",
+      "  border-radius: 16px;",
       "  font-size: 13px;",
       "  font-weight: 500;",
       "  font-family: Montserrat, sans-serif;",
@@ -860,9 +860,9 @@ console.log("✅ Curriculum helper functions loaded");
       "  font-family: Montserrat, sans-serif;",
       "}",
 
-      // ── Pathway card (always open, soft header matching elective cards) ──
+      // ── Pathway card (always open, #f5f7f4 header only, white body) ──
       ".aed-pathway-card {",
-      "  background: #f5f7f4;",
+      "  background: #ffffff;",
       "  border: 1px solid #dde4dd;",
       "  border-radius: 16px;",
       "  margin-bottom: 12px;",
@@ -882,12 +882,14 @@ console.log("✅ Curriculum helper functions loaded");
       "  line-height: 22px;",
       "}",
       ".aed-pathway-card-subtitle {",
-      "  font-size: 14px;",
-      "  color: #4f6a5a;",
-      "  margin-top: 3px;",
+      "  font-size: 13px;",
+      "  color: #7a7f87;",
+      "  margin-top: 0;",
+      "  margin-bottom: 10px;",
       "}",
       ".aed-pathway-card-body {",
-      "  padding: 14px 16px;",
+      "  background: #ffffff;",
+      "  padding: 12px 16px 14px;",
       "}",
 
       // ── Elective accordion card (collapsed by default) ──
@@ -981,11 +983,11 @@ console.log("✅ Curriculum helper functions loaded");
       "  flex-wrap: wrap;",
       "  gap: 8px;",
       "}",
-      ".aed-dynamic-pill {",
+".aed-dynamic-pill {",
       "  display: inline-flex;",
       "  align-items: center;",
-      "  padding: 7px 14px;",
-      "  border-radius: 20px;",
+      "  padding: 7px;",
+      "  border-radius: 16px;",
       "  font-size: 13px;",
       "  font-family: Montserrat, sans-serif;",
       "  line-height: 1.2em;",
@@ -1027,7 +1029,7 @@ console.log("✅ Curriculum helper functions loaded");
 
       // ── Languages section ──
       ".aed-languages-card {",
-      "  background: #f5f7f4;",
+      "  background: #ffffff;",
       "  border: 1px solid #dde4dd;",
       "  border-radius: 16px;",
       "  margin-bottom: 12px;",
@@ -1052,7 +1054,8 @@ console.log("✅ Curriculum helper functions loaded");
       "  margin-top: 3px;",
       "}",
       ".aed-languages-card-body {",
-      "  padding: 14px 16px;",
+      "  background: #ffffff;",
+      "  padding: 12px 16px 14px;",
       "}",
 
       // ── Shake animation for max-hit ──
@@ -1216,7 +1219,7 @@ if (this.classList.contains("is-selected")) {
     card.className = "aed-pathway-card";
     card.setAttribute("data-learning-area", learningArea);
 
-    // Header
+    // Header — title only, no subtitle (subtitle moves to body)
     var header = document.createElement("div");
     header.className = "aed-pathway-card-header";
 
@@ -1225,18 +1228,18 @@ if (this.classList.contains("is-selected")) {
     title.textContent = config.label;
     header.appendChild(title);
 
+    card.appendChild(header);
+
+    // Body — helpText + pills
+    var body = document.createElement("div");
+    body.className = "aed-pathway-card-body";
+
     if (config.helpText) {
       var sub = document.createElement("div");
       sub.className = "aed-pathway-card-subtitle";
       sub.textContent = config.helpText;
-      header.appendChild(sub);
+      body.appendChild(sub);
     }
-
-    card.appendChild(header);
-
-    // Body — pills
-    var body = document.createElement("div");
-    body.className = "aed-pathway-card-body";
 
     var pillsRow = document.createElement("div");
     pillsRow.className = "aed-pills-row";
@@ -1277,12 +1280,14 @@ if (this.classList.contains("is-selected")) {
     nameEl.textContent = config.label;
     triggerLeft.appendChild(nameEl);
 
-    // Hint text under the name
-    var hintText = config.min > 0
-      ? "Select at least " + config.min + (config.max && config.max !== 99 ? ", up to " + config.max : "")
-      : config.max && config.max !== 99
-        ? "Optional — up to " + config.max
-        : "Optional";
+    // Hint text under the name — use helpText from config if available, else generate
+    var hintText = config.helpText
+      ? config.helpText
+      : config.min > 0
+        ? "Select at least " + config.min + (config.max && config.max !== 99 ? ", up to " + config.max : "")
+        : config.max && config.max !== 99
+          ? "Optional — up to " + config.max
+          : "Optional";
     var hintEl = document.createElement("div");
     hintEl.className = "aed-elective-card-hint";
     hintEl.textContent = hintText;
@@ -1309,13 +1314,6 @@ if (this.classList.contains("is-selected")) {
     // Collapsible body
     var body = document.createElement("div");
     body.className = "aed-elective-card-body";
-
-    if (config.helpText) {
-      var helpEl = document.createElement("div");
-      helpEl.className = "aed-elective-help";
-      helpEl.textContent = config.helpText;
-      body.appendChild(helpEl);
-    }
 
     var pillsRow = document.createElement("div");
     pillsRow.className = "aed-pills-row";
@@ -6025,7 +6023,7 @@ function bindAcademicTrackingWidget() {
     s.id = "aed-tracking-styles";
     s.textContent = [
       ".aed-tracking-widget { font-family: Montserrat, sans-serif; margin-bottom: 20px; }",
-".aed-tracking-header { background: #edf1ed; border-radius: 16px 16px 0 0; padding: 12px 16px; border: 1px solid #dde4dd; border-bottom: none; }",
+".aed-tracking-header { background: #f5f7f4; border-radius: 16px 16px 0 0; padding: 12px 16px; border: 1px solid #dde4dd; border-bottom: none; }",
       ".aed-tracking-title { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #263358; }",
       ".aed-tracking-subtitle { font-size: 14px; color: #7a7f87; margin-top: 3px; }",
       ".aed-tracking-body { background: #ffffff; border: 1px solid #dde4dd; border-top: none; border-radius: 0 0 16px 16px; padding: 16px 18px; }",
@@ -6033,8 +6031,8 @@ function bindAcademicTrackingWidget() {
       ".aed-tracking-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }",
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
       ".aed-tracking-col-label { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
-      ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
-      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+     ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
+      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 7px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
 ".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
       ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
@@ -6064,7 +6062,7 @@ function bindAcademicTrackingWidget() {
     // Header
     var header = document.createElement("div");
     header.className = "aed-tracking-header";
-    header.innerHTML = '<div class="aed-tracking-title">How is your child tracking?</div><div class="aed-tracking-subtitle">Optional — select any subjects where you\'d like the program pitched differently</div>';
+    header.innerHTML = '<div class="aed-tracking-title">How is your child tracking?</div>';
     widget.appendChild(header);
 
     // Body
@@ -6073,7 +6071,7 @@ function bindAcademicTrackingWidget() {
 
     var helper = document.createElement("div");
     helper.className = "aed-tracking-helper";
-    helper.textContent = "Optional. If your child is working below year level in a subject, select it under 'Studying below year level' — we'll pitch that area at a gentler pace with more scaffolding. If they're ready to push ahead, select it under 'Studying above year level' — we'll bring in more advanced content. Leave a subject unselected if they're on track.";
+    helper.textContent = "If your child is working below year level in a subject, select it under 'Studying below year level' — we'll pitch that area at a gentler pace with more scaffolding. If they're ready to push ahead, select it under 'Studying above year level' — we'll bring in more advanced content. Leave a subject unselected if they're on track.";
     body.appendChild(helper);
 
     var row = document.createElement("div");
