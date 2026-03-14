@@ -1463,6 +1463,13 @@ if (this.classList.contains("is-selected")) {
   var PATHWAY_KEYS = ["english_pathway", "mathematics_pathway", "science_pathway"];
 
   // ─── RENDER ALL CURRICULUM OPTIONS ───────────────────────────────────────
+  // Cache key: track what was last rendered per container so we can skip
+  // redundant rebuilds. A rebuild wipes innerHTML (including hidden inputs
+  // that hold pill state) and then re-runs restoreSavedCurriculumPills.
+  // If the context hasn't changed, the wipe only causes a visible flash
+  // (pills appear selected then instantly reset) with no benefit.
+  var _lastRenderKey = {};
+
   function renderCurriculumOptions(targetContainerId) {
     var container = document.getElementById(targetContainerId);
     if (!container) {
@@ -1472,6 +1479,18 @@ if (this.classList.contains("is-selected")) {
 
     var context = getCurriculumContext();
     if (!context.yearBand) return;
+
+    // Skip rebuild if pathway + yearBand haven't changed for this container.
+    // Just re-run restoreSavedCurriculumPills so pills reflect current saved
+    // state without a destructive wipe.
+    var renderKey = context.pathwayId + "|" + context.yearBand;
+    if (_lastRenderKey[targetContainerId] === renderKey && container.querySelector('.aed-dynamic-curriculum')) {
+      console.log("⚡ AED: Context unchanged for " + targetContainerId + " — restoring pills only (no rebuild)");
+      restoreSavedCurriculumPills(container, false);
+      document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
+      return;
+    }
+    _lastRenderKey[targetContainerId] = renderKey;
 
     console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
 
@@ -1598,6 +1617,16 @@ if (this.classList.contains("is-selected")) {
       mandatory : (pathway.mandatory  && pathway.mandatory[yearBand])  || null,
       electives : (pathway.electives  && pathway.electives[yearBand])  || null
     };
+
+    // Skip rebuild if pathway + yearBand haven't changed for this container.
+    var renderKey = context.pathwayId + "|" + context.yearBand;
+    if (_lastRenderKey[targetContainerId] === renderKey && container.querySelector('.aed-dynamic-curriculum')) {
+      console.log("⚡ AED: Y2 context unchanged for " + targetContainerId + " — restoring pills only (no rebuild)");
+      restoreSavedCurriculumPills(container, true);
+      document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
+      return;
+    }
+    _lastRenderKey[targetContainerId] = renderKey;
 
     console.log("🎨 AED: Rendering Y2 curriculum for " + context.pathwayId + " / " + context.yearBand);
 
