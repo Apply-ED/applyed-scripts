@@ -1491,6 +1491,8 @@ if (this.classList.contains("is-selected")) {
    container.appendChild(wrap);
     restoreSavedCurriculumPills(container, false);
     console.log("✅ AED: Curriculum rendered for " + targetContainerId);
+    // Signal that rendering + initial restore is complete
+    document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
   }
 
   function refreshCurriculumDisplay() {
@@ -1606,6 +1608,8 @@ renderLanguagesSection(wrap, yearBand);
     container.appendChild(wrap);
     restoreSavedCurriculumPills(container, true);
     console.log("✅ AED: Y2 curriculum rendered for " + targetContainerId);
+    // Signal that rendering + initial restore is complete
+    document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
   }
 
   window.__aed_refreshY2CurriculumDisplay = refreshY2CurriculumDisplay;
@@ -2928,14 +2932,39 @@ function collectValueFromField(fieldEl) {
 }
 
 window.saveProgressSilently = function() {
-  // Only run this if we are currently looking at a Child Step (Steps 1, 2, or 3)
+  // Only run this if we are currently looking at a Child Step (Steps 1–5)
   if (currentStepNum >= STEP_FIRST_CHILD && currentStepNum <= STEP_LAST_CHILD) {
     const idx = getChildIndex();
     const currentDOMData = collectChildData();
     const existing = window.__aed_child_applications[idx] || {};
     
-    // Merge them so we don't accidentally erase any previously saved hidden fields
-    window.__aed_child_applications[idx] = { ...existing, ...currentDOMData };
+    // Smart merge: never let an empty/invisible-step value overwrite a real saved selection
+    const merged = { ...existing };
+    for (const key of Object.keys(currentDOMData)) {
+      const newVal = currentDOMData[key];
+      const oldVal = merged[key];
+
+      // Protect non-empty arrays from being wiped by empty arrays
+      // (this happens when curriculum pills are on a hidden step and their
+      //  hidden inputs read as [] during collectChildData)
+      if (Array.isArray(newVal) && newVal.length === 0
+          && Array.isArray(oldVal) && oldVal.length > 0) {
+        continue; // keep the existing saved selections
+      }
+
+      // Protect non-empty strings from being blanked by invisible fields
+      if ((newVal === '' || newVal === undefined || newVal === null)
+          && oldVal && oldVal !== '' && oldVal !== undefined) {
+        continue; // keep the existing saved value
+      }
+
+      merged[key] = newVal;
+    }
+    window.__aed_child_applications[idx] = merged;
+
+    console.log('🔍 SAVE MERGE [child ' + idx + ', step ' + currentStepNum + ']',
+      'english_pathway:', merged.english_pathway,
+      'english_pathway_y2:', merged.english_pathway_y2);
   }
 };
 
@@ -3150,8 +3179,26 @@ function saveCurrentChildAndAdvance() {
 
   const idx = getChildIndex();
   const childData = collectChildData();
-  childData.__saved = true;               
-  window.__aed_child_applications[idx] = childData; 
+  childData.__saved = true;
+
+  // Smart merge: protect previously saved curriculum selections from being wiped
+  // by empty hidden-input values collected from invisible steps
+  const existing = window.__aed_child_applications[idx] || {};
+  const merged = { ...existing };
+  for (const key of Object.keys(childData)) {
+    const newVal = childData[key];
+    const oldVal = merged[key];
+    if (Array.isArray(newVal) && newVal.length === 0
+        && Array.isArray(oldVal) && oldVal.length > 0) {
+      continue;
+    }
+    if ((newVal === '' || newVal === undefined || newVal === null)
+        && oldVal && oldVal !== '' && oldVal !== undefined) {
+      continue;
+    }
+    merged[key] = newVal;
+  }
+  window.__aed_child_applications[idx] = merged;
   console.log("SAVED CHILD DATA:", JSON.stringify(childData))
   captureFirstChildStateIfNeeded();
 
@@ -3683,6 +3730,29 @@ const result = await postToMakeCreateCheckout(payload);
      CLICK HANDLER (existing)
    ========================= */
 
+/* =========================
+   HELPER: Wait for curriculum DOM rebuild, then restore pills
+   Instead of a blind 400ms timeout, listens for the "aed:curriculumRendered"
+   event fired by renderCurriculumOptions / renderCurriculumOptionsForYear.
+   Falls back to a 600ms timeout in case the event never fires.
+   ========================= */
+function waitForCurriculumThenRestore(stepNum) {
+  let handled = false;
+  function doRestore() {
+    if (handled) return;
+    handled = true;
+    restoreDynamicPillsForStep(stepNum);
+  }
+  // Primary: event-driven (fires when renderer completes)
+  document.addEventListener("aed:curriculumRendered", function handler(e) {
+    document.removeEventListener("aed:curriculumRendered", handler);
+    // Small extra frame delay to ensure DOM is painted
+    requestAnimationFrame(() => doRestore());
+  });
+  // Fallback: safety net in case the event doesn't fire (e.g. no re-render needed)
+  setTimeout(doRestore, 600);
+}
+
 document.addEventListener("click", function (e) {
 
   // ✅ ADD OTHER (free text reveal) — runs first and exits
@@ -3746,17 +3816,16 @@ if (action === "back") {
 
         if (isSplit) {
             setActive(STEP_Y2);
-            setTimeout(() => restoreDynamicPillsForStep(STEP_Y2), 400);
+            waitForCurriculumThenRestore(STEP_Y2);
         } else {
             setActive(3);
-            setTimeout(() => restoreDynamicPillsForStep(3), 400);
+            waitForCurriculumThenRestore(3);
         }
 
 } else if (currentStepNum === STEP_Y2) {
         // From Step 4 (Y2 curriculum), go back to Step 3 (Y1 curriculum)
         setActive(3);
-        // Restore Step 3 pill selections after the curriculum re-render completes
-        setTimeout(() => restoreDynamicPillsForStep(3), 400);
+        waitForCurriculumThenRestore(3);
 
     } else if (currentStepNum === 1) {
         // From Step 1, go back to previous child's Step 5, OR Step 0
@@ -3849,11 +3918,10 @@ if (action === "next") {
 if (isSplit) {
             setActive(STEP_Y2);
             // Restore Step 4 pill selections after the curriculum re-render completes
-            setTimeout(() => restoreDynamicPillsForStep(STEP_Y2), 400);
+            waitForCurriculumThenRestore(STEP_Y2);
         } else {
-            setActive(3);
-            // Restore Step 3 pill selections after the curriculum re-render completes
-            setTimeout(() => restoreDynamicPillsForStep(3), 400);
+            // All-one-year: skip Step 4 (Y2), go straight to Step 5 (Interests & Goals)
+            setActive(STEP_LAST_CHILD);
         }
       return;
     }
