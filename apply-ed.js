@@ -1373,6 +1373,15 @@ if (this.classList.contains("is-selected")) {
   function renderLanguagesSection(parentEl, yearBand) {
     var isMandatory = (yearBand === "f6" || yearBand === "y78");
 
+    // NEW: Check if this is rendering inside a Year 2 container
+    var isY2 = false;
+    var ancestor = parentEl;
+    while (ancestor) {
+      if (ancestor.id && ancestor.id.endsWith("_y2")) { isY2 = true; break; }
+      ancestor = ancestor.parentElement;
+    }
+    var realSelectName = isY2 ? 'language_of_study_y2' : 'language_of_study';
+
     var card = document.createElement("div");
     card.className = "aed-languages-card";
 
@@ -1406,8 +1415,8 @@ if (this.classList.contains("is-selected")) {
       sel.appendChild(o);
     });
 
-    // Pre-select if real input already has a value
-    var realSelect = document.querySelector('select[name="language_of_study"]');
+    // NEW: Target the correct hidden select field based on whether it is Y1 or Y2
+    var realSelect = document.querySelector('select[name="' + realSelectName + '"]');
     if (realSelect && realSelect.value) sel.value = realSelect.value;
 
     sel.addEventListener("change", function() {
@@ -1415,7 +1424,11 @@ if (this.classList.contains("is-selected")) {
         realSelect.value = this.value;
         realSelect.dispatchEvent(new Event("change", { bubbles: true }));
       }
-      var langCb = document.querySelector('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
+      
+      // NEW: Target the correct checkbox class/name based on Y1 vs Y2
+      var langCbClass = isY2 ? 'languages_y2' : 'languages';
+      var langCb = document.querySelector('input.curriculum-checkbox[data-value="' + langCbClass + '"], input[name="' + langCbClass + '"], input[id="' + langCbClass + '"], input[name="Languages_y2"], input[id="Languages_y2"]');
+      
       if (langCb) {
         var realCb = langCb.tagName === "INPUT" ? langCb : langCb.querySelector("input[type='checkbox']");
         if (realCb) {
@@ -2928,14 +2941,11 @@ window.saveProgressSilently = function() {
 
 function collectChildData() {
   const data = {};
-// FORCE SYNC: These pill groups don't auto-write their ms-input on click.
-  // Read the visually selected pills and write the value manually before collecting.
+
+  // FORCE SYNC: These pill groups don't auto-write their ms-input on click.
   const FORCE_SYNC_GROUPS = [
-    "learning_approaches",
-    "academic_strengths",
-    "learning_needs",
-    "improvement_areas",
-    "social_community_connections"
+    "learning_approaches", "academic_strengths", "learning_needs", 
+    "improvement_areas", "social_community_connections"
   ];
 
   FORCE_SYNC_GROUPS.forEach(fieldName => {
@@ -2949,41 +2959,20 @@ function collectChildData() {
     input.value = JSON.stringify(selected);
   });
 
-  // Fields that must ALWAYS be captured even if their container is hidden.
-  // These live inside conditionally-shown wrappers (e.g. language dropdown,
-  // study_span pills, other_goal textareas) so the normal visibility filter
-  // would skip them.
-const ALWAYS_CAPTURE = [
-    "study_span",
-    "language_of_study",
-    "language_of_study_y2",
-    "other_goal_1",
-    "other_goal_2",
-    "other_goal_3",
-    "learning_approaches_custom",
-    "academic_strengths_custom",
-    "learning_needs_custom",
-    "improvement_custom",
-    "social_community_connections_custom",
-    "learning_approaches",
-    "academic_strengths",
-    "learning_needs",
-    "improvement_areas",
-    "social_community_connections",
-    // Y1 electives (Step 3 static)
+  const ALWAYS_CAPTURE = [
+    "study_span", "language_of_study", "language_of_study_y2",
+    "other_goal_1", "other_goal_2", "other_goal_3",
+    "learning_approaches_custom", "academic_strengths_custom", "learning_needs_custom",
+    "improvement_custom", "social_community_connections_custom",
+    "learning_approaches", "academic_strengths", "learning_needs", "improvement_areas", "social_community_connections",
     "arts_electives", "hass_electives", "tech_electives", "english_electives", "maths_electives", "science_electives", "hpe_electives",
-    // Y2 electives (Step 4 static)
     "arts_electives_y2", "hass_electives_y2", "tech_electives_y2", "english_electives_y2", "maths_electives_y2", "science_electives_y2", "hpe_electives_y2",
-    // Y1 dynamic pill hidden inputs (Step 3 curriculum selector)
     "english_pathway", "mathematics_pathway", "science_pathway", "the_arts", "technologies", "hass",
     "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe",
-    // Y2 dynamic pill hidden inputs (Step 4 curriculum selector)
     "english_pathway_y2", "mathematics_pathway_y2", "science_pathway_y2", "the_arts_y2", "technologies_y2", "hass_y2",
     "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2",
-    // Academic tracking widget
-    "aed-tracking-needs_attention",
-    "aed-tracking-excelling"
-];
+    "aed-tracking-needs_attention", "aed-tracking-excelling"
+  ];
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
@@ -2998,72 +2987,65 @@ const ALWAYS_CAPTURE = [
       const type = (el.getAttribute("type") || "").toLowerCase();
       const isAlwaysCapture = ALWAYS_CAPTURE.includes(name);
 
-      // For pill groups: skip hidden duplicate containers (e.g. Container 3B)
-      // BUT always capture fields in the ALWAYS_CAPTURE list regardless.
-      if (!isAlwaysCapture) {
-        const group = el.closest(".ms-group");
-        if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) {
-          continue;
-        }
+      // Check if the element is physically visible
+      let isVisible = true;
+      const containerObj = el.closest(".ms-group") || el.closest(".aed-elective-card") || el.closest(".aed-pathway-card") || el.closest(".field-group") || el.closest(".w-checkbox");
+      if (containerObj && (containerObj.offsetWidth === 0 || containerObj.offsetHeight === 0)) {
+          isVisible = false;
       }
 
-      // Radio buttons
+      if (!isAlwaysCapture && !isVisible) continue;
+
       if (type === "radio") {
         if (el.checked) data[name] = el.value;
         continue;
       }
 
-// Checkboxes
       if (type === "checkbox") {
         if (el.checked) {
-          // Don't overwrite if an array value already captured for this name
-          // (dynamic pill hidden input for the_arts, technologies, hass etc.)
-          if (!Array.isArray(data[name])) {
-            data[name] = (el.value || "on");
-          }
+          if (!Array.isArray(data[name])) data[name] = (el.value || "on");
         } else if (!Array.isArray(data[name]) && data[name] !== "on" && data[name] !== true) {
           data[name] = "";
         }
         continue;
       }
 
-      // Pill groups (ms-input hidden fields)
       if (el.classList.contains("ms-input")) {
-        // For study_span: only overwrite if we get a real value,
-        // so a hidden duplicate doesn't wipe a good saved value.
         const parsed = (() => {
           try { return JSON.parse(el.value || "[]"); } catch (e) { return []; }
         })();
 
         if (isAlwaysCapture) {
-          // Only save if non-empty, so hidden duplicates don't overwrite
-          if (parsed.length > 0) data[name] = parsed;
+          if (isVisible || parsed.length > 0) data[name] = parsed;
         } else {
-          data[name] = parsed;
+          if (isVisible) data[name] = parsed;
         }
         continue;
       }
 
-      // Selects and text fields
-      const val = (el.value || "").trim();
+      let val = (el.value || "").trim();
+
+      // Safety catch: prevent static Webflow inputs from overwriting arrays with the string "[]"
+      if (typeof val === "string" && val.startsWith("[") && val.endsWith("]")) {
+        try { val = JSON.parse(val); } catch(e){}
+      }
 
       if (isAlwaysCapture) {
-        // For language_of_study there are 3 selects with the same name.
-        // Only overwrite with a non-empty value so hidden blank ones
-        // don't wipe the real selected value.
-        if (val) data[name] = val;
+        if (Array.isArray(val)) {
+            if (isVisible || val.length > 0) data[name] = val;
+        } else {
+            if (isVisible || val) data[name] = val;
+        }
       } else {
-        data[name] = val;
+        if (isVisible) data[name] = val;
       }
     }
   }
 
-  // FORCE CAPTURE: Grab Program Type from Step 0 if missing
   if (!data.program_type) {
     const step0 = getStepEl(0);
     if (step0) {
-      const progEl = step0.querySelector('input[name="program_type"]:checked') ||
-                     step0.querySelector('select[name="program_type"]');
+      const progEl = step0.querySelector('input[name="program_type"]:checked') || step0.querySelector('select[name="program_type"]');
       if (progEl) data.program_type = progEl.value;
     }
   }
