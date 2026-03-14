@@ -839,18 +839,20 @@ console.log("✅ Curriculum helper functions loaded");
       "  flex-wrap: wrap;",
       "  gap: 8px;",
       "}",
-      ".aed-mandatory-pill {",
+".aed-mandatory-pill {",
       "  display: inline-flex;",
       "  align-items: center;",
       "  gap: 6px;",
-      "  padding: 3px;",
+      "  padding: 7px;", 
       "  border-radius: 16px;",
       "  font-size: 13px;",
-      "  font-weight: 500;",
+      "  line-height: 1.2em;", 
+      "  font-weight: 400;", 
       "  font-family: Montserrat, sans-serif;",
       "  color: #4f6a5a;",
       "  background: #e7ece8;",
       "  border: 1px solid #dde4dd;",
+      "  opacity: 0.8;", /* Add this new line here! */
       "}",
       ".aed-mandatory-pill::before {",
       "  content: '✓';",
@@ -998,6 +1000,7 @@ console.log("✅ Curriculum helper functions loaded");
       "  color: #4f6a5a;",
       "  background: #e7ece8;",
       "  border: 1px solid #dde4dd;",
+      "  opacity: 0.8;", /* Add this new line here! */
       "}",
       ".aed-dynamic-pill:hover {",
       "  background: #dde5dd;",
@@ -2440,7 +2443,7 @@ function showStep4GoalInfo() {
   if (!interestBanner) {
     interestBanner = document.createElement('div');
     interestBanner.id = 'aed-interest-banner';
-    interestBanner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box;';    
+    interestBanner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';    
     const interestsContainer = document.getElementById('step3-interests-container');
     if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', interestBanner);
   }
@@ -2458,7 +2461,7 @@ function showStep4GoalInfo() {
   if (!goalBanner3B) {
     goalBanner3B = document.createElement('div');
     goalBanner3B.id = 'step4-goal-info';
-    goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box;';
+    goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
     
     const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
@@ -5190,12 +5193,35 @@ function bindYearLevelPills() {
       '1 at ' + currentLabel + ', 3 at ' + nextLabel
     ];
 
-    pills.forEach(function(pill, index) {
+ pills.forEach(function(pill, index) {
       if (labels[index] !== undefined) {
         pill.textContent = labels[index];
       }
+      
+      // --- NEW LOGIC: YEAR 10 LOCKDOWN ---
+      if (currentYear === 10) {
+        if (index === 0) {
+          // Keep the first pill visible and force it to be selected
+          pill.style.display = '';
+          if (!pill.classList.contains('is-selected')) {
+            pill.classList.add('is-selected');
+            var input = pillContainer.querySelector('.ms-input');
+            if (input) {
+              input.value = JSON.stringify([pill.getAttribute('data-value')]);
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        } else {
+          // Hide all the split options so they can't be clicked
+          pill.style.display = 'none';
+          pill.classList.remove('is-selected');
+        }
+      } else {
+        // Normal behavior for all other years
+        pill.style.display = '';
+      }
+      // ------------------------------------
     });
-  }
 
   yearDropdown.addEventListener('change', updatePills);
   if (stateDropdown) stateDropdown.addEventListener('change', updatePills);
@@ -5254,7 +5280,7 @@ function bindCurriculumVisibility() {
   if (!bannerContainer) {
     bannerContainer = document.createElement('div');
     bannerContainer.id = 'aed-curriculum-banner';
-    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box; display: none;';
+    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box; display: none;';
     var parentWrap = coreF8Container ? coreF8Container.parentNode : null;
     if (parentWrap) parentWrap.insertBefore(bannerContainer, coreF8Container);
   }
@@ -6271,7 +6297,7 @@ function upgradeStep0Banner() {
        el.innerHTML = '<strong>Settings for your whole application</strong><br>The details entered on this page will apply to your entire family\'s home education program.';
        
        // Apply the exact same "Green Info Banner" styling we used in the Curriculum step!
-       el.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 24px; margin-top: 8px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box; display: block;';
+       el.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 24px; margin-top: 8px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box; display: block;';
     }
   });
 }
@@ -6309,7 +6335,7 @@ function bindAcademicTrackingWidget() {
       "@media (max-width: 640px) { .aed-tracking-row { grid-template-columns: 1fr; } }",
       ".aed-tracking-col-label { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #263358; margin-bottom: 8px; }",
      ".aed-tracking-pills { display: flex; flex-wrap: wrap; gap: 6px; }",
-      ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 3px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; }",
+     ".aed-tracking-pill { display: inline-flex; align-items: center; padding: 7px; border-radius: 16px; font-size: 13px; line-height: 1.2em; font-weight: 400; cursor: pointer; user-select: none; transition: all 0.15s ease; color: #4f6a5a; background: #e7ece8; border: 1px solid #dde4dd; opacity: 0.8; }",
       ".aed-tracking-pill:hover { background: #dde5dd; border-color: #799377; }",
 ".aed-tracking-pill.needs-attention { background: #263358; color: #f6f7f5; border-color: #263358; }",
       ".aed-tracking-pill.excelling { background: #263358; color: #f6f7f5; border-color: #263358; }"
@@ -6978,7 +7004,7 @@ function bindGoalContainerSwapper() {
   if (container3A && !document.getElementById('aed-3a-banner')) {
     const banner = document.createElement('div');
     banner.id = 'aed-3a-banner';
-    banner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box;';
+    banner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
     banner.innerHTML = '<strong>Program Goals</strong><br>Please select <strong>at least 3 goals in total</strong> across the categories below to help shape the overall direction of your child\'s learning.';
     container3A.insertAdjacentElement('afterbegin', banner);
   }
@@ -7292,7 +7318,7 @@ function bindY2CurriculumVisibility() {
   if (!bannerContainer) {
     bannerContainer = document.createElement('div');
     bannerContainer.id = 'aed-curriculum-banner_y2';
-    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1200px; width: 100%; box-sizing: border-box; display: none;';
+    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box; display: none;';
     if (f6Container && f6Container.parentNode) {
       f6Container.parentNode.insertBefore(bannerContainer, f6Container);
     }
