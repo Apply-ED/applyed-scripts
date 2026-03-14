@@ -1430,14 +1430,35 @@ if (this.classList.contains("is-selected")) {
       sel.appendChild(o);
     });
 
-    // NEW: Target the correct hidden select field based on whether it is Y1 or Y2
+    // FIX: Seed the dynamic select from __aed_child_applications first.
+    // Previously it only read from realSelect.value — but loadChildData()
+    // restores the hidden select 150ms after the curriculum re-renders, so on
+    // a child switch the hidden select still holds the previous child's value
+    // at the time renderLanguagesSection runs. Reading from __aed_child_applications
+    // gives us the correct value for the child being rendered immediately.
     var realSelect = document.querySelector('select[name="' + realSelectName + '"]');
-    if (realSelect && realSelect.value) sel.value = realSelect.value;
+    var _langIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var _langData = (window.__aed_child_applications && window.__aed_child_applications[_langIdx]) || {};
+    var _savedLang = _langData[realSelectName] || _langData['language_of_study'] || '';
+    if (_savedLang) {
+      sel.value = _savedLang;
+    } else if (realSelect && realSelect.value) {
+      sel.value = realSelect.value;
+    }
 
     sel.addEventListener("change", function() {
       if (realSelect) {
         realSelect.value = this.value;
         realSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      // FIX: Write directly to __aed_child_applications so the selection
+      // survives curriculum re-renders and child switches.
+      if (window.__aed_child_applications && typeof getChildIndex === 'function') {
+        var _li = getChildIndex();
+        if (window.__aed_child_applications[_li]) {
+          window.__aed_child_applications[_li][realSelectName] = this.value;
+        }
       }
       
       // NEW: Target the correct checkbox class/name based on Y1 vs Y2
@@ -6335,13 +6356,28 @@ function bindAcademicTrackingWidget() {
 
     var state = { needs_attention: [], excelling: [] };
 
-    // Try restore from hidden inputs if they exist
-    ["needs_attention", "excelling"].forEach(function(type) {
-      var inp = document.getElementById("aed-tracking-" + type);
-      if (inp && inp.value) {
-        try { state[type] = JSON.parse(inp.value); } catch(e) {}
-      }
-    });
+    // FIX: Seed state from __aed_child_applications (authoritative source).
+    // Previously this read from hidden inputs inside the widget body — but
+    // renderWidget() removes the old widget just above, so those inputs are
+    // always gone by the time we read them. __aed_child_applications is
+    // unaffected by DOM rebuilds.
+    var _trackIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var _trackData = (window.__aed_child_applications && window.__aed_child_applications[_trackIdx]) || {};
+    if (_trackData["aed-tracking-needs_attention"] && _trackData["aed-tracking-needs_attention"].length) {
+      state.needs_attention = _trackData["aed-tracking-needs_attention"].slice();
+    }
+    if (_trackData["aed-tracking-excelling"] && _trackData["aed-tracking-excelling"].length) {
+      state.excelling = _trackData["aed-tracking-excelling"].slice();
+    }
+    // Fallback to hidden inputs only on very first render (before any navigation)
+    if (!state.needs_attention.length && !state.excelling.length) {
+      ["needs_attention", "excelling"].forEach(function(type) {
+        var inp = document.getElementById("aed-tracking-" + type);
+        if (inp && inp.value) {
+          try { state[type] = JSON.parse(inp.value); } catch(e) {}
+        }
+      });
+    }
 
     function buildColumn(type, colLabel) {
       var col = document.createElement("div");
@@ -6396,6 +6432,17 @@ function bindAcademicTrackingWidget() {
             }
             inp.value = JSON.stringify(state[t]);
           });
+
+          // FIX: Also write directly to __aed_child_applications so the data
+          // survives renderWidget() rebuilding the DOM (which destroys the
+          // hidden inputs above). Mirrors the same fix applied to curriculum pills.
+          if (window.__aed_child_applications && typeof getChildIndex === 'function') {
+            var _saveIdx = getChildIndex();
+            if (window.__aed_child_applications[_saveIdx]) {
+              window.__aed_child_applications[_saveIdx]["aed-tracking-needs_attention"] = state.needs_attention.slice();
+              window.__aed_child_applications[_saveIdx]["aed-tracking-excelling"] = state.excelling.slice();
+            }
+          }
         });
 
         pillsWrap.appendChild(pill);
