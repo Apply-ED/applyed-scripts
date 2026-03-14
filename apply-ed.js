@@ -1104,6 +1104,21 @@ console.log("✅ Curriculum helper functions loaded");
     }
     hiddenInput.value = JSON.stringify(values);
     hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+    // FIX: Write pill selections directly into __aed_child_applications on
+    // every click. Previously, pill state only reached __aed_child_applications
+    // via collectChildData() → saveProgressSilently() on navigation. But
+    // renderCurriculumOptions() wipes container.innerHTML (including hidden
+    // inputs) and rebuilds fresh empty ones before saveProgressSilently runs —
+    // so the data was lost before it was ever saved. Writing here, at the
+    // moment the user clicks, means the data survives any subsequent re-render.
+    if (window.__aed_child_applications && typeof getChildIndex === 'function') {
+      var idx = getChildIndex();
+      if (window.__aed_child_applications[idx]) {
+        window.__aed_child_applications[idx][inputName] = values;
+        console.log('💊 AED: Pill saved directly [child ' + idx + '] ' + inputName + ':', values);
+      }
+    }
   }
 
   // ─── UPDATE ELECTIVE COUNT BADGE ─────────────────────────────────────────
@@ -2961,10 +2976,6 @@ window.saveProgressSilently = function() {
       merged[key] = newVal;
     }
     window.__aed_child_applications[idx] = merged;
-
-    console.log('🔍 SAVE MERGE [child ' + idx + ', step ' + currentStepNum + ']',
-      'english_pathway:', merged.english_pathway,
-      'english_pathway_y2:', merged.english_pathway_y2);
   }
 };
 
