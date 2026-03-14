@@ -1442,7 +1442,7 @@ if (this.classList.contains("is-selected")) {
     card.appendChild(body);
     parentEl.appendChild(card);
   }
-
+  
   // ─── PATHWAY SECTION KEYS ─────────────────────────────────────────────────
   // These render as always-open pathway cards, everything else is accordion
   var PATHWAY_KEYS = ["english_pathway", "mathematics_pathway", "science_pathway"];
@@ -2978,6 +2978,7 @@ function collectChildData() {
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
 
+    const isStepVisible = stepEl.offsetParent !== null;
     const fields = Array.from(stepEl.querySelectorAll("input, select, textarea"));
 
     for (const el of fields) {
@@ -2987,8 +2988,7 @@ function collectChildData() {
       const type = (el.getAttribute("type") || "").toLowerCase();
       const isAlwaysCapture = ALWAYS_CAPTURE.includes(name);
 
-      // Check if the element is physically visible
-      let isVisible = true;
+      let isVisible = isStepVisible;
       const containerObj = el.closest(".ms-group") || el.closest(".aed-elective-card") || el.closest(".aed-pathway-card") || el.closest(".field-group") || el.closest(".w-checkbox");
       if (containerObj && (containerObj.offsetWidth === 0 || containerObj.offsetHeight === 0)) {
           isVisible = false;
@@ -3005,39 +3005,37 @@ function collectChildData() {
         if (el.checked) {
           if (!Array.isArray(data[name])) data[name] = (el.value || "on");
         } else if (!Array.isArray(data[name]) && data[name] !== "on" && data[name] !== true) {
-          data[name] = "";
+          if (data[name] === undefined) data[name] = "";
         }
         continue;
       }
 
+      let parsed = null;
       if (el.classList.contains("ms-input")) {
-        const parsed = (() => {
-          try { return JSON.parse(el.value || "[]"); } catch (e) { return []; }
-        })();
-
-        if (isAlwaysCapture) {
-          if (isVisible || parsed.length > 0) data[name] = parsed;
+        try { parsed = JSON.parse(el.value || "[]"); } catch (e) { parsed = []; }
+      } else {
+        let val = (el.value || "").trim();
+        if (typeof val === "string" && val.startsWith("[") && val.endsWith("]")) {
+          try { parsed = JSON.parse(val); } catch(e){ parsed = val; }
         } else {
-          if (isVisible) data[name] = parsed;
+          parsed = val;
         }
-        continue;
       }
 
-      let val = (el.value || "").trim();
-
-      // Safety catch: prevent static Webflow inputs from overwriting arrays with the string "[]"
-      if (typeof val === "string" && val.startsWith("[") && val.endsWith("]")) {
-        try { val = JSON.parse(val); } catch(e){}
-      }
-
-      if (isAlwaysCapture) {
-        if (Array.isArray(val)) {
-            if (isVisible || val.length > 0) data[name] = val;
-        } else {
-            if (isVisible || val) data[name] = val;
+      // 🛡️ BULLETPROOF MEMORY PROTECTION
+      // Never allow a hidden/empty Webflow fallback input to overwrite an array we've already saved
+      if (Array.isArray(parsed)) {
+        if (parsed.length > 0) {
+            data[name] = parsed; 
+        } else if ((isVisible || isAlwaysCapture) && (!data[name] || data[name].length === 0)) {
+            data[name] = parsed; 
         }
       } else {
-        if (isVisible) data[name] = val;
+        if (parsed) {
+            data[name] = parsed; 
+        } else if ((isVisible || isAlwaysCapture) && !data[name]) {
+            data[name] = parsed; 
+        }
       }
     }
   }
