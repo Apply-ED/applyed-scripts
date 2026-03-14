@@ -5216,17 +5216,19 @@ function bindYearLevelPills() {
           pill.style.display = 'none';
           pill.classList.remove('is-selected');
         }
-      } else {
+ } else {
         // Normal behavior for all other years
         pill.style.display = '';
       }
       // ------------------------------------
     });
+  } // <--- ADD THIS MISSING BRACKET HERE
 
   yearDropdown.addEventListener('change', updatePills);
   if (stateDropdown) stateDropdown.addEventListener('change', updatePills);
   updatePills();
 }
+
 // NEW: Bulletproof function to force History to be selected and locked
 function forceSelectHistory(prefix, suffix) {
     suffix = suffix || '';
