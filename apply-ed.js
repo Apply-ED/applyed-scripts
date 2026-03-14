@@ -5203,6 +5203,8 @@ function bindYearLevelPills() {
         if (index === 0) {
           // Keep the first pill visible and force it to be selected
           pill.style.display = '';
+          pill.style.pointerEvents = 'none'; // <-- NEW: Locks the pill so it cannot be clicked
+          
           if (!pill.classList.contains('is-selected')) {
             pill.classList.add('is-selected');
             var input = pillContainer.querySelector('.ms-input');
@@ -5216,9 +5218,10 @@ function bindYearLevelPills() {
           pill.style.display = 'none';
           pill.classList.remove('is-selected');
         }
- } else {
+      } else {
         // Normal behavior for all other years
         pill.style.display = '';
+        pill.style.pointerEvents = 'auto'; // <-- NEW: Unlocks the pill if they change back to Year 7-9
       }
       // ------------------------------------
     });
