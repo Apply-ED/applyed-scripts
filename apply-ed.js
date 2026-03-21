@@ -1480,6 +1480,8 @@ if (_savedLang) {
   if (matched && matched !== _savedLang && window.__aed_child_applications && window.__aed_child_applications[_langIdx]) {
     window.__aed_child_applications[_langIdx][realSelectName] = matched;
   }
+  // Sync back to hidden Webflow select so collectChildData picks it up
+  if (matched && realSelect) realSelect.value = matched;
 } else if (_fallbackLang && isY2) {
   // Y2 card has no saved value yet — seed from Y1 visually AND
   // write it into __aed_child_applications so it's captured on submit
@@ -1928,22 +1930,25 @@ if (!savedLang && isY2) savedLang = data['language_of_study'];
     if (langBody) {
       var dynSel = langBody.querySelector('select');
       if (dynSel) {
+        var resolvedLang = "";
         // With cached DOM, always set the value — even to empty — so stale
         // selections from a previous child don't persist.
         if (savedLang) {
           // Direct match first (handles values already in correct case)
           dynSel.value = savedLang;
+          resolvedLang = dynSel.value;
           // If direct match failed (e.g. "french" vs "French"), try case-insensitive
-          if (!dynSel.value || dynSel.value === "") {
+          if (!resolvedLang || resolvedLang === "") {
             var lowerSaved = savedLang.toLowerCase();
             for (var oi = 0; oi < dynSel.options.length; oi++) {
               if (dynSel.options[oi].value.toLowerCase() === lowerSaved) {
                 dynSel.value = dynSel.options[oi].value;
+                resolvedLang = dynSel.options[oi].value;
                 // Also fix the stored value so future restores are instant
                 if (window.__aed_child_applications) {
                   var fixIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
                   if (window.__aed_child_applications[fixIdx]) {
-                    window.__aed_child_applications[fixIdx][langKey] = dynSel.options[oi].value;
+                    window.__aed_child_applications[fixIdx][langKey] = resolvedLang;
                   }
                 }
                 break;
@@ -1952,6 +1957,13 @@ if (!savedLang && isY2) savedLang = data['language_of_study'];
           }
         } else {
           dynSel.value = "";
+        }
+
+        // Sync back to the hidden Webflow select so collectChildData() picks it up.
+        // The dynamic dropdown has no name attribute, so DOM scraping misses it.
+        var hiddenLangSelect = document.querySelector('select[name="' + langKey + '"]');
+        if (hiddenLangSelect) {
+          hiddenLangSelect.value = resolvedLang;
         }
       }
     }
@@ -3326,11 +3338,13 @@ if (!(type === "checkbox" && el.classList.contains("locked-checkbox"))) {
 }
     });
   }
-if (window.__aed_clearCurriculumRenderCache) {
-  // For a brand new child, clear the entire cache so they get fresh curriculum UI.
-  // For an existing child being re-loaded, loadChildData will handle the cache via
-  // the render functions which do cache-hit checks per child index.
-  window.__aed_clearCurriculumRenderCache();
+// Only clear the cache for THIS new child — not the entire cache.
+// Previously clearCurriculumRenderCache() wiped all children's cached DOM,
+// which meant jumping back to a previously-visited child would force a
+// rebuild and lose the language dropdown value.
+if (window.__aed_clearCurriculumCacheForChild) {
+  var newChildIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+  window.__aed_clearCurriculumCacheForChild(newChildIdx);
 }
 
   // Also detach any curriculum wrapper currently in the containers so
