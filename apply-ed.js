@@ -4400,18 +4400,15 @@ function loadChildData(idx) {
     if (pillSection) pillSection.style.display = '';
   }
 
-  // FIX 2: If language_of_study has a saved value, restore it after the shield
-  // drops (so bindLanguageToggle has already shown the wrapper)
-  if (data.language_of_study) {
-    setTimeout(() => {
-      const langSelect = document.querySelector('select[name="language_of_study"]');
-      if (langSelect) {
-        langSelect.value = data.language_of_study;
-        langSelect.style.color = "#7a7f87";
-        langSelect.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-    }, 150);
-  }
+  // FIX 2: REMOVED (Change 2).
+  // This used to set the hidden Webflow select[name="language_of_study"] after a
+  // 150ms delay. But the hidden select has lowercase option values ("arabic") while
+  // __aed_child_applications stores capitalised values ("Arabic") from the dynamic
+  // dropdown. The case mismatch caused .value to silently fail, setting it to "",
+  // which then triggered the live-save to overwrite the correct saved value with
+  // empty. Language restore is now handled entirely by syncLanguageDropdown() which
+  // runs after every curriculum render (cache hit or miss) with case-insensitive
+  // matching and proper sync-back to the hidden Webflow select.
 
   // FIX 3: If other_goal fields have saved values, show their hidden wrappers
   ["other_goal_1", "other_goal_2", "other_goal_3"].forEach((fieldName, i) => {
