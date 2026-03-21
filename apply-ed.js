@@ -1798,6 +1798,12 @@ if (_savedLang) {
     var yearSelect = document.querySelector('select[name="student_year_level"]');
     if (yearSelect) {
       yearSelect.addEventListener("change", function() {
+        // Skip cache invalidation during loadChildData — the year level is just
+        // being restored from saved data, not genuinely changing. Clearing the
+        // cache here would force a rebuild that races with other restore logic
+        // and can cause the language dropdown to lose its value.
+        if (window.__aed_is_loading_data) return;
+
         var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
         if (window.__aed_clearCurriculumCacheForChild) {
           window.__aed_clearCurriculumCacheForChild(childIdx);
