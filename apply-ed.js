@@ -1511,18 +1511,35 @@ if (_savedLang) {
   // These render as always-open pathway cards, everything else is accordion
   var PATHWAY_KEYS = ["english_pathway", "mathematics_pathway", "science_pathway"];
 
-  // ─── RENDER ALL CURRICULUM OPTIONS ───────────────────────────────────────
-  // Cache key: track what was last rendered per container so we can skip
-  // redundant rebuilds. A rebuild wipes innerHTML (including hidden inputs
-  // that hold pill state) and then re-runs restoreSavedCurriculumPills.
-  // If the context hasn't changed, the wipe only causes a visible flash
-  // (pills appear selected then instantly reset) with no benefit.
-  var _lastRenderKey = {};
-// After: var _lastRenderKey = {};
- window.__aed_clearCurriculumRenderCache = function() {
-  _lastRenderKey = {};
-  console.log("🧹 AED: Curriculum render cache cleared");
-};
+  // ─── PER-CHILD DOM CACHE (Change 2) ─────────────────────────────────────
+  // Instead of destroying and rebuilding curriculum UI on every step
+  // activation or child switch, we cache the rendered DOM subtree per
+  // child per container. On revisit we detach the old wrapper, attach
+  // the cached one, and restore pill selections from __aed_child_applications.
+  // Rebuilds only happen when the curriculum context (pathway + yearBand)
+  // genuinely changes for a given child.
+  //
+  // Structure: _curriculumDOMCache[containerId][childIdx] = {
+  //   renderKey: "pathwayId|yearBand",
+  //   wrapEl:    <div.aed-dynamic-curriculum> (detached or attached)
+  // }
+  var _curriculumDOMCache = {};
+
+  window.__aed_clearCurriculumRenderCache = function() {
+    _curriculumDOMCache = {};
+    console.log("🧹 AED: Curriculum DOM cache cleared");
+  };
+
+  // Invalidate cache for a single child (e.g. when year level changes)
+  window.__aed_clearCurriculumCacheForChild = function(childIdx) {
+    for (var cid in _curriculumDOMCache) {
+      if (_curriculumDOMCache[cid][childIdx]) {
+        delete _curriculumDOMCache[cid][childIdx];
+      }
+    }
+    console.log("🧹 AED: Curriculum cache cleared for child " + childIdx);
+  };
+
   function renderCurriculumOptions(targetContainerId) {
     var container = document.getElementById(targetContainerId);
     if (!container) {
@@ -1533,23 +1550,34 @@ if (_savedLang) {
     var context = getCurriculumContext();
     if (!context.yearBand) return;
 
-    // Skip rebuild if pathway + yearBand haven't changed for this container.
-    // Just re-run restoreSavedCurriculumPills so pills reflect current saved
-    // state without a destructive wipe.
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var renderKey = context.pathwayId + "|" + context.yearBand;
-    if (_lastRenderKey[targetContainerId] === renderKey && container.querySelector('.aed-dynamic-curriculum')) {
-      console.log("⚡ AED: Context unchanged for " + targetContainerId + " — restoring pills only (no rebuild)");
+
+    // Ensure cache structure exists
+    if (!_curriculumDOMCache[targetContainerId]) _curriculumDOMCache[targetContainerId] = {};
+    var cached = _curriculumDOMCache[targetContainerId][childIdx];
+
+    // Detach any currently visible wrapper (from any child) without destroying it
+    var currentWrap = container.querySelector('.aed-dynamic-curriculum');
+    if (currentWrap) {
+      container.removeChild(currentWrap);
+    }
+    // Also clear any leftover static Webflow content on first render
+    if (!currentWrap && container.innerHTML.trim()) {
+      container.innerHTML = "";
+    }
+
+    // CACHE HIT: same pathway + yearBand for this child — reattach and restore pills
+    if (cached && cached.renderKey === renderKey && cached.wrapEl) {
+      console.log("⚡ AED: Cache hit for " + targetContainerId + " child " + childIdx + " — reattaching DOM");
+      container.appendChild(cached.wrapEl);
       restoreSavedCurriculumPills(container, false);
       document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
       return;
     }
-    _lastRenderKey[targetContainerId] = renderKey;
 
-    console.log("🎨 AED: Rendering curriculum for " + context.pathwayId + " / " + context.yearBand);
-
-    // Remove previous dynamic content only
-// Clear entire container so old Webflow static content doesn't reappear
-    container.innerHTML = "";
+    // CACHE MISS: build new DOM
+    console.log("🎨 AED: Building curriculum for " + targetContainerId + " child " + childIdx + " (" + context.pathwayId + " / " + context.yearBand + ")");
 
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
@@ -1575,9 +1603,16 @@ if (_savedLang) {
     // 3. Languages section (uses existing Webflow dropdown, mirrored into card)
     renderLanguagesSection(wrap, context.yearBand);
 
-   container.appendChild(wrap);
+    container.appendChild(wrap);
+
+    // Store in cache
+    _curriculumDOMCache[targetContainerId][childIdx] = {
+      renderKey: renderKey,
+      wrapEl: wrap
+    };
+
     restoreSavedCurriculumPills(container, false);
-    console.log("✅ AED: Curriculum rendered for " + targetContainerId);
+    console.log("✅ AED: Curriculum rendered + cached for " + targetContainerId + " child " + childIdx);
     // Signal that rendering + initial restore is complete
     document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
   }
@@ -1671,19 +1706,33 @@ if (_savedLang) {
       electives : (pathway.electives  && pathway.electives[yearBand])  || null
     };
 
-    // Skip rebuild if pathway + yearBand haven't changed for this container.
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var renderKey = context.pathwayId + "|" + context.yearBand;
-    if (_lastRenderKey[targetContainerId] === renderKey && container.querySelector('.aed-dynamic-curriculum')) {
-      console.log("⚡ AED: Y2 context unchanged for " + targetContainerId + " — restoring pills only (no rebuild)");
+
+    // Ensure cache structure exists
+    if (!_curriculumDOMCache[targetContainerId]) _curriculumDOMCache[targetContainerId] = {};
+    var cached = _curriculumDOMCache[targetContainerId][childIdx];
+
+    // Detach any currently visible wrapper without destroying it
+    var currentWrap = container.querySelector('.aed-dynamic-curriculum');
+    if (currentWrap) {
+      container.removeChild(currentWrap);
+    }
+    if (!currentWrap && container.innerHTML.trim()) {
+      container.innerHTML = "";
+    }
+
+    // CACHE HIT: reattach and restore pills
+    if (cached && cached.renderKey === renderKey && cached.wrapEl) {
+      console.log("⚡ AED: Y2 cache hit for " + targetContainerId + " child " + childIdx + " — reattaching DOM");
+      container.appendChild(cached.wrapEl);
       restoreSavedCurriculumPills(container, true);
       document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
       return;
     }
-    _lastRenderKey[targetContainerId] = renderKey;
 
-    console.log("🎨 AED: Rendering Y2 curriculum for " + context.pathwayId + " / " + context.yearBand);
-
-    container.innerHTML = "";
+    // CACHE MISS: build new DOM
+    console.log("🎨 AED: Building Y2 curriculum for " + targetContainerId + " child " + childIdx + " (" + context.pathwayId + " / " + context.yearBand + ")");
 
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
@@ -1701,10 +1750,17 @@ if (_savedLang) {
       });
     }
 
-renderLanguagesSection(wrap, yearBand);
+    renderLanguagesSection(wrap, yearBand);
     container.appendChild(wrap);
+
+    // Store in cache
+    _curriculumDOMCache[targetContainerId][childIdx] = {
+      renderKey: renderKey,
+      wrapEl: wrap
+    };
+
     restoreSavedCurriculumPills(container, true);
-    console.log("✅ AED: Y2 curriculum rendered for " + targetContainerId);
+    console.log("✅ AED: Y2 curriculum rendered + cached for " + targetContainerId + " child " + childIdx);
     // Signal that rendering + initial restore is complete
     document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
   }
@@ -1713,27 +1769,30 @@ renderLanguagesSection(wrap, yearBand);
 
   // ─── INITIALISE ───────────────────────────────────────────────────────────
   function initCurriculumIntegration() {
-    console.log("🔌 AED: Initialising curriculum integration...");
+    console.log("🔌 AED: Initialising curriculum integration (v3 — cached DOM)...");
 
-    // Year level change
+    // Year level change — invalidate this child's cache since context changed
     var yearSelect = document.querySelector('select[name="student_year_level"]');
     if (yearSelect) {
       yearSelect.addEventListener("change", function() {
+        var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+        if (window.__aed_clearCurriculumCacheForChild) {
+          window.__aed_clearCurriculumCacheForChild(childIdx);
+        }
         setTimeout(refreshCurriculumDisplay, 100);
       });
     }
 
-    // State change (poll localStorage)
-    var lastState = getCurrentStateValue();
-    setInterval(function() {
-      var current = getCurrentStateValue();
-      if (current !== lastState) {
-        lastState = current;
-        setTimeout(refreshCurriculumDisplay, 100);
-      }
-    }, 500);
+    // State change — listen for the custom event dispatched by the state picker.
+    // Replaces the old 500ms setInterval polling which caused unnecessary
+    // re-renders and potential timing conflicts.
+    document.addEventListener("aed:stateChanged", function() {
+      // State change affects all children — clear the whole cache
+      _curriculumDOMCache = {};
+      setTimeout(refreshCurriculumDisplay, 100);
+    });
 
-// Re-render when Step 3 becomes active (primary trigger)
+    // Re-render when Step 3 becomes active (primary trigger)
     var step3El = document.querySelector('.step[data-step="3"]');
     if (step3El) {
       var step3Observer = new MutationObserver(function(mutations) {
@@ -1746,21 +1805,10 @@ renderLanguagesSection(wrap, yearBand);
       step3Observer.observe(step3El, { attributes: true, attributeFilter: ["class"] });
     }
 
-// Re-render when containers transition from hidden to visible (fallback)
-    ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      var wasVisible = el.offsetParent !== null;
-      var obs = new MutationObserver(function() {
-        var isVisible = el.offsetParent !== null;
-        if (isVisible && !wasVisible) {
-          wasVisible = true;
-          setTimeout(refreshCurriculumDisplay, 150);
-        }
-        if (!isVisible) wasVisible = false;
-      });
-      obs.observe(el, { attributes: true, attributeFilter: ["style", "class"] });
-    });
+    // Container visibility MutationObservers REMOVED (Change 2).
+    // The Step 3/4 observers above + refreshCurriculumDisplay() called from
+    // setActive() are sufficient. The container observers were a fallback
+    // that caused redundant re-renders and timing races.
 
     // Initial render — year level may already be set from saved data
     setTimeout(refreshCurriculumDisplay, 200);
@@ -1784,7 +1832,7 @@ renderLanguagesSection(wrap, yearBand);
       if (typeof updateCheckboxes  === "function") setTimeout(updateCheckboxes,  50);
     });
 
-    console.log("✅ AED: Curriculum integration initialised");
+    console.log("✅ AED: Curriculum integration initialised (v3 — cached DOM)");
   }
 
   // Expose for debugging
@@ -1800,7 +1848,6 @@ var fields = isY2
 
     fields.forEach(function(fieldName) {
       var saved = data[fieldName];
-      if (!saved || !saved.length) return;
 
       // Find the hidden input for this field inside this container
       var hiddenInput = containerEl.querySelector('input.aed-hidden-input[name="' + fieldName + '"]');
@@ -1808,6 +1855,20 @@ var fields = isY2
 
       var card = hiddenInput.closest('[data-learning-area]');
       if (!card) return;
+
+      // With cached DOM (Change 2), we must explicitly deselect all non-locked
+      // pills when there's no saved data, otherwise stale selections from a
+      // previous render persist visually.
+      if (!saved || !saved.length) {
+        card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
+          if (pill.getAttribute('data-locked') === 'true') return;
+          pill.classList.remove('is-selected');
+        });
+        hiddenInput.value = JSON.stringify([]);
+        var countEl = card.querySelector('.aed-elective-card-count');
+        if (countEl) countEl.textContent = '';
+        return;
+      }
 
 card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       if (pill.getAttribute('data-locked') === 'true') return;
@@ -1834,11 +1895,13 @@ var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
 var savedLang = data[langKey];
 // For Y2 card: if no Y2-specific value saved yet, default to Y1 language
 if (!savedLang && isY2) savedLang = data['language_of_study'];
-    if (savedLang) {
-      var langBody = containerEl.querySelector('.aed-languages-card-body');
-      if (langBody) {
-        var dynSel = langBody.querySelector('select');
-        if (dynSel) dynSel.value = savedLang;
+    var langBody = containerEl.querySelector('.aed-languages-card-body');
+    if (langBody) {
+      var dynSel = langBody.querySelector('select');
+      if (dynSel) {
+        // With cached DOM, always set the value — even to empty — so stale
+        // selections from a previous child don't persist.
+        dynSel.value = savedLang || "";
       }
     }
   }
@@ -1851,7 +1914,7 @@ if (!savedLang && isY2) savedLang = data['language_of_study'];
   // Boot after existing code has run
   setTimeout(initCurriculumIntegration, 600);
 
-  console.log("✅ AED: Curriculum pill rendering system loaded (v2)");
+  console.log("✅ AED: Curriculum pill rendering system loaded (v3 — cached DOM)");
 
 })();
 
@@ -3213,10 +3276,27 @@ if (!(type === "checkbox" && el.classList.contains("locked-checkbox"))) {
     });
   }
 if (window.__aed_clearCurriculumRenderCache) {
+  // For a brand new child, clear the entire cache so they get fresh curriculum UI.
+  // For an existing child being re-loaded, loadChildData will handle the cache via
+  // the render functions which do cache-hit checks per child index.
   window.__aed_clearCurriculumRenderCache();
 }
-  // B. THE STICKY BUBBLE FIX... (leave the rest of the function exactly as it is)
-  document.querySelectorAll(".ms-option").forEach(p => {
+
+  // Also detach any curriculum wrapper currently in the containers so
+  // stale DOM from the previous child isn't visible during the reset.
+  ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container",
+   "f6-curriculum-container_y2", "y9-curriculum-container_y2", "y10-curriculum-container_y2"].forEach(function(id) {
+    var ctr = document.getElementById(id);
+    if (ctr) {
+      var wrap = ctr.querySelector('.aed-dynamic-curriculum');
+      if (wrap) ctr.removeChild(wrap);
+    }
+  });
+
+  // B. THE STICKY BUBBLE FIX — clear pill visuals on non-curriculum steps.
+  // Curriculum pills (.aed-dynamic-pill) are managed by the DOM cache and will
+  // be restored by restoreSavedCurriculumPills when the cached DOM is reattached.
+  document.querySelectorAll(".ms-option:not(.aed-dynamic-pill)").forEach(p => {
     p.classList.remove("is-selected");
   });
 
@@ -6887,6 +6967,9 @@ function bindStatePickerLock() {
                 p.value = e.target.value;
             }
         });
+
+        // Notify curriculum system that state changed (Change 2 — replaces setInterval polling)
+        document.dispatchEvent(new CustomEvent("aed:stateChanged", { detail: { state: e.target.value } }));
      }
   });
 
