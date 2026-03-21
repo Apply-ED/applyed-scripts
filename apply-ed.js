@@ -4388,7 +4388,126 @@ function setupLiveNameSync() {
     }
   });
 }
+/* =========================
+   LIVE-SAVE: Write to __aed_child_applications on every input change
+   Added as part of Change 1 (data store authority)
+   ========================= */
 
+function liveWriteToChildStore(fieldName, value) {
+  // Don't write during bulk data loading (child switch)
+  if (window.__aed_is_loading_data) return;
+
+  // Only save when we're on a child step (Steps 1-5)
+  if (currentStepNum < STEP_FIRST_CHILD || currentStepNum > STEP_LAST_CHILD) return;
+
+  var idx = getChildIndex();
+
+  // Make sure the array and the child's object exist
+  if (!window.__aed_child_applications) window.__aed_child_applications = [];
+  if (!window.__aed_child_applications[idx]) window.__aed_child_applications[idx] = {};
+
+  // Write the value
+  window.__aed_child_applications[idx][fieldName] = value;
+}
+
+function initLiveSave() {
+  // --- TEXT INPUTS, TEXTAREAS, SELECTS ---
+  // Listen on the whole document (delegation) so dynamically created fields are caught too
+  document.addEventListener("input", function(e) {
+    var el = e.target;
+    if (!el) return;
+
+    var name = el.getAttribute("name");
+    if (!name) return;
+
+    // Skip family-level fields (these live on Step 0 and Step 6, not per-child)
+    var familyFields = [
+      "contact_first_name", "contact_email", "total_children", "plan_start_date",
+      "add_on_weekly", "add_on_expedited", "add_on_travel",
+      "travel_timing", "travel_destinations", "travel_style", "travel_learning_opportunities",
+      "family_non_negotiables", "learning_space", "screen_time",
+      "resources_physical", "resources_digital", "resources_management",
+      "study_spaces_custom", "screen_time_custom",
+      "resources_physical_custom", "resources_digital_custom", "resources_management_custom",
+      "confirm_accuracy_oversight", "confirm_program_approval", "confirm_ai_privacy",
+      "state", "state-picker", "intake_secret", "application_group_id",
+      "order_currency", "order_total_cents", "order_add_ons_json", "order_line_items_json"
+    ];
+    if (familyFields.indexOf(name) !== -1) return;
+
+    // Skip hidden state-tracking fields
+    if (el.hasAttribute("data-state-key")) return;
+    var type = (el.getAttribute("type") || "").toLowerCase();
+    if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
+
+    // Get the value
+    var value;
+    if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
+      // Pill hidden inputs store JSON arrays
+      try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }
+    } else {
+      value = (el.value || "").trim();
+    }
+
+    liveWriteToChildStore(name, value);
+  }, true);
+
+  // --- CHANGE events (covers selects and checkboxes that don't fire "input") ---
+  document.addEventListener("change", function(e) {
+    var el = e.target;
+    if (!el) return;
+
+    var name = el.getAttribute("name");
+    if (!name) return;
+
+    // Same family-field skip list
+    var familyFields = [
+      "contact_first_name", "contact_email", "total_children", "plan_start_date",
+      "add_on_weekly", "add_on_expedited", "add_on_travel",
+      "travel_timing", "travel_destinations", "travel_style", "travel_learning_opportunities",
+      "family_non_negotiables", "learning_space", "screen_time",
+      "resources_physical", "resources_digital", "resources_management",
+      "study_spaces_custom", "screen_time_custom",
+      "resources_physical_custom", "resources_digital_custom", "resources_management_custom",
+      "confirm_accuracy_oversight", "confirm_program_approval", "confirm_ai_privacy",
+      "state", "state-picker", "intake_secret", "application_group_id",
+      "order_currency", "order_total_cents", "order_add_ons_json", "order_line_items_json"
+    ];
+    if (familyFields.indexOf(name) !== -1) return;
+    if (el.hasAttribute("data-state-key")) return;
+
+    var type = (el.getAttribute("type") || "").toLowerCase();
+
+    // Radio buttons
+    if (type === "radio") {
+      if (el.checked) {
+        liveWriteToChildStore(name, el.value);
+      }
+      return;
+    }
+
+    // Checkboxes (curriculum checkboxes store "on" or "")
+    if (type === "checkbox") {
+      liveWriteToChildStore(name, el.checked ? (el.value || "on") : "");
+      return;
+    }
+
+    // Hidden inputs from pill systems
+    if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
+
+    // Everything else (selects, textareas, hidden pill inputs)
+    var value;
+    if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
+      try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }
+    } else {
+      value = (el.value || "").trim();
+    }
+
+    liveWriteToChildStore(name, value);
+  }, true);
+
+  console.log("✅ AED: Live-save system initialised");
+}
 function sanitizeDataForMake(data) {
   const cleanData = { ...data };
   for (let key in cleanData) {
@@ -6641,7 +6760,7 @@ refreshAllSelectColours();
   // --- ADD THIS LINE HERE ---
   setupAutoExpandingTextareas(); 
   // --------------------------
-
+  initLiveSave();
   // --- ADD THESE TWO NEW LINES HERE ---
   initDatePickers(); 
   // ------------------------------------
