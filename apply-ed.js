@@ -4785,16 +4785,11 @@ const span = Array.isArray(cleanData.study_span)
   : cleanData.study_span;
   
 if (!span || span === 'all_one_year') {
-  const Y2_FIELDS = [
-    'english_pathway_y2', 'mathematics_pathway_y2', 'science_pathway_y2',
-    'the_arts_y2', 'technologies_y2', 'hass_y2',
-    'creative_arts_y2', 'technological_and_applied_studies_y2',
-    'hsie_y2', 'pdhpe_y2', 'humanities_y2', 'hpe_y2',
-    'arts_electives_y2', 'hass_electives_y2', 'tech_electives_y2',
-    'english_electives_y2', 'maths_electives_y2', 'science_electives_y2', 'hpe_electives_y2',
-    'language_of_study_y2'
-  ];
-  Y2_FIELDS.forEach(k => { delete cleanData[k]; });
+  // Change 3: Catch-all — remove ANY key ending in _y2
+  // instead of maintaining a fragile hardcoded list
+  Object.keys(cleanData).forEach(function(k) {
+    if (k.endsWith('_y2')) delete cleanData[k];
+  });
 }
   return cleanData;
 }
