@@ -3278,35 +3278,34 @@ function saveCurrentChildAndAdvance() {
   }
 
   const idx = getChildIndex();
-  const childData = collectChildData();
-  childData.__saved = true;
 
-  // Smart merge: protect previously saved curriculum selections from being wiped
-  // by empty hidden-input values collected from invisible steps
+  // Live-save has been keeping __aed_child_applications[idx] up to date.
+  // Do one final safety scrape to catch any edge-case fields live-save might miss,
+  // but only write non-empty values (never overwrite good data with empty).
+  const finalScrape = collectChildData();
   const existing = window.__aed_child_applications[idx] || {};
-  const merged = { ...existing };
-  for (const key of Object.keys(childData)) {
-    const newVal = childData[key];
-    const oldVal = merged[key];
-    if (Array.isArray(newVal) && newVal.length === 0
-        && Array.isArray(oldVal) && oldVal.length > 0) {
-      continue;
-    }
-    if ((newVal === '' || newVal === undefined || newVal === null)
-        && oldVal && oldVal !== '' && oldVal !== undefined) {
-      continue;
-    }
-    merged[key] = newVal;
+
+  for (const key of Object.keys(finalScrape)) {
+    const newVal = finalScrape[key];
+    const oldVal = existing[key];
+
+    // Skip if the scrape returned empty but we already have data from live-save
+    if (Array.isArray(newVal) && newVal.length === 0 && Array.isArray(oldVal) && oldVal.length > 0) continue;
+    if ((newVal === '' || newVal === undefined || newVal === null) && oldVal && oldVal !== '') continue;
+
+    existing[key] = newVal;
   }
-  window.__aed_child_applications[idx] = merged;
-  console.log("SAVED CHILD DATA:", JSON.stringify(childData))
+
+  existing.__saved = true;
+  window.__aed_child_applications[idx] = existing;
+
+  console.log("✅ SAVED CHILD " + idx + " (live-save + final scrape):", JSON.stringify(existing));
   captureFirstChildStateIfNeeded();
 
   const total = getChildrenCount();
   const nextIdx = idx + 1;
 
   if (nextIdx >= total) {
-    // All children are complete! Keep index anchored and move to Step 4
     setChildIndex(nextIdx - 1);
     setActive(STEP_ENVIRONMENT);
     return;
@@ -3315,19 +3314,17 @@ function saveCurrentChildAndAdvance() {
   // Move to the next child
   setChildIndex(nextIdx);
 
-  // THE FIX: Check if the next child already exists before wiping the screen!
   const nextChildData = window.__aed_child_applications[nextIdx];
   if (nextChildData && nextChildData.__saved) {
-    loadChildData(nextIdx); // Load their existing data
+    loadChildData(nextIdx);
   } else {
-    resetChildFields();     // Or give them a clean slate
+    resetChildFields();
   }
 
   setActive(STEP_FIRST_CHILD);
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
   renderChildNavBar();
 }
-
 
   /* =========================
      STEP 6: CONFIRMATIONS + CHECKOUT CREATE
