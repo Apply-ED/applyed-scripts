@@ -1592,11 +1592,62 @@ if (_savedLang) {
       container.innerHTML = "";
     }
 
+  // ─── SYNC LANGUAGE DROPDOWN (dedicated helper) ─────────────────────────
+  // Ensures the dynamic language <select> and the hidden Webflow <select>
+  // both reflect the value stored in __aed_child_applications.
+  // Called after every cache hit AND cache miss render.
+  function syncLanguageDropdown(containerEl, isY2) {
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var childData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
+    var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
+    var savedLang = childData[langKey];
+    if (!savedLang && isY2) savedLang = childData['language_of_study'];
+
+    // 1. Find and set the dynamic dropdown
+    var langBody = containerEl.querySelector('.aed-languages-card-body');
+    var resolvedLang = "";
+    if (langBody) {
+      var dynSel = langBody.querySelector('select');
+      if (dynSel) {
+        if (savedLang) {
+          dynSel.value = savedLang;
+          resolvedLang = dynSel.value;
+          // Case-insensitive fallback
+          if (!resolvedLang) {
+            var lower = savedLang.toLowerCase();
+            for (var i = 0; i < dynSel.options.length; i++) {
+              if (dynSel.options[i].value.toLowerCase() === lower) {
+                resolvedLang = dynSel.options[i].value;
+                dynSel.value = resolvedLang;
+                // Auto-correct stored value
+                if (window.__aed_child_applications && window.__aed_child_applications[childIdx]) {
+                  window.__aed_child_applications[childIdx][langKey] = resolvedLang;
+                }
+                break;
+              }
+            }
+          }
+        } else {
+          dynSel.value = "";
+        }
+      }
+    }
+
+    // 2. Always sync to hidden Webflow select so collectChildData picks it up
+    var hiddenSel = document.querySelector('select[name="' + langKey + '"]');
+    if (hiddenSel) {
+      hiddenSel.value = resolvedLang;
+    }
+
+    console.log("🌐 AED: Language sync for child " + childIdx + " [" + langKey + "] = " + (resolvedLang || "(empty)") + " (saved: " + (savedLang || "(none)") + ")");
+  }
+
     // CACHE HIT: same pathway + yearBand for this child — reattach and restore pills
     if (cached && cached.renderKey === renderKey && cached.wrapEl) {
       console.log("⚡ AED: Cache hit for " + targetContainerId + " child " + childIdx + " — reattaching DOM");
       container.appendChild(cached.wrapEl);
       restoreSavedCurriculumPills(container, false);
+      syncLanguageDropdown(container, false);
       document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
       return;
     }
@@ -1637,6 +1688,7 @@ if (_savedLang) {
     };
 
     restoreSavedCurriculumPills(container, false);
+    syncLanguageDropdown(container, false);
     console.log("✅ AED: Curriculum rendered + cached for " + targetContainerId + " child " + childIdx);
     // Signal that rendering + initial restore is complete
     document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 3 } }));
@@ -1752,6 +1804,7 @@ if (_savedLang) {
       console.log("⚡ AED: Y2 cache hit for " + targetContainerId + " child " + childIdx + " — reattaching DOM");
       container.appendChild(cached.wrapEl);
       restoreSavedCurriculumPills(container, true);
+      syncLanguageDropdown(container, true);
       document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
       return;
     }
@@ -1785,6 +1838,7 @@ if (_savedLang) {
     };
 
     restoreSavedCurriculumPills(container, true);
+    syncLanguageDropdown(container, true);
     console.log("✅ AED: Y2 curriculum rendered + cached for " + targetContainerId + " child " + childIdx);
     // Signal that rendering + initial restore is complete
     document.dispatchEvent(new CustomEvent("aed:curriculumRendered", { detail: { step: 4 } }));
