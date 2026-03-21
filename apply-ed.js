@@ -1426,12 +1426,23 @@ if (this.classList.contains("is-selected")) {
     var sel = document.createElement("select");
     sel.style.cssText = "width:100%; padding:9px 12px; border:1px solid #dde4dd; border-radius:6px; background:#ffffff; font-family:Montserrat,sans-serif; font-size:14px; color:#263358; cursor:pointer; outline:none;";
 
-    LANGUAGE_OPTIONS.forEach(function(opt) {
-      var o = document.createElement("option");
-      o.value = opt.value;
-      o.textContent = opt.label;
-      sel.appendChild(o);
-    });
+// Languages restricted to Year 7+ only — hide from F-6 students
+var F6_EXCLUDED_LANGUAGES = [
+  "Classical Greek 7-10",
+  "Framework for Classical Languages 7-10",
+  "Latin 7-10"
+];
+
+var isF6Band = (yearBand === "f6");
+
+LANGUAGE_OPTIONS.forEach(function(opt) {
+  // Suppress Y7-10-only languages when rendering for an F-6 student
+  if (isF6Band && F6_EXCLUDED_LANGUAGES.indexOf(opt.value) !== -1) return;
+  var o = document.createElement("option");
+  o.value = opt.value;
+  o.textContent = opt.label;
+  sel.appendChild(o);
+});
 
     // FIX: Seed the dynamic select from __aed_child_applications first.
     // Previously it only read from realSelect.value — but loadChildData()
@@ -1442,12 +1453,26 @@ if (this.classList.contains("is-selected")) {
     var realSelect = document.querySelector('select[name="' + realSelectName + '"]');
     var _langIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var _langData = (window.__aed_child_applications && window.__aed_child_applications[_langIdx]) || {};
-    var _savedLang = _langData[realSelectName] || _langData['language_of_study'] || '';
-    if (_savedLang) {
-      sel.value = _savedLang;
-    } else if (realSelect && realSelect.value) {
-      sel.value = realSelect.value;
-    }
+var _savedLang = _langData[realSelectName] || '';
+var _fallbackLang = _langData['language_of_study'] || '';
+
+if (_savedLang) {
+  // Use the explicitly saved Y2 value
+  sel.value = _savedLang;
+} else if (_fallbackLang && isY2) {
+  // Y2 card has no saved value yet — seed from Y1 visually AND
+  // write it into __aed_child_applications so it's captured on submit
+  sel.value = _fallbackLang;
+  if (window.__aed_child_applications && window.__aed_child_applications[_langIdx]) {
+    window.__aed_child_applications[_langIdx][realSelectName] = _fallbackLang;
+  }
+  // Also sync the hidden Webflow select
+  if (realSelect) {
+    realSelect.value = _fallbackLang;
+  }
+} else if (realSelect && realSelect.value) {
+  sel.value = realSelect.value;
+}
 
     sel.addEventListener("change", function() {
       if (realSelect) {
@@ -1493,7 +1518,11 @@ if (this.classList.contains("is-selected")) {
   // If the context hasn't changed, the wipe only causes a visible flash
   // (pills appear selected then instantly reset) with no benefit.
   var _lastRenderKey = {};
-
+// After: var _lastRenderKey = {};
+ window.__aed_clearCurriculumRenderCache = function() {
+  _lastRenderKey = {};
+  console.log("🧹 AED: Curriculum render cache cleared");
+};
   function renderCurriculumOptions(targetContainerId) {
     var container = document.getElementById(targetContainerId);
     if (!container) {
@@ -1800,8 +1829,11 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
     });
 
     // Restore language dropdown
-    var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
-    var savedLang = data[langKey] || data['language_of_study'];
+// FIX — only fall back to Y1 when actually rendering Y1 card:
+var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
+var savedLang = data[langKey];
+// For Y2 card: if no Y2-specific value saved yet, default to Y1 language
+if (!savedLang && isY2) savedLang = data['language_of_study'];
     if (savedLang) {
       var langBody = containerEl.querySelector('.aed-languages-card-body');
       if (langBody) {
@@ -3173,12 +3205,16 @@ function resetChildFields() {
       } else {
         el.value = "";
       }
-      
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
+      // FIX: Skip event dispatch for locked checkboxes
+if (!(type === "checkbox" && el.classList.contains("locked-checkbox"))) {
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}
     });
   }
-
+if (window.__aed_clearCurriculumRenderCache) {
+  window.__aed_clearCurriculumRenderCache();
+}
   // B. THE STICKY BUBBLE FIX... (leave the rest of the function exactly as it is)
   document.querySelectorAll(".ms-option").forEach(p => {
     p.classList.remove("is-selected");
@@ -4282,7 +4318,7 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
 
   // 2. Restore language dropdown inside the dynamic Languages card
   const langKey = stepNum === STEP_Y2 ? 'language_of_study_y2' : 'language_of_study';
-  const savedLang = data[langKey] || data['language_of_study'];
+  const savedLang = data[langKey] || (stepNum === STEP_Y2 ? data['language_of_study'] : '');
   if (savedLang) {
     // The dynamic select is rendered inside the step but is NOT a named form input —
     // find it by its position inside .aed-languages-card-body
@@ -4379,7 +4415,23 @@ function sanitizeDataForMake(data) {
       // Also catch it if it was just saved as "HASS"
       .replace(/\bHASS\b(?! F-6)/gi, "HASS F-6"); 
   }
-
+// Suppress Y2 fields when student is not split-year
+const span = Array.isArray(cleanData.study_span)
+  ? cleanData.study_span[0]
+  : cleanData.study_span;
+  
+if (!span || span === 'all_one_year') {
+  const Y2_FIELDS = [
+    'english_pathway_y2', 'mathematics_pathway_y2', 'science_pathway_y2',
+    'the_arts_y2', 'technologies_y2', 'hass_y2',
+    'creative_arts_y2', 'technological_and_applied_studies_y2',
+    'hsie_y2', 'pdhpe_y2', 'humanities_y2', 'hpe_y2',
+    'arts_electives_y2', 'hass_electives_y2', 'tech_electives_y2',
+    'english_electives_y2', 'maths_electives_y2', 'science_electives_y2', 'hpe_electives_y2',
+    'language_of_study_y2'
+  ];
+  Y2_FIELDS.forEach(k => { delete cleanData[k]; });
+}
   return cleanData;
 }
 
