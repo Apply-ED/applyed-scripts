@@ -3906,6 +3906,14 @@ const TOP_LEVEL_BLOCKLIST = new Set([
     obj.plan_start_date = obj.plan_start_date || "";
     obj.plan_end_date = obj.plan_end_date || "";
 
+    // 7b. FORCE STATE INTO PAYLOAD
+    // The DOM element is named "state-picker" but downstream expects "state".
+    // Read from whichever picker has a value (static Step 0 or sticky navbar).
+    if (!obj.state) {
+      const statePicker = document.querySelector('select[name="state-picker"]');
+      obj.state = (statePicker && statePicker.value) ? statePicker.value.trim() : "";
+    }
+
     // 8. FORCE GROUP ID INTO PAYLOAD
     const agEl = formEl.querySelector('[name="application_group_id"], #application_group_id, [data-state-key="application_group_id"]');
     if (agEl && agEl.value) {
