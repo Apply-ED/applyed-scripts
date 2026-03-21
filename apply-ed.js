@@ -1877,39 +1877,12 @@ if (_savedLang) {
       setTimeout(refreshCurriculumDisplay, 100);
     });
 
-    // Re-render when Step 3 becomes active (primary trigger)
-    var step3El = document.querySelector('.step[data-step="3"]');
-    if (step3El) {
-      var step3Observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-          if (m.attributeName === "class" && step3El.classList.contains("is-active")) {
-            setTimeout(refreshCurriculumDisplay, 150);
-          }
-        });
-      });
-      step3Observer.observe(step3El, { attributes: true, attributeFilter: ["class"] });
-    }
-
-    // Container visibility MutationObservers REMOVED (Change 2).
-    // The Step 3/4 observers above + refreshCurriculumDisplay() called from
-    // setActive() are sufficient. The container observers were a fallback
-    // that caused redundant re-renders and timing races.
+    // Change 3: Step 3/4 MutationObservers REMOVED.
+    // refreshCurriculumDisplay() and refreshY2CurriculumDisplay() are now
+    // called directly from setActive() via the centralised dispatch block.
 
     // Initial render — year level may already be set from saved data
     setTimeout(refreshCurriculumDisplay, 200);
-
-    // Re-render when Step 4 becomes active
-    var step4El = document.querySelector('.step[data-step="4"]');
-    if (step4El) {
-      var step4Observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-          if (m.attributeName === "class" && step4El.classList.contains("is-active")) {
-            setTimeout(refreshY2CurriculumDisplay, 150);
-          }
-        });
-      });
-      step4Observer.observe(step4El, { attributes: true, attributeFilter: ["class"] });
-    }
 
     // Wire into existing events
     document.addEventListener("aed:pillsChanged", function() {
@@ -2629,15 +2602,82 @@ updateCurrentChildHeading();
     hideStep4GoalInfo();
   }
 
-  // Directly trigger Y2 workload tracker when entering Step 4
-  if (stepNum === STEP_Y2) {
-    setTimeout(function() {
-      if (typeof window.__calculateY2Workload === 'function') window.__calculateY2Workload();
-    }, 100);
-  }
-
   // NEW: Update the progress bar every time the step changes
   setTimeout(updateProgressBar, 50);
+
+  // ─── CHANGE 3: Centralised step-activation dispatch ───────────────────
+  // Replaces 13 MutationObservers that each watched .step elements for
+  // is-active class changes. Since setActive() is the ONLY function that
+  // toggles is-active, we call every "on step activate" callback directly
+  // from here — deterministic, no timing races, no redundant observers.
+  setTimeout(function() {
+    // Curriculum rendering (Step 3 / Step 4)
+    if (stepNum === 3 && typeof window.__aed_refreshCurriculumDisplay === 'function') {
+      window.__aed_refreshCurriculumDisplay();
+    }
+    if (stepNum === STEP_Y2 && typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
+      window.__aed_refreshY2CurriculumDisplay();
+    }
+
+    // Y2 workload tracker (Step 4 only)
+    if (stepNum === STEP_Y2 && typeof window.__calculateY2Workload === 'function') {
+      window.__calculateY2Workload();
+    }
+
+    // Language dropdown show/hide (all steps — syncs visibility on every transition)
+    if (typeof window.__aed_syncLanguageToggle === 'function') {
+      window.__aed_syncLanguageToggle();
+    }
+
+    // Checkbox sync for curriculum cards (all steps)
+    if (typeof window.__aed_updateCheckboxes === 'function') {
+      window.__aed_updateCheckboxes();
+    }
+
+    // Program-type container swap (3A/3B) — two different swap functions
+    if (typeof window.__aed_swapProgramContainers === 'function') {
+      window.__aed_swapProgramContainers();
+    }
+    if (typeof window.__aed_swapGoalContainers === 'function') {
+      window.__aed_swapGoalContainers();
+    }
+
+    // Needs-attention / excelling widget (Step 3 only)
+    if (stepNum === 3 && typeof window.__aed_renderNeedsWidget === 'function') {
+      window.__aed_renderNeedsWidget();
+    }
+
+    // State picker lock/unlock (all steps)
+    if (typeof window.__aed_updateStateLock === 'function') {
+      window.__aed_updateStateLock();
+    }
+
+    // Goal counter (all steps)
+    if (typeof window.__aed_updateGoalCounter === 'function') {
+      window.__aed_updateGoalCounter();
+    }
+
+    // Interest deep dives (all steps)
+    if (typeof window.__aed_updateDeepDives === 'function') {
+      window.__aed_updateDeepDives();
+    }
+
+    // Goal-directed deep dives (all steps)
+    if (typeof window.__aed_updateGoalDeepDives === 'function') {
+      window.__aed_updateGoalDeepDives();
+    }
+
+    // Y1 step heading (Step 3 only)
+    if (stepNum === 3 && typeof window.__aed_updateY1Heading === 'function') {
+      window.__aed_updateY1Heading();
+    }
+
+    // Y2 curriculum visibility (Step 4 only)
+    if (stepNum === STEP_Y2 && typeof window.__aed_checkY2YearLevel === 'function') {
+      window.__aed_checkY2YearLevel();
+    }
+  }, 50);
+  // ─── END CHANGE 3 dispatch ────────────────────────────────────────────
 }
 
 /* -------------------------------------------------------
@@ -3019,6 +3059,9 @@ function bindLanguageToggle() {
     });
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_syncLanguageToggle = syncAll;
+
   document.addEventListener("change", function(e) {
     if (e.target && e.target.type === 'checkbox') setTimeout(syncAll, 50);
   }, true);
@@ -3027,12 +3070,7 @@ function bindLanguageToggle() {
     if (e.target && e.target.closest('.w-checkbox')) setTimeout(syncAll, 50);
   }, true);
 
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(syncAll, 50);
-    });
-  });
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // Change 3: MutationObserver REMOVED — syncAll is now called from setActive()
 
   setTimeout(syncAll, 100); 
 }
@@ -6392,19 +6430,8 @@ function getNextYearNum() {
     }
   }, true);
 
-  // Also run when Step 4 becomes active
-  // Run when Step 4 becomes active
-  document.querySelectorAll('.step').forEach(function(step) {
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        if (m.attributeName === 'class' && m.target === step && m.target.classList.contains('is-active')) {
-          const stepNum = parseInt(step.getAttribute('data-step'), 10);
-          if (stepNum === 4) setTimeout(calculateY2Workload, 100);
-        }
-      });
-    });
-    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
-  });
+  // Change 3: MutationObserver REMOVED — calculateY2Workload is now called
+  // from setActive() via centralised dispatch (already exposed as window.__calculateY2Workload)
 
   setTimeout(calculateY2Workload, 100);
 }
@@ -6472,6 +6499,9 @@ function bindCheckboxSync() {
     });
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateCheckboxes = updateCheckboxes;
+
   document.addEventListener('click', function(e) {
     if(e.target.closest('.ms-option')) setTimeout(updateCheckboxes, 50); 
   }, true);
@@ -6480,17 +6510,7 @@ function bindCheckboxSync() {
     if(e.target && e.target.classList.contains('ms-input')) setTimeout(updateCheckboxes, 50);
   }, true);
 
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.attributeName === 'class' && mutation.target.classList.contains('is-active')) {
-        setTimeout(updateCheckboxes, 50);
-      }
-    });
-  });
-
-  document.querySelectorAll('.step').forEach(function(step) {
-    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
-  });
+  // Change 3: MutationObserver REMOVED — updateCheckboxes is now called from setActive()
 
   setTimeout(updateCheckboxes, 100);
 }
@@ -6539,6 +6559,9 @@ function bindGoalContainerSwapper() {
     }
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_swapProgramContainers = swapContainers;
+
   document.addEventListener('change', function(e) {
     if (e.target && e.target.name === 'program_type') {
       setTimeout(swapContainers, 50);
@@ -6552,15 +6575,7 @@ function bindGoalContainerSwapper() {
     }
   }, true);
   
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(swapContainers, 50);
-      }
-    });
-  });
-  
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // Change 3: MutationObserver REMOVED — swapContainers is now called from setActive()
 
   setTimeout(swapContainers, 100);
 }
@@ -6869,18 +6884,10 @@ function bindAcademicTrackingWidget() {
     anchor.parentNode.insertBefore(widget, anchor);
   }
 
-  // Render when Step 3 becomes active
-  var step3El = document.querySelector('.step[data-step="3"]');
-  if (step3El) {
-    var obs = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        if (m.attributeName === "class" && step3El.classList.contains("is-active")) {
-          setTimeout(renderWidget, 300);
-        }
-      });
-    });
-    obs.observe(step3El, { attributes: true, attributeFilter: ["class"] });
-  }
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_renderNeedsWidget = renderWidget;
+
+  // Change 3: MutationObserver REMOVED — renderWidget is now called from setActive()
 
   setTimeout(renderWidget, 800);
 }
@@ -7103,17 +7110,11 @@ function bindStatePickerLock() {
      }
   });
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateStateLock = updateLock;
 
-  // 4. Watch for step changes to lock/unlock automatically
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(updateLock, 50);
-      }
-    });
-  });
 
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // 4. Change 3: MutationObserver REMOVED — updateLock is now called from setActive()
 
   setTimeout(updateLock, 100);
 }
@@ -7335,6 +7336,9 @@ function bindGoalCounter() {
     `;
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateGoalCounter = updateCounter;
+
   // Listen for pill clicks
   document.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
@@ -7348,13 +7352,7 @@ function bindGoalCounter() {
     }
   }, true);
 
-  // Watch for step changes
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(updateCounter, 50);
-    });
-  });
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // Change 3: MutationObserver REMOVED — updateCounter is now called from setActive()
 
   setTimeout(updateCounter, 100);
 }
@@ -7407,16 +7405,14 @@ function bindGoalContainerSwapper() {
     }
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_swapGoalContainers = swapContainers;
+
   document.addEventListener('change', function(e) {
     if (e.target.name === 'program_type') setTimeout(swapContainers, 50);
   });
   
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) setTimeout(swapContainers, 50);
-    });
-  });
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // Change 3: MutationObserver REMOVED — swapContainers is now called from setActive()
 
   setTimeout(swapContainers, 100);
 }
@@ -7536,6 +7532,9 @@ function initInterestDeepDives() {
     }
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateDeepDives = updateDeepDives;
+
   // Listen for native hidden input changes
   const primaryInput = primaryGrid.querySelector('.ms-input');
   if (primaryInput) {
@@ -7549,18 +7548,7 @@ function initInterestDeepDives() {
     }
   }, true);
 
-  // Listen for step changes (runs automatically when Step 3 opens)
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(updateDeepDives, 50);
-      }
-    });
-  });
-  
-  document.querySelectorAll('.step').forEach(step => {
-    observer.observe(step, { attributes: true, attributeFilter: ['class'] });
-  });
+  // Change 3: MutationObserver REMOVED — updateDeepDives is now called from setActive()
 
   // Run once on load just in case
   setTimeout(updateDeepDives, 100);
@@ -7613,6 +7601,9 @@ function initGoalDirectedDeepDives() {
     }
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateGoalDeepDives = updateGoalDeepDives;
+
   // 4. Listeners to trigger the reveal instantly
   document.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) {
@@ -7620,15 +7611,7 @@ function initGoalDirectedDeepDives() {
     }
   }, true);
 
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((m) => {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(updateGoalDeepDives, 50);
-      }
-    });
-  });
-  
-  document.querySelectorAll('.step').forEach(step => observer.observe(step, { attributes: true, attributeFilter: ['class'] }));
+  // Change 3: MutationObserver REMOVED — updateGoalDeepDives is now called from setActive()
 
   setTimeout(updateGoalDeepDives, 100);
 }
@@ -7661,6 +7644,9 @@ function bindY1StepHeading() {
     }
   }
 
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_updateY1Heading = updateY1Heading;
+
   // Run when year level or name changes
   document.addEventListener('change', function(e) {
     if (e.target.name === 'student_year_level') setTimeout(updateY1Heading, 50);
@@ -7669,18 +7655,7 @@ function bindY1StepHeading() {
     if (e.target.name === 'student_first_name') setTimeout(updateY1Heading, 50);
   });
 
-  // Run when Step 3 becomes active
-  const step3 = document.querySelector('.step[data-step="3"]');
-  if (step3) {
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-          setTimeout(updateY1Heading, 50);
-        }
-      });
-    });
-    observer.observe(step3, { attributes: true, attributeFilter: ['class'] });
-  }
+  // Change 3: MutationObserver REMOVED — updateY1Heading is now called from setActive()
 
   setTimeout(updateY1Heading, 100);
 }
@@ -7745,16 +7720,10 @@ function bindY2CurriculumVisibility() {
     }
   }
 
-  // Run whenever Step 4 becomes active
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.attributeName === 'class' && m.target.classList.contains('is-active')) {
-        setTimeout(checkY2YearLevel, 50);
-      }
-    });
-  });
+  // Change 3: Expose for centralised dispatch from setActive()
+  window.__aed_checkY2YearLevel = checkY2YearLevel;
 
-  if (step4) observer.observe(step4, { attributes: true, attributeFilter: ['class'] });
+  // Change 3: MutationObserver REMOVED — checkY2YearLevel is now called from setActive()
 
   // Also run once on load in case Step 4 is already active
   setTimeout(checkY2YearLevel, 100);
