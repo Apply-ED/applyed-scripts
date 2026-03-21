@@ -1456,22 +1456,45 @@ LANGUAGE_OPTIONS.forEach(function(opt) {
 var _savedLang = _langData[realSelectName] || '';
 var _fallbackLang = _langData['language_of_study'] || '';
 
+// Helper: case-insensitive option match — stored values from Webflow intake
+// may be lowercase (e.g. "french") while <option> values are capitalised ("French").
+function _matchLangOption(selectEl, rawValue) {
+  if (!rawValue) return '';
+  // Try direct match first
+  selectEl.value = rawValue;
+  if (selectEl.value === rawValue) return rawValue;
+  // Case-insensitive fallback
+  var lower = rawValue.toLowerCase();
+  for (var i = 0; i < selectEl.options.length; i++) {
+    if (selectEl.options[i].value.toLowerCase() === lower) {
+      return selectEl.options[i].value; // return the correctly-cased option value
+    }
+  }
+  return ''; // no match
+}
+
 if (_savedLang) {
-  // Use the explicitly saved Y2 value
-  sel.value = _savedLang;
+  var matched = _matchLangOption(sel, _savedLang);
+  sel.value = matched;
+  // Fix the stored value so future restores don't need case-insensitive lookup
+  if (matched && matched !== _savedLang && window.__aed_child_applications && window.__aed_child_applications[_langIdx]) {
+    window.__aed_child_applications[_langIdx][realSelectName] = matched;
+  }
 } else if (_fallbackLang && isY2) {
   // Y2 card has no saved value yet — seed from Y1 visually AND
   // write it into __aed_child_applications so it's captured on submit
-  sel.value = _fallbackLang;
-  if (window.__aed_child_applications && window.__aed_child_applications[_langIdx]) {
-    window.__aed_child_applications[_langIdx][realSelectName] = _fallbackLang;
+  var matchedFallback = _matchLangOption(sel, _fallbackLang);
+  sel.value = matchedFallback;
+  if (matchedFallback && window.__aed_child_applications && window.__aed_child_applications[_langIdx]) {
+    window.__aed_child_applications[_langIdx][realSelectName] = matchedFallback;
   }
   // Also sync the hidden Webflow select
   if (realSelect) {
-    realSelect.value = _fallbackLang;
+    realSelect.value = matchedFallback;
   }
 } else if (realSelect && realSelect.value) {
-  sel.value = realSelect.value;
+  var matchedReal = _matchLangOption(sel, realSelect.value);
+  sel.value = matchedReal;
 }
 
     sel.addEventListener("change", function() {
@@ -1901,7 +1924,29 @@ if (!savedLang && isY2) savedLang = data['language_of_study'];
       if (dynSel) {
         // With cached DOM, always set the value — even to empty — so stale
         // selections from a previous child don't persist.
-        dynSel.value = savedLang || "";
+        if (savedLang) {
+          // Direct match first (handles values already in correct case)
+          dynSel.value = savedLang;
+          // If direct match failed (e.g. "french" vs "French"), try case-insensitive
+          if (!dynSel.value || dynSel.value === "") {
+            var lowerSaved = savedLang.toLowerCase();
+            for (var oi = 0; oi < dynSel.options.length; oi++) {
+              if (dynSel.options[oi].value.toLowerCase() === lowerSaved) {
+                dynSel.value = dynSel.options[oi].value;
+                // Also fix the stored value so future restores are instant
+                if (window.__aed_child_applications) {
+                  var fixIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+                  if (window.__aed_child_applications[fixIdx]) {
+                    window.__aed_child_applications[fixIdx][langKey] = dynSel.options[oi].value;
+                  }
+                }
+                break;
+              }
+            }
+          }
+        } else {
+          dynSel.value = "";
+        }
       }
     }
   }
@@ -4403,7 +4448,21 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
     if (langBody) {
       const dynSelect = langBody.querySelector('select');
       if (dynSelect) {
+        // Try direct match first, then case-insensitive fallback
         dynSelect.value = savedLang;
+        if (!dynSelect.value || dynSelect.value === '') {
+          var lowerLang = savedLang.toLowerCase();
+          for (var li = 0; li < dynSelect.options.length; li++) {
+            if (dynSelect.options[li].value.toLowerCase() === lowerLang) {
+              dynSelect.value = dynSelect.options[li].value;
+              // Fix stored value for future lookups
+              if (window.__aed_child_applications && window.__aed_child_applications[idx]) {
+                window.__aed_child_applications[idx][langKey] = dynSelect.options[li].value;
+              }
+              break;
+            }
+          }
+        }
       }
     }
   }
