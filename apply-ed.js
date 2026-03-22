@@ -1750,8 +1750,17 @@ if (_savedLang) {
 
     if (containerId) {
       var el = document.getElementById(containerId);
-      if (el) el.style.display = "block";
-      renderCurriculumOptions(containerId);
+      if (el) {
+        // Change 4: Only show the Y1 container if the Y1 tab is active.
+        // When Y2 tab is active, we still render (populate the cached DOM)
+        // but leave the container hidden so it doesn't overlap Y2 content.
+        // Note: window.__aed_activeYearTab is used because this function
+        // lives in a separate IIFE from the _activeYearTab variable.
+        if (window.__aed_activeYearTab !== 'y2') {
+          el.style.display = "block";
+        }
+        renderCurriculumOptions(containerId);
+      }
     }
   }
 
@@ -2555,7 +2564,15 @@ const STEP_ENVIRONMENT = 6;
 const STEP_PAYMENT = 7;
 
   // Change 4: Track which curriculum tab is active ('y1' or 'y2')
+  // Exposed on window so the curriculum IIFE (separate scope) can read it.
+  window.__aed_activeYearTab = 'y1';
   let _activeYearTab = 'y1';
+  // Keep both in sync — local for fast access, window for cross-scope
+  Object.defineProperty(window, '__aed_activeYearTab', {
+    get: function() { return _activeYearTab; },
+    set: function(v) { _activeYearTab = v; },
+    configurable: true
+  });
 
   let currentStepNum = 0;
 
@@ -2664,10 +2681,8 @@ updateCurrentChildHeading();
       if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
         window.__aed_refreshY2CurriculumDisplay();
       }
-      // Change 4: Sync the tab bar visibility and state
-      if (typeof window.__aed_syncYearTabs === 'function') {
-        window.__aed_syncYearTabs();
-      }
+      // Change 4: syncYearTabs is called AFTER all widgets below, not here.
+      // This ensures newly-rendered widgets get properly hidden/shown.
     }
 
     // Change 4: Y2 workload is now calculated as part of Step 3
@@ -2723,6 +2738,16 @@ updateCurrentChildHeading();
 
     // Change 4: Y2 heading is now updated by the tab system within Step 3
     // (no separate Step 4 dispatch needed)
+
+    // ─── Change 4: syncYearTabs MUST run LAST ─────────────────────────────
+    // All widget renders above (renderNeedsWidget, refreshCurriculumDisplay,
+    // etc.) can create or show Y1 elements. syncYearTabs applies the final
+    // visibility state based on which tab is active, hiding Y1 content when
+    // the Y2 tab is showing. Running it earlier caused the "two pages on
+    // one page" bug where Y1 and Y2 content appeared simultaneously.
+    if (stepNum === 3 && typeof window.__aed_syncYearTabs === 'function') {
+      window.__aed_syncYearTabs();
+    }
   }, 50);
   // ─── END CHANGE 3 + 4 dispatch ──────────────────────────────────────
 }
@@ -7970,6 +7995,10 @@ function initYearTabs() {
 
     var y1Banner = document.getElementById('aed-curriculum-banner');
     if (y1Banner) y1Banner.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+
+    // Change 4: Hide the tracking widget (Y1 only) when Y2 tab is active
+    var trackingWidget = document.getElementById('aed-tracking-widget');
+    if (trackingWidget) trackingWidget.style.display = (_activeYearTab === 'y2') ? 'none' : '';
 
     // Hide Y1 curriculum containers when Y2 tab is active
     ['f6-curriculum-container', 'y9-curriculum-container', 'y10-curriculum-container'].forEach(function(id) {
