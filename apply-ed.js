@@ -88,6 +88,14 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     max-width: 1450px !important;
     box-sizing: border-box !important;
   }
+  /* Bug 1 fix: Override any Webflow-inherited width constraints on inner wrappers
+     inside the relocated Y2 containers. These elements were designed for Step 4's
+     layout and may carry class-based max-width or flex constraints. */
+  .aed-y2-panel [id$="_y2"] > *,
+  .aed-y2-panel .aed-dynamic-curriculum > * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 </style>`);
 
 window.Webflow ||= [];
@@ -6232,20 +6240,47 @@ window.validateY2Curriculum = function() {
     }
   }
 
-  // Find active Y2 container and derive year
+  // Find active Y2 container and derive the actual Y2 year from saved child data.
+  // The f6-curriculum-container_y2 covers F through Y8, so we cannot assume the
+  // year from the container ID alone — a Year 5 child's Y2 is Year 6 (F-6 band,
+  // no pathways), not Year 8.
   var y2Containers = ["f6-curriculum-container_y2","y9-curriculum-container_y2","y10-curriculum-container_y2"];
   var activeY2Container = null;
-  var y2YearNum = null;
   y2Containers.forEach(function(cid) {
     var el = document.getElementById(cid);
     if (el && el.offsetParent !== null) {
       activeY2Container = cid;
-      if (cid === "y9-curriculum-container_y2")  y2YearNum = 9;
-      else if (cid === "y10-curriculum-container_y2") y2YearNum = 10;
-      else y2YearNum = 8; // f6 band covers F-Y8 Y2; treat as Y8 for validation purposes
     }
   });
   if (!activeY2Container) return true; // Y2 panel not shown — skip
+
+  // Derive actual Y2 year number from saved data (Y1 year + 1)
+  var y2YearNum = null;
+  try {
+    var cidx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var cdata = window.__aed_child_applications && window.__aed_child_applications[cidx];
+    if (cdata && cdata.student_year_level) {
+      var rawYL = cdata.student_year_level;
+      if (rawYL === 'Foundation Year' || rawYL === 'FOUNDATION') { y2YearNum = 1; }
+      else {
+        var ym = rawYL.match(/\d+/);
+        if (ym) y2YearNum = parseInt(ym[0], 10) + 1;
+      }
+    }
+  } catch (e) {}
+  // Fallback to DOM dropdown
+  if (y2YearNum === null) {
+    var ylDrop = document.querySelector('select[name="student_year_level"]');
+    if (ylDrop && ylDrop.value) {
+      var rawDom = ylDrop.value;
+      if (rawDom === 'FOUNDATION') { y2YearNum = 1; }
+      else {
+        var dm = rawDom.match(/\d+/);
+        if (dm) y2YearNum = parseInt(dm[0], 10) + 1;
+      }
+    }
+  }
+  if (y2YearNum === null) return true; // Can't determine year — skip validation
 
   function countDynamic2(learningArea, containerId) {
     var container = document.getElementById(containerId);
@@ -8000,6 +8035,23 @@ function initYearTabs() {
       if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
         window.__aed_refreshY2CurriculumDisplay();
       }
+      // Bug fix: Force layout reflow to fix narrow Y2 content on first render.
+      // The relocated Webflow containers carry stale layout from their original
+      // Step 4 parent. Toggling the panel display off/on forces the browser to
+      // fully recalculate layout — the same recalculation that happens naturally
+      // when navigating away and back (which produces correct widths).
+      requestAnimationFrame(function() {
+        y2Panel.style.display = 'none';
+        void y2Panel.offsetHeight; // force style recalc
+        y2Panel.style.display = 'block';
+        // Also force width on every child container inside the panel
+        var innerEls = y2Panel.querySelectorAll('[id$="_y2"], .aed-dynamic-curriculum');
+        for (var i = 0; i < innerEls.length; i++) {
+          innerEls[i].style.width = '100%';
+          innerEls[i].style.maxWidth = '1450px';
+          innerEls[i].style.boxSizing = 'border-box';
+        }
+      });
       // Restore Y2 pills after render completes
       if (typeof restoreDynamicPillsForStep === 'function') {
         setTimeout(function() {
@@ -8119,6 +8171,22 @@ function initYearTabs() {
 
     // Update tab labels with correct year names
     updateTabLabels();
+
+    // Bug 1 fix: When Y2 panel becomes active (e.g. back from Step 5),
+    // force a layout reflow to ensure correct widths on relocated containers.
+    if (_activeYearTab === 'y2') {
+      requestAnimationFrame(function() {
+        y2Panel.style.display = 'none';
+        void y2Panel.offsetHeight;
+        y2Panel.style.display = 'block';
+        var innerEls = y2Panel.querySelectorAll('[id$="_y2"], .aed-dynamic-curriculum');
+        for (var i = 0; i < innerEls.length; i++) {
+          innerEls[i].style.width = '100%';
+          innerEls[i].style.maxWidth = '1450px';
+          innerEls[i].style.boxSizing = 'border-box';
+        }
+      });
+    }
 
     console.log('📑 AED: Tab bar synced — ' + (_activeYearTab === 'y2' ? 'Y2' : 'Y1') + ' active, split=' + isSplit);
   };
