@@ -77,16 +77,14 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     border-bottom-color: #c3d9c3;
   }
   /* Change 4: Y2 curriculum panel visibility (tab-controlled) */
-  /* Bug 1 fix: The Y2 panel must not constrain its children's width. Webflow's
-     Y1 curriculum containers overflow the .step parent (which is ~1148px) because
-     they have Webflow layout rules. The Y2 panel, as a plain div, was clipping
-     content to the step width. Removing max-width and adding overflow:visible
-     lets Y2 containers match Y1's visual width. */
-  .aed-y2-panel { display: none; width: 100%; box-sizing: border-box; overflow: visible; }
+  /* The Y1 curriculum containers have a Webflow class (f6-curriculum-container-legacy)
+     that sets width: 1450px, overflowing the ~1148px .step parent. The Y2 panel must
+     match this explicit width so its content aligns with Y1. */
+  .aed-y2-panel { display: none; width: 1450px; box-sizing: border-box; }
   .aed-y2-panel.is-active { display: block; }
   .aed-y1-panel { display: block; }
   .aed-y1-panel.is-hidden { display: none; }
-  /* Change 4: Ensure Y2 dynamic curriculum content fills available width */
+  /* Ensure Y2 inner content fills the panel */
   .aed-y2-panel .aed-dynamic-curriculum,
   .aed-y2-panel [id$="_y2"] {
     width: 100% !important;
@@ -7953,7 +7951,7 @@ function initYearTabs() {
   var y2Panel = document.createElement('div');
   y2Panel.className = 'aed-y2-panel';
   y2Panel.id = 'aed-y2-curriculum-panel';
-  y2Panel.style.cssText = 'width: 100%; box-sizing: border-box;';
+  y2Panel.style.cssText = 'width: 1450px; box-sizing: border-box;';
 
   // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
   // Change 4: Also create the Y2 banner if it doesn't exist yet
