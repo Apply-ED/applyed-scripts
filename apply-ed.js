@@ -77,23 +77,19 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     border-bottom-color: #c3d9c3;
   }
   /* Change 4: Y2 curriculum panel visibility (tab-controlled) */
-  .aed-y2-panel { display: none; max-width: 1450px; width: 100%; box-sizing: border-box; }
+  /* Bug 1 fix: The Y2 panel must not constrain its children's width. Webflow's
+     Y1 curriculum containers overflow the .step parent (which is ~1148px) because
+     they have Webflow layout rules. The Y2 panel, as a plain div, was clipping
+     content to the step width. Removing max-width and adding overflow:visible
+     lets Y2 containers match Y1's visual width. */
+  .aed-y2-panel { display: none; width: 100%; box-sizing: border-box; overflow: visible; }
   .aed-y2-panel.is-active { display: block; }
   .aed-y1-panel { display: block; }
   .aed-y1-panel.is-hidden { display: none; }
-  /* Change 4: Ensure Y2 dynamic curriculum content fills the panel width */
+  /* Change 4: Ensure Y2 dynamic curriculum content fills available width */
   .aed-y2-panel .aed-dynamic-curriculum,
   .aed-y2-panel [id$="_y2"] {
     width: 100% !important;
-    max-width: 1450px !important;
-    box-sizing: border-box !important;
-  }
-  /* Bug 1 fix: Override any Webflow-inherited width constraints on inner wrappers
-     inside the relocated Y2 containers. These elements were designed for Step 4's
-     layout and may carry class-based max-width or flex constraints. */
-  .aed-y2-panel [id$="_y2"] > *,
-  .aed-y2-panel .aed-dynamic-curriculum > * {
-    max-width: 100% !important;
     box-sizing: border-box !important;
   }
 </style>`);
@@ -2729,8 +2725,12 @@ updateCurrentChildHeading();
     // Curriculum rendering (Step 3 — handles both Y1 and Y2 via tabs)
     if (stepNum === 3 && typeof window.__aed_refreshCurriculumDisplay === 'function') {
       window.__aed_refreshCurriculumDisplay();
-      // Change 4: Also render Y2 if split-year (tabs control visibility)
-      if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
+      // Change 4: Only render Y2 curriculum here if the Y2 tab is already active
+      // (e.g. back from Step 5 with Y2 tab shown). Otherwise, Y2 renders on-demand
+      // when the user switches to the Y2 tab via switchYearTab(). Rendering Y2
+      // unconditionally caused Y2 content to appear behind Y1 content before
+      // syncYearTabs could hide the panel (visible as Y6/Y7 overlap).
+      if (window.__aed_activeYearTab === 'y2' && typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
         window.__aed_refreshY2CurriculumDisplay();
       }
       // Change 4: syncYearTabs is called AFTER all widgets below, not here.
@@ -7953,7 +7953,7 @@ function initYearTabs() {
   var y2Panel = document.createElement('div');
   y2Panel.className = 'aed-y2-panel';
   y2Panel.id = 'aed-y2-curriculum-panel';
-  y2Panel.style.cssText = 'max-width: 1450px; width: 100%; box-sizing: border-box;';
+  y2Panel.style.cssText = 'width: 100%; box-sizing: border-box;';
 
   // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
   // Change 4: Also create the Y2 banner if it doesn't exist yet
@@ -7973,7 +7973,6 @@ function initYearTabs() {
     y2ContainerIds.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) {
-        el.style.maxWidth = '1450px';
         el.style.width = '100%';
         el.style.boxSizing = 'border-box';
         y2Panel.appendChild(el);
@@ -8035,23 +8034,6 @@ function initYearTabs() {
       if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
         window.__aed_refreshY2CurriculumDisplay();
       }
-      // Bug fix: Force layout reflow to fix narrow Y2 content on first render.
-      // The relocated Webflow containers carry stale layout from their original
-      // Step 4 parent. Toggling the panel display off/on forces the browser to
-      // fully recalculate layout — the same recalculation that happens naturally
-      // when navigating away and back (which produces correct widths).
-      requestAnimationFrame(function() {
-        y2Panel.style.display = 'none';
-        void y2Panel.offsetHeight; // force style recalc
-        y2Panel.style.display = 'block';
-        // Also force width on every child container inside the panel
-        var innerEls = y2Panel.querySelectorAll('[id$="_y2"], .aed-dynamic-curriculum');
-        for (var i = 0; i < innerEls.length; i++) {
-          innerEls[i].style.width = '100%';
-          innerEls[i].style.maxWidth = '1450px';
-          innerEls[i].style.boxSizing = 'border-box';
-        }
-      });
       // Restore Y2 pills after render completes
       if (typeof restoreDynamicPillsForStep === 'function') {
         setTimeout(function() {
@@ -8171,22 +8153,6 @@ function initYearTabs() {
 
     // Update tab labels with correct year names
     updateTabLabels();
-
-    // Bug 1 fix: When Y2 panel becomes active (e.g. back from Step 5),
-    // force a layout reflow to ensure correct widths on relocated containers.
-    if (_activeYearTab === 'y2') {
-      requestAnimationFrame(function() {
-        y2Panel.style.display = 'none';
-        void y2Panel.offsetHeight;
-        y2Panel.style.display = 'block';
-        var innerEls = y2Panel.querySelectorAll('[id$="_y2"], .aed-dynamic-curriculum');
-        for (var i = 0; i < innerEls.length; i++) {
-          innerEls[i].style.width = '100%';
-          innerEls[i].style.maxWidth = '1450px';
-          innerEls[i].style.boxSizing = 'border-box';
-        }
-      });
-    }
 
     console.log('📑 AED: Tab bar synced — ' + (_activeYearTab === 'y2' ? 'Y2' : 'Y1') + ' active, split=' + isSplit);
   };
