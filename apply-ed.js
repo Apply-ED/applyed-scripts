@@ -14,9 +14,7 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     opacity: 0.8;
   }
 
-  /* CHANGE 4: Program type radio — bright blue when selected.
-     Webflow uses class-based radio state (w--redirected-checked), not :checked,
-     so we apply the color via JS below instead of pure CSS. */
+  /* Program type radio color is managed via Webflow custom CSS (.approach-card :has selectors) */
   
   /* CHILD NAVIGATION PILLS STYLING */
   #child-nav-bar {
@@ -1606,6 +1604,57 @@ if (_savedLang) {
     console.log("🧹 AED: Curriculum cache cleared for child " + childIdx);
   };
 
+  // ─── SYNC LANGUAGE DROPDOWN (dedicated helper) ─────────────────────────
+  // Ensures the dynamic language <select> and the hidden Webflow <select>
+  // both reflect the value stored in __aed_child_applications.
+  // Called after every cache hit AND cache miss render.
+  // Change 4: Moved to IIFE scope so both renderCurriculumOptions (Y1)
+  // and renderCurriculumOptionsForYear (Y2) can call it.
+  function syncLanguageDropdown(containerEl, isY2) {
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var childData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
+    var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
+    var savedLang = childData[langKey];
+    if (!savedLang && isY2) savedLang = childData['language_of_study'];
+
+    // 1. Find and set the dynamic dropdown
+    var langBody = containerEl.querySelector('.aed-languages-card-body');
+    var resolvedLang = "";
+    if (langBody) {
+      var dynSel = langBody.querySelector('select');
+      if (dynSel) {
+        if (savedLang) {
+          dynSel.value = savedLang;
+          resolvedLang = dynSel.value;
+          // Case-insensitive fallback
+          if (!resolvedLang) {
+            var lower = savedLang.toLowerCase();
+            for (var i = 0; i < dynSel.options.length; i++) {
+              if (dynSel.options[i].value.toLowerCase() === lower) {
+                resolvedLang = dynSel.options[i].value;
+                dynSel.value = resolvedLang;
+                if (window.__aed_child_applications && window.__aed_child_applications[childIdx]) {
+                  window.__aed_child_applications[childIdx][langKey] = resolvedLang;
+                }
+                break;
+              }
+            }
+          }
+        } else {
+          dynSel.value = "";
+        }
+      }
+    }
+
+    // 2. Always sync to hidden Webflow select so collectChildData picks it up
+    var hiddenSel = document.querySelector('select[name="' + langKey + '"]');
+    if (hiddenSel) {
+      hiddenSel.value = resolvedLang;
+    }
+
+    console.log("🌐 AED: Language sync for child " + childIdx + " [" + langKey + "] = " + (resolvedLang || "(empty)") + " (saved: " + (savedLang || "(none)") + ")");
+  }
+
   function renderCurriculumOptions(targetContainerId) {
     var container = document.getElementById(targetContainerId);
     if (!container) {
@@ -1632,56 +1681,6 @@ if (_savedLang) {
     if (!currentWrap && container.innerHTML.trim()) {
       container.innerHTML = "";
     }
-
-  // ─── SYNC LANGUAGE DROPDOWN (dedicated helper) ─────────────────────────
-  // Ensures the dynamic language <select> and the hidden Webflow <select>
-  // both reflect the value stored in __aed_child_applications.
-  // Called after every cache hit AND cache miss render.
-  function syncLanguageDropdown(containerEl, isY2) {
-    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
-    var childData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
-    var langKey = isY2 ? 'language_of_study_y2' : 'language_of_study';
-    var savedLang = childData[langKey];
-    if (!savedLang && isY2) savedLang = childData['language_of_study'];
-
-    // 1. Find and set the dynamic dropdown
-    var langBody = containerEl.querySelector('.aed-languages-card-body');
-    var resolvedLang = "";
-    if (langBody) {
-      var dynSel = langBody.querySelector('select');
-      if (dynSel) {
-        if (savedLang) {
-          dynSel.value = savedLang;
-          resolvedLang = dynSel.value;
-          // Case-insensitive fallback
-          if (!resolvedLang) {
-            var lower = savedLang.toLowerCase();
-            for (var i = 0; i < dynSel.options.length; i++) {
-              if (dynSel.options[i].value.toLowerCase() === lower) {
-                resolvedLang = dynSel.options[i].value;
-                dynSel.value = resolvedLang;
-                // Auto-correct stored value
-                if (window.__aed_child_applications && window.__aed_child_applications[childIdx]) {
-                  window.__aed_child_applications[childIdx][langKey] = resolvedLang;
-                }
-                break;
-              }
-            }
-          }
-        } else {
-          dynSel.value = "";
-        }
-      }
-    }
-
-    // 2. Always sync to hidden Webflow select so collectChildData picks it up
-    var hiddenSel = document.querySelector('select[name="' + langKey + '"]');
-    if (hiddenSel) {
-      hiddenSel.value = resolvedLang;
-    }
-
-    console.log("🌐 AED: Language sync for child " + childIdx + " [" + langKey + "] = " + (resolvedLang || "(empty)") + " (saved: " + (savedLang || "(none)") + ")");
-  }
 
     // CACHE HIT: same pathway + yearBand for this child — reattach and restore pills
     if (cached && cached.renderKey === renderKey && cached.wrapEl) {
@@ -2674,10 +2673,6 @@ updateCurrentChildHeading();
   if (stepNum === STEP_FIRST_CHILD) {
   // Let the DOM "settle" for a beat, then enforce default if needed
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
-  // Change 4: Sync program type radio color after program type is set
-  setTimeout(function() {
-    if (typeof window.__aed_syncProgramTypeRadioColor === 'function') window.__aed_syncProgramTypeRadioColor();
-  }, 50);
 }
 
 // Show/hide the Step 3 goal-directed info banner
@@ -6337,40 +6332,36 @@ function bindWorkloadTracker() {
       total = 7 + artsY78;
     }
     else if (yearNum === 9) {
-      // Y9 NSW: base 4 = 3 pathways (Eng/Maths/Sci counted as 1 each when selected) + 1 PDHPE mandatory
-      // Then count all elective area pills: HSIE (History+Geography locked + extras),
-      // TAS, Creative Arts, PDHPE electives, plus optional Languages.
-      // Note: NSW Y9 uses 'hsie' not 'hass', and 'technological_and_applied_studies' not 'technologies'
-      var engPathY9  = countDynamicPills('english_pathway',     'y9-curriculum-container') > 0 ? 1 : 0;
-      var mathPathY9 = countDynamicPills('mathematics_pathway', 'y9-curriculum-container') > 0 ? 1 : 0;
-      var sciPathY9  = countDynamicPills('science_pathway',     'y9-curriculum-container') > 0 ? 1 : 0;
-      total = engPathY9 + mathPathY9 + sciPathY9 +
-        countDynamicPills('hsie',         'y9-curriculum-container') +
-        countDynamicPills('hass',         'y9-curriculum-container') +
+      // Y9 NSW: 5 mandatory subjects always counted (Eng, Maths, Science, HSIE, PDHPE).
+      // Pathway selections (Standard/Extension) don't increase the count.
+      // Only additional elective picks add to the total.
+      // HSIE has 2 locked pills (History, Geography) — subtract them to get elective-only count.
+      var hsieTotal = countDynamicPills('hsie', 'y9-curriculum-container') + countDynamicPills('hass', 'y9-curriculum-container');
+      var hsieElectives = Math.max(0, hsieTotal - 2); // Subtract locked History + Geography
+      total = 5 + // Mandatory: Eng, Maths, Science, HSIE, PDHPE
+        hsieElectives +
         countDynamicPills('technological_and_applied_studies', 'y9-curriculum-container') +
         countDynamicPills('technologies', 'y9-curriculum-container') +
         countDynamicPills('creative_arts','y9-curriculum-container') +
         countDynamicPills('the_arts',     'y9-curriculum-container') +
         countDynamicPills('pdhpe',        'y9-curriculum-container') +
         countDynamicPills('hpe',          'y9-curriculum-container') +
-        1 + // PDHPE mandatory (not a pill, always included)
         hasLanguage();
     }
     else if (yearNum === 10) {
-      var engPath  = countDynamicPills('english_pathway',     'y10-curriculum-container') > 0 ? 1 : 0;
-      var mathPath = countDynamicPills('mathematics_pathway', 'y10-curriculum-container') > 0 ? 1 : 0;
-      var sciPath  = countDynamicPills('science_pathway',     'y10-curriculum-container') > 0 ? 1 : 0;
-      total = engPath + mathPath + sciPath +
-        countDynamicPills('hass',         'y10-curriculum-container') +
-        countDynamicPills('hsie',         'y10-curriculum-container') +
-        countDynamicPills('humanities',   'y10-curriculum-container') +
-        countDynamicPills('technologies', 'y10-curriculum-container') +
+      // Y10 NSW: Same logic as Y9 — 5 mandatory base, electives only add
+      var hsieTotal10 = countDynamicPills('hsie', 'y10-curriculum-container') +
+                        countDynamicPills('hass', 'y10-curriculum-container') +
+                        countDynamicPills('humanities', 'y10-curriculum-container');
+      var hsieElectives10 = Math.max(0, hsieTotal10 - 2); // Subtract locked History + Geography
+      total = 5 + // Mandatory: Eng, Maths, Science, HSIE, PDHPE
+        hsieElectives10 +
         countDynamicPills('technological_and_applied_studies', 'y10-curriculum-container') +
-        countDynamicPills('the_arts',     'y10-curriculum-container') +
+        countDynamicPills('technologies', 'y10-curriculum-container') +
         countDynamicPills('creative_arts','y10-curriculum-container') +
+        countDynamicPills('the_arts',     'y10-curriculum-container') +
         countDynamicPills('pdhpe',        'y10-curriculum-container') +
         countDynamicPills('hpe',          'y10-curriculum-container') +
-        1 +
         hasLanguage();
     }
 
@@ -6512,36 +6503,31 @@ function getNextYearNum() {
                       countDynamicPillsY2('creative_arts', 'f6-curriculum-container_y2');
       total = 7 + artsY78y2;
     } else if (yearNum === 9) {
-      // Same fix as Y1: use correct NSW Y9 learning area keys
-      var engPathY2Y9  = countDynamicPillsY2('english_pathway',     'y9-curriculum-container_y2') > 0 ? 1 : 0;
-      var mathPathY2Y9 = countDynamicPillsY2('mathematics_pathway', 'y9-curriculum-container_y2') > 0 ? 1 : 0;
-      var sciPathY2Y9  = countDynamicPillsY2('science_pathway',     'y9-curriculum-container_y2') > 0 ? 1 : 0;
-      total = engPathY2Y9 + mathPathY2Y9 + sciPathY2Y9 +
-        countDynamicPillsY2('hsie',         'y9-curriculum-container_y2') +
-        countDynamicPillsY2('hass',         'y9-curriculum-container_y2') +
+      // Same as Y1: 5 mandatory base, only elective pills add
+      var hsieY2Total = countDynamicPillsY2('hsie', 'y9-curriculum-container_y2') + countDynamicPillsY2('hass', 'y9-curriculum-container_y2');
+      var hsieY2Electives = Math.max(0, hsieY2Total - 2);
+      total = 5 +
+        hsieY2Electives +
         countDynamicPillsY2('technological_and_applied_studies', 'y9-curriculum-container_y2') +
         countDynamicPillsY2('technologies', 'y9-curriculum-container_y2') +
         countDynamicPillsY2('creative_arts','y9-curriculum-container_y2') +
         countDynamicPillsY2('the_arts',     'y9-curriculum-container_y2') +
         countDynamicPillsY2('pdhpe',        'y9-curriculum-container_y2') +
         countDynamicPillsY2('hpe',          'y9-curriculum-container_y2') +
-        1 + // PDHPE mandatory
         hasLanguageY2();
     } else if (yearNum === 10) {
-      var engPathY2  = countDynamicPillsY2('english_pathway',     'y10-curriculum-container_y2') > 0 ? 1 : 0;
-      var mathPathY2 = countDynamicPillsY2('mathematics_pathway', 'y10-curriculum-container_y2') > 0 ? 1 : 0;
-      var sciPathY2  = countDynamicPillsY2('science_pathway',     'y10-curriculum-container_y2') > 0 ? 1 : 0;
-      total = engPathY2 + mathPathY2 + sciPathY2 +
-        countDynamicPillsY2('hass',         'y10-curriculum-container_y2') +
-        countDynamicPillsY2('hsie',         'y10-curriculum-container_y2') +
-        countDynamicPillsY2('humanities',   'y10-curriculum-container_y2') +
-        countDynamicPillsY2('technologies', 'y10-curriculum-container_y2') +
+      var hsieY2Total10 = countDynamicPillsY2('hsie', 'y10-curriculum-container_y2') +
+                          countDynamicPillsY2('hass', 'y10-curriculum-container_y2') +
+                          countDynamicPillsY2('humanities', 'y10-curriculum-container_y2');
+      var hsieY2Electives10 = Math.max(0, hsieY2Total10 - 2);
+      total = 5 +
+        hsieY2Electives10 +
         countDynamicPillsY2('technological_and_applied_studies', 'y10-curriculum-container_y2') +
-        countDynamicPillsY2('the_arts',     'y10-curriculum-container_y2') +
+        countDynamicPillsY2('technologies', 'y10-curriculum-container_y2') +
         countDynamicPillsY2('creative_arts','y10-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y10-curriculum-container_y2') +
         countDynamicPillsY2('pdhpe',        'y10-curriculum-container_y2') +
         countDynamicPillsY2('hpe',          'y10-curriculum-container_y2') +
-        1 +
         hasLanguageY2();
     }
 
@@ -7093,39 +7079,6 @@ initInterestDeepDives();
 initGoalDirectedDeepDives();
 bindGoalCounter();
 bindGoalContainerSwapper();
-
-/* =========================
-   CHANGE 4: PROGRAM TYPE RADIO COLOR (Bright Blue)
-   Webflow uses w--redirected-checked class on the visual radio indicator,
-   not the native :checked pseudo-class. We apply the color via JS.
-   ========================= */
-function syncProgramTypeRadioColor() {
-  var BLUE = '#2563EB';
-  var radios = document.querySelectorAll('.w-radio');
-  radios.forEach(function(wrapper) {
-    var input = wrapper.querySelector('input[name="program_type"]');
-    if (!input) return;
-    var indicator = wrapper.querySelector('.w-form-formradioinput');
-    if (!indicator) return;
-    if (input.checked || indicator.classList.contains('w--redirected-checked')) {
-      indicator.style.setProperty('background-color', BLUE, 'important');
-      indicator.style.setProperty('border-color', BLUE, 'important');
-    } else {
-      indicator.style.removeProperty('background-color');
-      indicator.style.removeProperty('border-color');
-    }
-  });
-}
-// Run on radio change, click, and step activation
-document.addEventListener('change', function(e) {
-  if (e.target && e.target.name === 'program_type') setTimeout(syncProgramTypeRadioColor, 10);
-});
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.closest('.w-radio')) setTimeout(syncProgramTypeRadioColor, 50);
-});
-// Also run on step activation (expose for setActive dispatch)
-window.__aed_syncProgramTypeRadioColor = syncProgramTypeRadioColor;
-setTimeout(syncProgramTypeRadioColor, 500);
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
@@ -7921,8 +7874,6 @@ function initYearTabs() {
   var y2Panel = document.createElement('div');
   y2Panel.className = 'aed-y2-panel';
   y2Panel.id = 'aed-y2-curriculum-panel';
-  // Change 4: Explicit inline style to guarantee width matches Y1 containers
-  y2Panel.style.cssText = 'max-width: 1450px; width: 100%; box-sizing: border-box;';
 
   // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
   // Change 4: Also create the Y2 banner if it doesn't exist yet
@@ -7942,10 +7893,6 @@ function initYearTabs() {
     y2ContainerIds.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) {
-        // Change 4: Ensure relocated containers inherit full width
-        el.style.maxWidth = '1450px';
-        el.style.width = '100%';
-        el.style.boxSizing = 'border-box';
         y2Panel.appendChild(el);
       }
     });
