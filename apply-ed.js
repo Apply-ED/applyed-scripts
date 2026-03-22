@@ -81,6 +81,13 @@ document.head.insertAdjacentHTML("beforeend", `<style>
   .aed-y2-panel.is-active { display: block; }
   .aed-y1-panel { display: block; }
   .aed-y1-panel.is-hidden { display: none; }
+  /* Change 4: Ensure Y2 dynamic curriculum content fills the panel width */
+  .aed-y2-panel .aed-dynamic-curriculum,
+  .aed-y2-panel [id$="_y2"] {
+    width: 100% !important;
+    max-width: 1450px !important;
+    box-sizing: border-box !important;
+  }
 </style>`);
 
 window.Webflow ||= [];
@@ -1735,7 +1742,24 @@ if (_savedLang) {
   }
 
   function refreshCurriculumDisplay() {
-    var yearNum = getCurrentYearNum();
+    // Change 4: Read year from __aed_child_applications first (reliable
+    // source) because the DOM dropdown may not be updated yet during
+    // step transitions and child switches.
+    var yearNum = null;
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var savedData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
+    if (savedData.student_year_level) {
+      var raw = savedData.student_year_level;
+      if (raw === 'FOUNDATION') { yearNum = 0; }
+      else {
+        var m = raw.match(/\d+/);
+        if (m) yearNum = parseInt(m[0], 10);
+      }
+    }
+    // Fallback to DOM dropdown
+    if (yearNum === null) {
+      yearNum = getCurrentYearNum();
+    }
     if (yearNum === null) return;
 
     // Hide all containers first
@@ -6306,20 +6330,12 @@ function bindWorkloadTracker() {
       if (!container) return 0;
       var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
                     container.querySelector('[data-learning-area="' + learningArea + '"]');
+      // Change 4: Removed offsetParent check. When the Y2 tab is active,
+      // Y1 containers are hidden (display:none) so offsetParent is null.
+      // But the pills still exist in the cached DOM and their is-selected
+      // state is accurate. We must count them regardless of visibility.
       if (!section) return 0;
       return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
-    }
-
-    // Count only NON-LOCKED (elective) selected pills. Locked pills (e.g.
-    // History in HASS/HSIE) are mandatory subjects already included in the
-    // base count of 5, so they must not be double-counted as electives.
-    function countElectivePills(learningArea, containerId) {
-      var container = document.getElementById(containerId);
-      if (!container) return 0;
-      var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
-                    container.querySelector('[data-learning-area="' + learningArea + '"]');
-      if (!section) return 0;
-      return section.querySelectorAll('.aed-dynamic-pill.is-selected:not([data-locked="true"])').length;
     }
 
     function hasLanguage() {
@@ -6340,32 +6356,36 @@ function bindWorkloadTracker() {
       total = 7 + artsY78;
     }
     else if (yearNum === 9) {
-      // 5 mandatory subjects always counted (Eng, Maths, Science, HSIE/HASS, PDHPE/HPE).
-      // Only non-locked elective pills add to the total. countElectivePills
-      // automatically excludes locked pills (e.g. History in HASS/HSIE).
-      total = 5 +
-        countElectivePills('hsie',         'y9-curriculum-container') +
-        countElectivePills('hass',         'y9-curriculum-container') +
-        countElectivePills('humanities',   'y9-curriculum-container') +
-        countElectivePills('technological_and_applied_studies', 'y9-curriculum-container') +
-        countElectivePills('technologies', 'y9-curriculum-container') +
-        countElectivePills('creative_arts','y9-curriculum-container') +
-        countElectivePills('the_arts',     'y9-curriculum-container') +
-        countElectivePills('pdhpe',        'y9-curriculum-container') +
-        countElectivePills('hpe',          'y9-curriculum-container') +
+      // Y9 NSW: 5 mandatory subjects always counted (Eng, Maths, Science, HSIE, PDHPE).
+      // Pathway selections (Standard/Extension) don't increase the count.
+      // Only additional elective picks add to the total.
+      // HSIE has 2 locked pills (History, Geography) — subtract them to get elective-only count.
+      var hsieTotal = countDynamicPills('hsie', 'y9-curriculum-container') + countDynamicPills('hass', 'y9-curriculum-container');
+      var hsieElectives = Math.max(0, hsieTotal - 2); // Subtract locked History + Geography
+      total = 5 + // Mandatory: Eng, Maths, Science, HSIE, PDHPE
+        hsieElectives +
+        countDynamicPills('technological_and_applied_studies', 'y9-curriculum-container') +
+        countDynamicPills('technologies', 'y9-curriculum-container') +
+        countDynamicPills('creative_arts','y9-curriculum-container') +
+        countDynamicPills('the_arts',     'y9-curriculum-container') +
+        countDynamicPills('pdhpe',        'y9-curriculum-container') +
+        countDynamicPills('hpe',          'y9-curriculum-container') +
         hasLanguage();
     }
     else if (yearNum === 10) {
-      total = 5 +
-        countElectivePills('hsie',         'y10-curriculum-container') +
-        countElectivePills('hass',         'y10-curriculum-container') +
-        countElectivePills('humanities',   'y10-curriculum-container') +
-        countElectivePills('technological_and_applied_studies', 'y10-curriculum-container') +
-        countElectivePills('technologies', 'y10-curriculum-container') +
-        countElectivePills('creative_arts','y10-curriculum-container') +
-        countElectivePills('the_arts',     'y10-curriculum-container') +
-        countElectivePills('pdhpe',        'y10-curriculum-container') +
-        countElectivePills('hpe',          'y10-curriculum-container') +
+      // Y10 NSW: Same logic as Y9 — 5 mandatory base, electives only add
+      var hsieTotal10 = countDynamicPills('hsie', 'y10-curriculum-container') +
+                        countDynamicPills('hass', 'y10-curriculum-container') +
+                        countDynamicPills('humanities', 'y10-curriculum-container');
+      var hsieElectives10 = Math.max(0, hsieTotal10 - 2); // Subtract locked History + Geography
+      total = 5 + // Mandatory: Eng, Maths, Science, HSIE, PDHPE
+        hsieElectives10 +
+        countDynamicPills('technological_and_applied_studies', 'y10-curriculum-container') +
+        countDynamicPills('technologies', 'y10-curriculum-container') +
+        countDynamicPills('creative_arts','y10-curriculum-container') +
+        countDynamicPills('the_arts',     'y10-curriculum-container') +
+        countDynamicPills('pdhpe',        'y10-curriculum-container') +
+        countDynamicPills('hpe',          'y10-curriculum-container') +
         hasLanguage();
     }
 
@@ -6484,17 +6504,10 @@ function getNextYearNum() {
       if (!container) return 0;
       var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
                     container.querySelector('[data-learning-area="' + learningArea + '"]');
+      // Change 4: Removed offsetParent check — same fix as Y1 countDynamicPills.
+      // Y2 panel may be hidden when Y1 tab is active.
       if (!section) return 0;
       return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
-    }
-
-    function countElectivePillsY2(learningArea, containerId) {
-      var container = document.getElementById(containerId);
-      if (!container) return 0;
-      var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
-                    container.querySelector('[data-learning-area="' + learningArea + '"]');
-      if (!section) return 0;
-      return section.querySelectorAll('.aed-dynamic-pill.is-selected:not([data-locked="true"])').length;
     }
 
     function hasLanguageY2() {
@@ -6514,28 +6527,31 @@ function getNextYearNum() {
                       countDynamicPillsY2('creative_arts', 'f6-curriculum-container_y2');
       total = 7 + artsY78y2;
     } else if (yearNum === 9) {
+      // Same as Y1: 5 mandatory base, only elective pills add
+      var hsieY2Total = countDynamicPillsY2('hsie', 'y9-curriculum-container_y2') + countDynamicPillsY2('hass', 'y9-curriculum-container_y2');
+      var hsieY2Electives = Math.max(0, hsieY2Total - 2);
       total = 5 +
-        countElectivePillsY2('hsie',         'y9-curriculum-container_y2') +
-        countElectivePillsY2('hass',         'y9-curriculum-container_y2') +
-        countElectivePillsY2('humanities',   'y9-curriculum-container_y2') +
-        countElectivePillsY2('technological_and_applied_studies', 'y9-curriculum-container_y2') +
-        countElectivePillsY2('technologies', 'y9-curriculum-container_y2') +
-        countElectivePillsY2('creative_arts','y9-curriculum-container_y2') +
-        countElectivePillsY2('the_arts',     'y9-curriculum-container_y2') +
-        countElectivePillsY2('pdhpe',        'y9-curriculum-container_y2') +
-        countElectivePillsY2('hpe',          'y9-curriculum-container_y2') +
+        hsieY2Electives +
+        countDynamicPillsY2('technological_and_applied_studies', 'y9-curriculum-container_y2') +
+        countDynamicPillsY2('technologies', 'y9-curriculum-container_y2') +
+        countDynamicPillsY2('creative_arts','y9-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y9-curriculum-container_y2') +
+        countDynamicPillsY2('pdhpe',        'y9-curriculum-container_y2') +
+        countDynamicPillsY2('hpe',          'y9-curriculum-container_y2') +
         hasLanguageY2();
     } else if (yearNum === 10) {
+      var hsieY2Total10 = countDynamicPillsY2('hsie', 'y10-curriculum-container_y2') +
+                          countDynamicPillsY2('hass', 'y10-curriculum-container_y2') +
+                          countDynamicPillsY2('humanities', 'y10-curriculum-container_y2');
+      var hsieY2Electives10 = Math.max(0, hsieY2Total10 - 2);
       total = 5 +
-        countElectivePillsY2('hsie',         'y10-curriculum-container_y2') +
-        countElectivePillsY2('hass',         'y10-curriculum-container_y2') +
-        countElectivePillsY2('humanities',   'y10-curriculum-container_y2') +
-        countElectivePillsY2('technological_and_applied_studies', 'y10-curriculum-container_y2') +
-        countElectivePillsY2('technologies', 'y10-curriculum-container_y2') +
-        countElectivePillsY2('creative_arts','y10-curriculum-container_y2') +
-        countElectivePillsY2('the_arts',     'y10-curriculum-container_y2') +
-        countElectivePillsY2('pdhpe',        'y10-curriculum-container_y2') +
-        countElectivePillsY2('hpe',          'y10-curriculum-container_y2') +
+        hsieY2Electives10 +
+        countDynamicPillsY2('technological_and_applied_studies', 'y10-curriculum-container_y2') +
+        countDynamicPillsY2('technologies', 'y10-curriculum-container_y2') +
+        countDynamicPillsY2('creative_arts','y10-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y10-curriculum-container_y2') +
+        countDynamicPillsY2('pdhpe',        'y10-curriculum-container_y2') +
+        countDynamicPillsY2('hpe',          'y10-curriculum-container_y2') +
         hasLanguageY2();
     }
 
@@ -7882,7 +7898,6 @@ function initYearTabs() {
   var y2Panel = document.createElement('div');
   y2Panel.className = 'aed-y2-panel';
   y2Panel.id = 'aed-y2-curriculum-panel';
-  y2Panel.style.cssText = 'max-width: 1450px; width: 100%; box-sizing: border-box;';
 
   // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
   // Change 4: Also create the Y2 banner if it doesn't exist yet
@@ -7902,9 +7917,6 @@ function initYearTabs() {
     y2ContainerIds.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) {
-        el.style.maxWidth = '1450px';
-        el.style.width = '100%';
-        el.style.boxSizing = 'border-box';
         y2Panel.appendChild(el);
       }
     });
@@ -7976,13 +7988,8 @@ function initYearTabs() {
       }
     }
 
-    // When switching to Y1, clear the !important hide on Y1 containers first,
-    // then refresh so refreshCurriculumDisplay can set display:block
+    // When switching to Y1, refresh Y1 display
     if (tab === 'y1') {
-      ['f6-curriculum-container', 'y9-curriculum-container', 'y10-curriculum-container'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.removeProperty('display');
-      });
       if (typeof window.__aed_refreshCurriculumDisplay === 'function') {
         window.__aed_refreshCurriculumDisplay();
       }
@@ -8070,15 +8077,17 @@ function initYearTabs() {
     var trackingWidget = document.getElementById('aed-tracking-widget');
     if (trackingWidget) trackingWidget.style.display = (_activeYearTab === 'y2') ? 'none' : '';
 
-    // Hide Y1 curriculum containers when Y2 tab is active.
-    // When Y1 tab is active, do NOT touch display — leave as refreshCurriculumDisplay set it.
+    // Hide Y1 curriculum containers when Y2 tab is active
     ['f6-curriculum-container', 'y9-curriculum-container', 'y10-curriculum-container'].forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
       if (_activeYearTab === 'y2') {
         el.style.setProperty('display', 'none', 'important');
+      } else {
+        // Remove the !important override so refreshCurriculumDisplay() can
+        // manage visibility naturally (it sets display: block/none per year band)
+        el.style.removeProperty('display');
       }
-      // When Y1: intentionally do nothing — refreshCurriculumDisplay manages visibility
     });
 
     // Update tab labels with correct year names
