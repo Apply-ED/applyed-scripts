@@ -14,12 +14,9 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     opacity: 0.8;
   }
 
-  /* CHANGE 4: Program type radio — bright blue when selected */
-  input[name="program_type"]:checked + .w-form-formradioinput--inputType-custom,
-  input[name="program_type"]:checked ~ .w-radio-input {
-    background-color: #2563EB !important;
-    border-color: #2563EB !important;
-  }
+  /* CHANGE 4: Program type radio — bright blue when selected.
+     Webflow uses class-based radio state (w--redirected-checked), not :checked,
+     so we apply the color via JS below instead of pure CSS. */
   
   /* CHILD NAVIGATION PILLS STYLING */
   #child-nav-bar {
@@ -2677,6 +2674,10 @@ updateCurrentChildHeading();
   if (stepNum === STEP_FIRST_CHILD) {
   // Let the DOM "settle" for a beat, then enforce default if needed
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
+  // Change 4: Sync program type radio color after program type is set
+  setTimeout(function() {
+    if (typeof window.__aed_syncProgramTypeRadioColor === 'function') window.__aed_syncProgramTypeRadioColor();
+  }, 50);
 }
 
 // Show/hide the Step 3 goal-directed info banner
@@ -7092,6 +7093,39 @@ initInterestDeepDives();
 initGoalDirectedDeepDives();
 bindGoalCounter();
 bindGoalContainerSwapper();
+
+/* =========================
+   CHANGE 4: PROGRAM TYPE RADIO COLOR (Bright Blue)
+   Webflow uses w--redirected-checked class on the visual radio indicator,
+   not the native :checked pseudo-class. We apply the color via JS.
+   ========================= */
+function syncProgramTypeRadioColor() {
+  var BLUE = '#2563EB';
+  var radios = document.querySelectorAll('.w-radio');
+  radios.forEach(function(wrapper) {
+    var input = wrapper.querySelector('input[name="program_type"]');
+    if (!input) return;
+    var indicator = wrapper.querySelector('.w-form-formradioinput');
+    if (!indicator) return;
+    if (input.checked || indicator.classList.contains('w--redirected-checked')) {
+      indicator.style.setProperty('background-color', BLUE, 'important');
+      indicator.style.setProperty('border-color', BLUE, 'important');
+    } else {
+      indicator.style.removeProperty('background-color');
+      indicator.style.removeProperty('border-color');
+    }
+  });
+}
+// Run on radio change, click, and step activation
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.name === 'program_type') setTimeout(syncProgramTypeRadioColor, 10);
+});
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.closest('.w-radio')) setTimeout(syncProgramTypeRadioColor, 50);
+});
+// Also run on step activation (expose for setActive dispatch)
+window.__aed_syncProgramTypeRadioColor = syncProgramTypeRadioColor;
+setTimeout(syncProgramTypeRadioColor, 500);
   
 // Static per-child pricing — Step 0 add-on labels
 const cfg = window.APPLYED_PRICING_CONFIG;
@@ -7887,6 +7921,8 @@ function initYearTabs() {
   var y2Panel = document.createElement('div');
   y2Panel.className = 'aed-y2-panel';
   y2Panel.id = 'aed-y2-curriculum-panel';
+  // Change 4: Explicit inline style to guarantee width matches Y1 containers
+  y2Panel.style.cssText = 'max-width: 1450px; width: 100%; box-sizing: border-box;';
 
   // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
   // Change 4: Also create the Y2 banner if it doesn't exist yet
@@ -7906,6 +7942,10 @@ function initYearTabs() {
     y2ContainerIds.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) {
+        // Change 4: Ensure relocated containers inherit full width
+        el.style.maxWidth = '1450px';
+        el.style.width = '100%';
+        el.style.boxSizing = 'border-box';
         y2Panel.appendChild(el);
       }
     });
