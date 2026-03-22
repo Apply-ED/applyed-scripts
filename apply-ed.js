@@ -42,6 +42,43 @@ document.head.insertAdjacentHTML("beforeend", `<style>
   .child-nav-btn:hover:not(.is-active) {
     background-color: #eef4ee;
   }
+
+  /* CHANGE 4: Y1/Y2 Curriculum Tab Bar */
+  #aed-year-tabs {
+    display: none; /* hidden by default; shown when split-year */
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #DDe4dd;
+  }
+  #aed-year-tabs.is-visible {
+    display: flex;
+  }
+  .aed-year-tab {
+    background: transparent;
+    color: #7a7f87;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-family: Montserrat, sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+  }
+  .aed-year-tab.is-active {
+    color: #263358;
+    border-bottom-color: #799377;
+  }
+  .aed-year-tab:hover:not(.is-active) {
+    color: #263358;
+    border-bottom-color: #c3d9c3;
+  }
+  /* Change 4: Y2 curriculum panel visibility (tab-controlled) */
+  .aed-y2-panel { display: none; }
+  .aed-y2-panel.is-active { display: block; }
+  .aed-y1-panel { display: block; }
+  .aed-y1-panel.is-hidden { display: none; }
 </style>`);
 
 window.Webflow ||= [];
@@ -2510,9 +2547,15 @@ function applyStateDefaultForCurrentChild() {
 
 const STEP_FIRST_CHILD = 1;
 const STEP_LAST_CHILD = 5;
+// Change 4: STEP_Y2 is no longer a navigation target. Step 4's containers
+// have been relocated into Step 3 and are controlled by Y1/Y2 tabs.
+// We keep the constant for container-ID references only.
 const STEP_Y2 = 4;
 const STEP_ENVIRONMENT = 6;
 const STEP_PAYMENT = 7;
+
+  // Change 4: Track which curriculum tab is active ('y1' or 'y2')
+  let _activeYearTab = 'y1';
 
   let currentStepNum = 0;
 
@@ -2605,24 +2648,30 @@ updateCurrentChildHeading();
   // NEW: Update the progress bar every time the step changes
   setTimeout(updateProgressBar, 50);
 
-  // ─── CHANGE 3: Centralised step-activation dispatch ───────────────────
+  // ─── CHANGE 3 + CHANGE 4: Centralised step-activation dispatch ─────────
   // Replaces 13 MutationObservers that each watched .step elements for
   // is-active class changes. Since setActive() is the ONLY function that
   // toggles is-active, we call every "on step activate" callback directly
   // from here — deterministic, no timing races, no redundant observers.
+  //
+  // Change 4: Step 4 is no longer a navigation target. All Y2 curriculum
+  // rendering is triggered from Step 3 via the tab system.
   setTimeout(function() {
-    // Curriculum rendering (Step 3 / Step 4)
+    // Curriculum rendering (Step 3 — handles both Y1 and Y2 via tabs)
     if (stepNum === 3 && typeof window.__aed_refreshCurriculumDisplay === 'function') {
       window.__aed_refreshCurriculumDisplay();
-    }
-    if (stepNum === STEP_Y2 && typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
-      window.__aed_refreshY2CurriculumDisplay();
+      // Change 4: Also render Y2 if split-year (tabs control visibility)
+      if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
+        window.__aed_refreshY2CurriculumDisplay();
+      }
+      // Change 4: Sync the tab bar visibility and state
+      if (typeof window.__aed_syncYearTabs === 'function') {
+        window.__aed_syncYearTabs();
+      }
     }
 
-    // Y2 workload tracker (Step 4 only)
-    if (stepNum === STEP_Y2 && typeof window.__calculateY2Workload === 'function') {
-      window.__calculateY2Workload();
-    }
+    // Change 4: Y2 workload is now calculated as part of Step 3
+    // (triggered when Y2 tab is active or when pills change)
 
     // Language dropdown show/hide (all steps — syncs visibility on every transition)
     if (typeof window.__aed_syncLanguageToggle === 'function') {
@@ -2672,12 +2721,10 @@ updateCurrentChildHeading();
       window.__aed_updateY1Heading();
     }
 
-    // Y2 curriculum visibility (Step 4 only)
-    if (stepNum === STEP_Y2 && typeof window.__aed_checkY2YearLevel === 'function') {
-      window.__aed_checkY2YearLevel();
-    }
+    // Change 4: Y2 heading is now updated by the tab system within Step 3
+    // (no separate Step 4 dispatch needed)
   }, 50);
-  // ─── END CHANGE 3 dispatch ────────────────────────────────────────────
+  // ─── END CHANGE 3 + 4 dispatch ──────────────────────────────────────
 }
 
 /* -------------------------------------------------------
@@ -3490,6 +3537,12 @@ if (window.__aed_clearCurriculumCacheForChild) {
   if (stepEl) resyncAllMultiSelectGroups(stepEl);
 }
 
+  // Change 4: Reset to Y1 tab when switching to a new child
+  _activeYearTab = 'y1';
+  if (typeof window.__aed_syncYearTabs === 'function') {
+    window.__aed_syncYearTabs();
+  }
+
   applyDefaultCheckedGroups();
   applyStateDefaultForCurrentChild(); 
   applyCarryOverDataForCurrentChild();
@@ -4148,7 +4201,8 @@ if (action === "back") {
         renderChildNavBar();
 
 } else if (currentStepNum === STEP_LAST_CHILD) {
-        // From Step 5 (Interests & Goals), go back to Step 4 or Step 3
+        // Change 4: From Step 5, always go back to Step 3.
+        // If split-year, activate the Y2 tab so user sees where they left off.
         const childIdx = getChildIndex();
         const childData = window.__aed_child_applications[childIdx] || {};
         const studySpan = Array.isArray(childData.study_span)
@@ -4157,15 +4211,8 @@ if (action === "back") {
         const isSplit = studySpan && studySpan !== 'all_one_year';
 
         if (isSplit) {
-            setActive(STEP_Y2);
-            waitForCurriculumThenRestore(STEP_Y2);
-        } else {
-            setActive(3);
-            waitForCurriculumThenRestore(3);
+            _activeYearTab = 'y2';
         }
-
-} else if (currentStepNum === STEP_Y2) {
-        // From Step 4 (Y2 curriculum), go back to Step 3 (Y1 curriculum)
         setActive(3);
         waitForCurriculumThenRestore(3);
 
@@ -4182,7 +4229,9 @@ if (action === "back") {
         }
 
     } else if (currentStepNum > 0) {
-        setActive(currentStepNum - 1);
+        // Change 4: Skip step 4 when going back from step 5
+        const prevStep = (currentStepNum - 1 === STEP_Y2) ? 3 : currentStepNum - 1;
+        setActive(prevStep);
     }
     return;
   }
@@ -4216,14 +4265,7 @@ if (action === "next") {
 
     recalcOrderSummaryUIAndHidden();
 
-    // --- NEW LOOPING & ROUTING LOGIC ---
-    if (currentStepNum === STEP_Y2) {
-      // Validate Y2 curriculum before advancing
-      if (typeof window.validateY2Curriculum === 'function' && !window.validateY2Curriculum()) return;
-      // Step 4 (Y2 curriculum) always advances to Step 5 (Interests & Goals)
-      setActive(STEP_LAST_CHILD);
-      return;
-    }
+    // --- Change 4: UNIFIED ROUTING LOGIC (no Step 4 navigation) ---
 
     if (currentStepNum === STEP_LAST_CHILD) {
       // Step 5 (Interests & Goals) is the last child step. Trigger save & loop!
@@ -4232,8 +4274,8 @@ if (action === "next") {
     }
 
  if (currentStepNum === 3) {
-      // Step 3 (Curriculum Y1) — check if split year or all_one_year
-      // Read study_span from the DOM first, fall back to saved data
+      // Change 4: Step 3 now handles BOTH Y1 and Y2 curriculum via tabs.
+      // Read study_span to determine if split-year.
       let studySpan = null;
 
       const spanInput = document.querySelector('.ms-input[name="study_span"]');
@@ -4257,14 +4299,26 @@ if (action === "next") {
 
       const isSplit = studySpan && studySpan !== 'all_one_year';
 
-if (isSplit) {
-            setActive(STEP_Y2);
-            // Restore Step 4 pill selections after the curriculum re-render completes
-            waitForCurriculumThenRestore(STEP_Y2);
-        } else {
-            // All-one-year: skip Step 4 (Y2), go straight to Step 5 (Interests & Goals)
-            setActive(STEP_LAST_CHILD);
-        }
+      if (isSplit && _activeYearTab === 'y1') {
+            // Change 4: User is on Y1 tab of a split-year child.
+            // Instead of navigating to Step 4, switch to the Y2 tab within Step 3.
+            if (typeof window.__aed_switchYearTab === 'function') {
+              window.__aed_switchYearTab('y2');
+            }
+            // Validate Y2 is not needed yet — they just arrived on the tab.
+            // Scroll to top so they see the tab change.
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+      }
+
+      if (isSplit && _activeYearTab === 'y2') {
+            // Change 4: User is on Y2 tab. Validate Y2 before advancing.
+            if (typeof window.validateY2Curriculum === 'function' && !window.validateY2Curriculum()) return;
+      }
+
+      // All validation passed — advance to Step 5 (Interests & Goals)
+      _activeYearTab = 'y1'; // Reset to Y1 for next time
+      setActive(STEP_LAST_CHILD);
       return;
     }
 
@@ -4273,7 +4327,9 @@ if (isSplit) {
       return;
     }
 
-    if (currentStepNum < STEP_PAYMENT) setActive(currentStepNum + 1);
+    // Change 4: Skip step 4 in generic forward navigation
+    const nextStep = (currentStepNum + 1 === STEP_Y2) ? STEP_LAST_CHILD : currentStepNum + 1;
+    if (nextStep <= STEP_PAYMENT) setActive(nextStep);
     return;
   }
 });
@@ -4484,13 +4540,21 @@ function loadChildData(idx) {
   setTimeout(setupAutoExpandingTextareas, 50);
   setTimeout(refreshAllSelectColours, 50);
 
+  // Change 4: Reset to Y1 tab when loading a child's data
+  _activeYearTab = 'y1';
+  if (typeof window.__aed_syncYearTabs === 'function') {
+    setTimeout(window.__aed_syncYearTabs, 150);
+  }
+
   // 🛡️ Deactivate the shield once the DOM has safely settled
   setTimeout(() => { window.__aed_is_loading_data = false; }, 100);
 }
 /* =========================
-   RESTORE DYNAMIC PILLS (Steps 3 & 4)
+   RESTORE DYNAMIC PILLS (Steps 3 & Y2)
    Called after back-navigation so saved selections are re-applied
    to freshly-rendered curriculum pill DOM.
+   Change 4: Y2 containers are now inside Step 3, so we always
+   use Step 3's element but select the right field set.
    ========================= */
 function restoreDynamicPillsForStep(stepNum) {
   const idx = getChildIndex();
@@ -4515,7 +4579,8 @@ const DYNAMIC_PILL_FIELDS_Y1 = [
   ];
 
   const fields = stepNum === STEP_Y2 ? DYNAMIC_PILL_FIELDS_Y2 : DYNAMIC_PILL_FIELDS_Y1;
-  const stepEl = getStepEl(stepNum);
+  // Change 4: Y2 containers now live inside Step 3
+  const stepEl = getStepEl(stepNum === STEP_Y2 ? 3 : stepNum);
   if (!stepEl) return;
 
   // 1. Restore dynamic curriculum pills (pathway cards + elective accordions)
@@ -4559,9 +4624,16 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
   const langKey = stepNum === STEP_Y2 ? 'language_of_study_y2' : 'language_of_study';
   const savedLang = data[langKey] || (stepNum === STEP_Y2 ? data['language_of_study'] : '');
   if (savedLang) {
+    // Change 4: When restoring Y2 language, search within the Y2 panel
+    // to avoid accidentally finding the Y1 language card first.
+    var langSearchScope = stepEl;
+    if (stepNum === STEP_Y2) {
+      var y2p = document.getElementById('aed-y2-curriculum-panel');
+      if (y2p) langSearchScope = y2p;
+    }
     // The dynamic select is rendered inside the step but is NOT a named form input —
     // find it by its position inside .aed-languages-card-body
-    const langBody = stepEl.querySelector('.aed-languages-card-body');
+    const langBody = langSearchScope.querySelector('.aed-languages-card-body');
     if (langBody) {
       const dynSelect = langBody.querySelector('select');
       if (dynSelect) {
@@ -6336,12 +6408,13 @@ function getNextYearNum() {
     }
 
     function hasLanguageY2() {
-      var step4 = document.querySelector('.step[data-step="4"]');
-      if (!step4) return 0;
-      var langCbs = step4.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages_y2"], input[id="languages_y2"]');
+      // Change 4: Y2 containers now live inside Step 3, not Step 4
+      var y2Panel = document.getElementById('aed-y2-curriculum-panel') || document.querySelector('.step[data-step="3"]');
+      if (!y2Panel) return 0;
+      var langCbs = y2Panel.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages_y2"], input[id="languages_y2"]');
       var isChecked = false;
       langCbs.forEach(function(cb) {
-        if (cb.checked && cb.offsetParent !== null) isChecked = true;
+        if (cb.checked) isChecked = true;
       });
       return isChecked ? 1 : 0;
     }
@@ -6637,9 +6710,10 @@ function childScreenCount(idx) {
   } else if (currentStepNum === 2) {
     currentScreen = screensBeforeCurrentChild + 2;
   } else if (currentStepNum === 3) {
-    currentScreen = screensBeforeCurrentChild + 3;
-  } else if (currentStepNum === STEP_Y2) {
-    currentScreen = screensBeforeCurrentChild + 4;
+    // Change 4: Step 3 now contains both Y1 and Y2 tabs.
+    // When user is on Y2 tab, count as one screen further.
+    const isOnY2Tab = (_activeYearTab === 'y2');
+    currentScreen = screensBeforeCurrentChild + (isOnY2Tab ? 4 : 3);
   } else if (currentStepNum === STEP_LAST_CHILD) {
     const isSplit = childScreenCount(currentChildIdx) === 5;
     currentScreen = screensBeforeCurrentChild + (isSplit ? 5 : 4);
@@ -7665,73 +7739,268 @@ function bindY1StepHeading() {
 
 /* =========================
    STEP 4: CURRICULUM YEAR 2 WIRING
+   Change 4: bindY2CurriculumVisibility REMOVED.
+   - Banner creation moved to initYearTabs()
+   - Y2 heading updates handled by tab label system
+   - checkY2YearLevel was just a wrapper around refreshY2CurriculumDisplay()
+     which is now called directly from the tab system
    ========================= */
-function bindY2CurriculumVisibility() {
-  const step4 = document.querySelector('.step[data-step="4"]');
-  if (!step4) return;
 
-  // Container IDs in Step 4
-  const f6Container   = document.getElementById('f6-curriculum-container_y2');
-  const artsPillsY78  = document.getElementById('y78-arts-pills_y2');
-  const y9Container   = document.getElementById('y9-curriculum-container_y2');
-  const y10Container  = document.getElementById('y10-curriculum-container_y2');
-  const heading       = document.getElementById('y2-step-heading');
+/* ==========================================================
+   CHANGE 4: Y1/Y2 TAB SYSTEM
+   Creates a tab bar inside Step 3 that toggles between
+   Year 1 and Year 2 curriculum panels. Y2 containers from
+   Step 4 are physically relocated into Step 3 at init time.
+   ========================================================== */
+function initYearTabs() {
+  var step3 = document.querySelector('.step[data-step="3"]');
+  var step4 = document.querySelector('.step[data-step="4"]');
+  if (!step3) return;
 
-  // Reuse the banner container logic from Step 3
-  let bannerContainer = document.getElementById('aed-curriculum-banner_y2');
-  if (!bannerContainer) {
-    bannerContainer = document.createElement('div');
-    bannerContainer.id = 'aed-curriculum-banner_y2';
-    bannerContainer.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box; display: none;';
-    if (f6Container && f6Container.parentNode) {
-      f6Container.parentNode.insertBefore(bannerContainer, f6Container);
+  // ── 1. Create the tab bar ──────────────────────────────────────────────
+  var tabBar = document.createElement('div');
+  tabBar.id = 'aed-year-tabs';
+  // Hidden by default; syncYearTabs() will show it when split-year
+
+  var tabY1 = document.createElement('button');
+  tabY1.type = 'button';
+  tabY1.className = 'aed-year-tab is-active';
+  tabY1.id = 'aed-tab-y1';
+  tabY1.textContent = 'Year 1 Curriculum';
+
+  var tabY2 = document.createElement('button');
+  tabY2.type = 'button';
+  tabY2.className = 'aed-year-tab';
+  tabY2.id = 'aed-tab-y2';
+  tabY2.textContent = 'Year 2 Curriculum';
+
+  tabBar.appendChild(tabY1);
+  tabBar.appendChild(tabY2);
+
+  // Insert the tab bar at the top of Step 3, right before the curriculum area
+  // Look for the Y1 heading as an anchor, otherwise prepend
+  var y1Heading = document.getElementById('y1-step-heading');
+  if (y1Heading) {
+    y1Heading.parentNode.insertBefore(tabBar, y1Heading);
+  } else {
+    step3.insertBefore(tabBar, step3.firstChild);
+  }
+
+  // ── 2. Create Y1/Y2 wrapper panels ────────────────────────────────────
+  // Wrap the existing Y1 curriculum content in a panel div.
+  // The Y1 containers are: f6-curriculum-container, y9-curriculum-container, y10-curriculum-container
+  // Plus the workload tracker, curriculum banner, etc.
+  // We'll wrap them by creating a panel and moving key elements into it.
+
+  // Create Y2 panel wrapper
+  var y2Panel = document.createElement('div');
+  y2Panel.className = 'aed-y2-panel';
+  y2Panel.id = 'aed-y2-curriculum-panel';
+
+  // ── 3. Relocate Y2 containers from Step 4 into Step 3 ─────────────────
+  // Change 4: Also create the Y2 banner if it doesn't exist yet
+  // (previously created by bindY2CurriculumVisibility, now handled here)
+  var f6Y2 = document.getElementById('f6-curriculum-container_y2');
+  if (!document.getElementById('aed-curriculum-banner_y2')) {
+    var bannerY2 = document.createElement('div');
+    bannerY2.id = 'aed-curriculum-banner_y2';
+    bannerY2.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box; display: none;';
+    if (f6Y2 && f6Y2.parentNode) {
+      f6Y2.parentNode.insertBefore(bannerY2, f6Y2);
     }
   }
 
-  function getNextYearLevel() {
-    // Read the selected year level from Step 2
-    const yearDropdown = document.querySelector('select[name="student_year_level"]');
-    if (!yearDropdown || !yearDropdown.value) return null;
+  if (step4) {
+    var y2ContainerIds = ['aed-curriculum-banner_y2', 'f6-curriculum-container_y2', 'y9-curriculum-container_y2', 'y10-curriculum-container_y2'];
+    y2ContainerIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        y2Panel.appendChild(el);
+      }
+    });
 
-    const raw = yearDropdown.value;
-    if (raw === 'FOUNDATION') return 'Year 1';
-
-    const match = raw.match(/\d+/);
-    if (!match) return null;
-
-    const nextNum = parseInt(match[0], 10) + 1;
-    if (nextNum > 10) return null; // No Year 11
-    return 'Year ' + nextNum;
+    // Also move the Y2 heading into the panel
+    var y2Heading = document.getElementById('y2-step-heading');
+    if (y2Heading) {
+      y2Panel.insertBefore(y2Heading, y2Panel.firstChild);
+    }
   }
 
-  function updateY2Heading(nextYearLevel) {
-    if (!heading || !nextYearLevel) return;
-    // Get student name for personalisation
-    const nameInput = document.querySelector('input[name="student_first_name"]');
-    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : null;
-    if (name) {
-      heading.textContent = "Select " + name + "'s " + nextYearLevel + " curriculum & electives";
+  // Insert Y2 panel at the end of Step 3's curriculum area
+  // (after the last Y1 curriculum container)
+  var lastY1Container = document.getElementById('y10-curriculum-container') ||
+                         document.getElementById('y9-curriculum-container') ||
+                         document.getElementById('f6-curriculum-container');
+
+  if (lastY1Container && lastY1Container.parentNode) {
+    // Insert after the last Y1 container
+    if (lastY1Container.nextSibling) {
+      lastY1Container.parentNode.insertBefore(y2Panel, lastY1Container.nextSibling);
     } else {
-      heading.textContent = "Select " + nextYearLevel + " curriculum & electives";
+      lastY1Container.parentNode.appendChild(y2Panel);
     }
+  } else {
+    // Fallback: just append to Step 3
+    step3.appendChild(y2Panel);
   }
 
-  function checkY2YearLevel() {
-    // Delegate entirely to the dynamic rendering system
-    if (typeof refreshY2CurriculumDisplay === "function") {
-      refreshY2CurriculumDisplay();
+  // ── 4. Tab click handlers ──────────────────────────────────────────────
+  tabY1.addEventListener('click', function() {
+    if (typeof window.__aed_switchYearTab === 'function') {
+      window.__aed_switchYearTab('y1');
     }
+  });
+
+  tabY2.addEventListener('click', function() {
+    if (typeof window.__aed_switchYearTab === 'function') {
+      window.__aed_switchYearTab('y2');
+    }
+  });
+
+  // ── 5. Expose the tab switching function ───────────────────────────────
+  window.__aed_switchYearTab = function(tab) {
+    // Save current tab's data before switching
+    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
+
+    _activeYearTab = tab;
+
+    // Sync all visual state (tab buttons, panels, Y1 container visibility)
+    if (typeof window.__aed_syncYearTabs === 'function') {
+      window.__aed_syncYearTabs();
+    }
+
+    // When switching to Y2, trigger a curriculum render for Y2
+    if (tab === 'y2') {
+      if (typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
+        window.__aed_refreshY2CurriculumDisplay();
+      }
+      // Restore Y2 pills after render completes
+      if (typeof restoreDynamicPillsForStep === 'function') {
+        setTimeout(function() {
+          restoreDynamicPillsForStep(STEP_Y2);
+        }, 100);
+      }
+      // Recalculate Y2 workload
+      if (typeof window.__calculateY2Workload === 'function') {
+        setTimeout(window.__calculateY2Workload, 150);
+      }
+    }
+
+    // When switching to Y1, refresh Y1 display
+    if (tab === 'y1') {
+      if (typeof window.__aed_refreshCurriculumDisplay === 'function') {
+        window.__aed_refreshCurriculumDisplay();
+      }
+    }
+
+    // Update progress bar to reflect tab position
+    if (typeof updateProgressBar === 'function') {
+      setTimeout(updateProgressBar, 50);
+    }
+
+    console.log('📑 AED: Switched to ' + tab.toUpperCase() + ' tab');
+  };
+
+  // ── 6. Sync tab bar visibility (called from setActive and child switch) ──
+  function getStudySpanForCurrentChild() {
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var childData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
+    var studySpan = Array.isArray(childData.study_span)
+      ? childData.study_span[0]
+      : childData.study_span;
+
+    // Also check the DOM if no saved data yet
+    if (!studySpan) {
+      var spanInput = document.querySelector('.ms-input[name="study_span"]');
+      if (spanInput && spanInput.value) {
+        try {
+          var parsed = JSON.parse(spanInput.value);
+          if (Array.isArray(parsed) && parsed.length > 0) studySpan = parsed[0];
+        } catch (e) {}
+      }
+    }
+    return studySpan;
   }
 
-  // Change 3: Expose for centralised dispatch from setActive()
-  window.__aed_checkY2YearLevel = checkY2YearLevel;
+  function updateTabLabels() {
+    var yearDropdown = document.querySelector('select[name="student_year_level"]');
+    if (!yearDropdown || !yearDropdown.value) return;
 
-  // Change 3: MutationObserver REMOVED — checkY2YearLevel is now called from setActive()
+    var rawVal = yearDropdown.value;
+    var y1Label = '';
+    var y2Label = '';
 
-  // Also run once on load in case Step 4 is already active
-  setTimeout(checkY2YearLevel, 100);
+    if (rawVal === 'FOUNDATION') {
+      y1Label = 'Prep';
+      y2Label = 'Year 1';
+    } else {
+      var match = rawVal.match(/\d+/);
+      if (match) {
+        var y = parseInt(match[0], 10);
+        y1Label = 'Year ' + y;
+        y2Label = 'Year ' + (y + 1);
+      }
+    }
+
+    if (y1Label) tabY1.textContent = y1Label + ' Curriculum';
+    if (y2Label) tabY2.textContent = y2Label + ' Curriculum';
+  }
+
+  window.__aed_syncYearTabs = function() {
+    var studySpan = getStudySpanForCurrentChild();
+    var isSplit = studySpan && studySpan !== 'all_one_year';
+
+    // Show/hide the tab bar
+    if (isSplit) {
+      tabBar.classList.add('is-visible');
+    } else {
+      tabBar.classList.remove('is-visible');
+      // Force Y1 tab active when not split-year
+      _activeYearTab = 'y1';
+    }
+
+    // Sync tab button and panel states
+    tabY1.classList.toggle('is-active', _activeYearTab === 'y1');
+    tabY2.classList.toggle('is-active', _activeYearTab === 'y2');
+    y2Panel.classList.toggle('is-active', _activeYearTab === 'y2');
+
+    // Hide Y1 elements when Y2 tab is active
+    var y1HeadingEl = document.getElementById('y1-step-heading');
+    if (y1HeadingEl) y1HeadingEl.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+
+    var y1Banner = document.getElementById('aed-curriculum-banner');
+    if (y1Banner) y1Banner.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+
+    // Hide Y1 curriculum containers when Y2 tab is active
+    ['f6-curriculum-container', 'y9-curriculum-container', 'y10-curriculum-container'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (_activeYearTab === 'y2') {
+        el.style.setProperty('display', 'none', 'important');
+      } else {
+        // Remove the !important override so refreshCurriculumDisplay() can
+        // manage visibility naturally (it sets display: block/none per year band)
+        el.style.removeProperty('display');
+      }
+    });
+
+    // Update tab labels with correct year names
+    updateTabLabels();
+
+    console.log('📑 AED: Tab bar synced — ' + (_activeYearTab === 'y2' ? 'Y2' : 'Y1') + ' active, split=' + isSplit);
+  };
+
+  // ── 7. Initial sync ───────────────────────────────────────────────────
+  setTimeout(function() {
+    if (typeof window.__aed_syncYearTabs === 'function') {
+      window.__aed_syncYearTabs();
+    }
+  }, 700);
+
+  console.log('✅ AED: Y1/Y2 tab system initialised (Change 4)');
 }
 
-setTimeout(bindY2CurriculumVisibility, 500);
+// Init the tab system after everything else has loaded
+setTimeout(initYearTabs, 600);
 
 });
