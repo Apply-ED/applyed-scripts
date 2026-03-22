@@ -6268,15 +6268,21 @@ function bindWorkloadTracker() {
       if (!container) return 0;
       var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
                     container.querySelector('[data-learning-area="' + learningArea + '"]');
-      if (!section || section.offsetParent === null) return 0;
+      // Change 4: Removed offsetParent check. When the Y2 tab is active,
+      // Y1 containers are hidden (display:none) so offsetParent is null.
+      // But the pills still exist in the cached DOM and their is-selected
+      // state is accurate. We must count them regardless of visibility.
+      if (!section) return 0;
       return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
     }
 
     function hasLanguage() {
       var langCbs = document.querySelectorAll('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]');
       var isChecked = false;
+      // Change 4: Removed offsetParent check — Y1 containers may be hidden
+      // when Y2 tab is active, but the checkbox state is still accurate.
       langCbs.forEach(function(cb) {
-        if (cb.checked && cb.offsetParent !== null) isChecked = true;
+        if (cb.checked) isChecked = true;
       });
       return isChecked ? 1 : 0;
     }
@@ -6895,15 +6901,10 @@ function bindAcademicTrackingWidget() {
     if (_trackData["aed-tracking-excelling"] && _trackData["aed-tracking-excelling"].length) {
       state.excelling = _trackData["aed-tracking-excelling"].slice();
     }
-    // Fallback to hidden inputs only on very first render (before any navigation)
-    if (!state.needs_attention.length && !state.excelling.length) {
-      ["needs_attention", "excelling"].forEach(function(type) {
-        var inp = document.getElementById("aed-tracking-" + type);
-        if (inp && inp.value) {
-          try { state[type] = JSON.parse(inp.value); } catch(e) {}
-        }
-      });
-    }
+    // Change 4: Removed the hidden-input fallback. It caused data bleed
+    // between children because the hidden inputs are global (not per-child)
+    // and retain the previous child's selections when a new child loads.
+    // __aed_child_applications is the single source of truth.
 
     function buildColumn(type, colLabel) {
       var col = document.createElement("div");
