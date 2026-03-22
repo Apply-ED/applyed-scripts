@@ -13,6 +13,13 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     pointer-events: none !important;
     opacity: 0.8;
   }
+
+  /* CHANGE 4: Program type radio — bright blue when selected */
+  input[name="program_type"]:checked + .w-form-formradioinput--inputType-custom,
+  input[name="program_type"]:checked ~ .w-radio-input {
+    background-color: #2563EB !important;
+    border-color: #2563EB !important;
+  }
   
   /* CHILD NAVIGATION PILLS STYLING */
   #child-nav-bar {
@@ -75,7 +82,7 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     border-bottom-color: #c3d9c3;
   }
   /* Change 4: Y2 curriculum panel visibility (tab-controlled) */
-  .aed-y2-panel { display: none; }
+  .aed-y2-panel { display: none; max-width: 1450px; width: 100%; box-sizing: border-box; }
   .aed-y2-panel.is-active { display: block; }
   .aed-y1-panel { display: block; }
   .aed-y1-panel.is-hidden { display: none; }
@@ -1766,7 +1773,24 @@ if (_savedLang) {
 
   // ─── REFRESH STEP 4 (Y2) ────────────────────────────────────────────────
   function refreshY2CurriculumDisplay() {
-    var yearNum = getCurrentYearNum();
+    // Change 4: Read year from __aed_child_applications first (reliable
+    // source) because the DOM dropdown may not be updated yet during
+    // step transitions and child switches.
+    var yearNum = null;
+    var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    var savedData = (window.__aed_child_applications && window.__aed_child_applications[childIdx]) || {};
+    if (savedData.student_year_level) {
+      var raw = savedData.student_year_level;
+      if (raw === 'FOUNDATION') { yearNum = 0; }
+      else {
+        var m = raw.match(/\d+/);
+        if (m) yearNum = parseInt(m[0], 10);
+      }
+    }
+    // Fallback to DOM dropdown
+    if (yearNum === null) {
+      yearNum = getCurrentYearNum();
+    }
     if (yearNum === null) return;
 
     // Step 4 shows the NEXT year level
@@ -3577,6 +3601,13 @@ if (window.__aed_clearCurriculumCacheForChild) {
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
   
+  // Change 4: Clear tracking widget hidden inputs so collectChildData()
+  // doesn't pick up the previous child's tracking selections.
+  ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
+    var inp = document.getElementById(id);
+    if (inp) inp.value = '[]';
+  });
+
   const customFields = ["short_term_custom", "long_term_custom"];
   customFields.forEach(fieldName => {
     const el = document.querySelector(`textarea[name="${fieldName}"]`);
@@ -4520,6 +4551,17 @@ function loadChildData(idx) {
   // Sync pill visuals
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
+
+  // Change 4: Clear tracking hidden inputs before restoring the loaded child's
+  // values. Without this, the previous child's tracking pills persist in the
+  // hidden inputs and get scraped by collectChildData() on the next save.
+  ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
+    var inp = document.getElementById(id);
+    if (inp) {
+      var childTracking = data[id];
+      inp.value = childTracking ? JSON.stringify(childTracking) : '[]';
+    }
+  });
 
   // FIX 1: If study_span has a saved value, make sure the pill section is visible
   if (data.study_span) {
@@ -6294,11 +6336,23 @@ function bindWorkloadTracker() {
       total = 7 + artsY78;
     }
     else if (yearNum === 9) {
-      total = 4 +
-        countDynamicPills('hass', 'y9-curriculum-container') +
+      // Y9 NSW: base 4 = 3 pathways (Eng/Maths/Sci counted as 1 each when selected) + 1 PDHPE mandatory
+      // Then count all elective area pills: HSIE (History+Geography locked + extras),
+      // TAS, Creative Arts, PDHPE electives, plus optional Languages.
+      // Note: NSW Y9 uses 'hsie' not 'hass', and 'technological_and_applied_studies' not 'technologies'
+      var engPathY9  = countDynamicPills('english_pathway',     'y9-curriculum-container') > 0 ? 1 : 0;
+      var mathPathY9 = countDynamicPills('mathematics_pathway', 'y9-curriculum-container') > 0 ? 1 : 0;
+      var sciPathY9  = countDynamicPills('science_pathway',     'y9-curriculum-container') > 0 ? 1 : 0;
+      total = engPathY9 + mathPathY9 + sciPathY9 +
+        countDynamicPills('hsie',         'y9-curriculum-container') +
+        countDynamicPills('hass',         'y9-curriculum-container') +
+        countDynamicPills('technological_and_applied_studies', 'y9-curriculum-container') +
         countDynamicPills('technologies', 'y9-curriculum-container') +
-        countDynamicPills('the_arts', 'y9-curriculum-container') +
-        countDynamicPills('creative_arts', 'y9-curriculum-container') +
+        countDynamicPills('creative_arts','y9-curriculum-container') +
+        countDynamicPills('the_arts',     'y9-curriculum-container') +
+        countDynamicPills('pdhpe',        'y9-curriculum-container') +
+        countDynamicPills('hpe',          'y9-curriculum-container') +
+        1 + // PDHPE mandatory (not a pill, always included)
         hasLanguage();
     }
     else if (yearNum === 10) {
@@ -6434,7 +6488,9 @@ function getNextYearNum() {
       if (!container) return 0;
       var section = container.querySelector('.aed-learning-area-section[data-learning-area="' + learningArea + '"]') ||
                     container.querySelector('[data-learning-area="' + learningArea + '"]');
-      if (!section || section.offsetParent === null) return 0;
+      // Change 4: Removed offsetParent check — same fix as Y1 countDynamicPills.
+      // Y2 panel may be hidden when Y1 tab is active.
+      if (!section) return 0;
       return section.querySelectorAll('.aed-dynamic-pill.is-selected').length;
     }
 
@@ -6455,11 +6511,20 @@ function getNextYearNum() {
                       countDynamicPillsY2('creative_arts', 'f6-curriculum-container_y2');
       total = 7 + artsY78y2;
     } else if (yearNum === 9) {
-      total = 4 +
+      // Same fix as Y1: use correct NSW Y9 learning area keys
+      var engPathY2Y9  = countDynamicPillsY2('english_pathway',     'y9-curriculum-container_y2') > 0 ? 1 : 0;
+      var mathPathY2Y9 = countDynamicPillsY2('mathematics_pathway', 'y9-curriculum-container_y2') > 0 ? 1 : 0;
+      var sciPathY2Y9  = countDynamicPillsY2('science_pathway',     'y9-curriculum-container_y2') > 0 ? 1 : 0;
+      total = engPathY2Y9 + mathPathY2Y9 + sciPathY2Y9 +
+        countDynamicPillsY2('hsie',         'y9-curriculum-container_y2') +
         countDynamicPillsY2('hass',         'y9-curriculum-container_y2') +
+        countDynamicPillsY2('technological_and_applied_studies', 'y9-curriculum-container_y2') +
         countDynamicPillsY2('technologies', 'y9-curriculum-container_y2') +
-        countDynamicPillsY2('the_arts',     'y9-curriculum-container_y2') +
         countDynamicPillsY2('creative_arts','y9-curriculum-container_y2') +
+        countDynamicPillsY2('the_arts',     'y9-curriculum-container_y2') +
+        countDynamicPillsY2('pdhpe',        'y9-curriculum-container_y2') +
+        countDynamicPillsY2('hpe',          'y9-curriculum-container_y2') +
+        1 + // PDHPE mandatory
         hasLanguageY2();
     } else if (yearNum === 10) {
       var engPathY2  = countDynamicPillsY2('english_pathway',     'y10-curriculum-container_y2') > 0 ? 1 : 0;
