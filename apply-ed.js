@@ -1452,6 +1452,12 @@ function setChildrenCount(n) {
   writeStateField("children_count", STATE.childrenCount);
 }
 
+// Expose state functions on window for cross-module access (Module 2+)
+window.getChildIndex      = getChildIndex;
+window.setChildIndex      = setChildIndex;
+window.getChildrenCount   = getChildrenCount;
+window.setChildrenCount   = setChildrenCount;
+
 /* =========================
    NEW: Persist "state" selection across children
    ========================= */
@@ -1804,6 +1810,7 @@ function ensureDefaultProgramTypeForCurrentChild() {
       document.querySelector('input[name="total_children"]');
     return el ? toInt(el.value, 1) : 1;
   }
+  window.getTotalChildrenFromStep0 = getTotalChildrenFromStep0;
 
 function showStepError(stepNum, msg) {
     const stepEl = getStepEl(stepNum);
