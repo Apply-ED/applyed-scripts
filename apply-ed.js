@@ -2074,8 +2074,6 @@ const result = await postToMakeCreateCheckout(payload);
      CLICK HANDLER (existing)
    ========================= */
 
-/* =========================
-   HELPER: Wait for curriculum DOM rebuild, then restore pills
 function setupAutoExpandingTextareas() {
   const textareas = document.querySelectorAll('textarea.is-note-field');
   if (textareas.length === 0) return; // Exit if none found
