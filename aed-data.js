@@ -1036,7 +1036,7 @@ function initLiveSave() {
   console.log("✅ AED: Live-save system initialised");
 }
 
-  /* =========================
+  /* =======================
      Expose on window.AED (clean namespace)
      ========================= */
   window.AED.data = {
