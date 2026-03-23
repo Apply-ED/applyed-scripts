@@ -1,12 +1,4 @@
-// 1. THE GLOBAL BRIDGE (Must be at the very top)
-window.jumpToChild = function(targetIdx) {
-    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave first!
-    if (window.aed_nav) {
-        window.aed_nav.jump(targetIdx);
-    } else {
-        console.error("Navigation bridge not ready.");
-    }
-};
+// jumpToChild bridge moved to aed-navigation.js (Module 4)
 
 // CSS injection moved to aed-config.js (Module 1)
 
@@ -14,15 +6,7 @@ window.Webflow ||= [];
 window.Webflow.push(function () {
   "use strict";
 
-  // 2. THE NAVIGATION REGISTER (Connects the bridge to your private functions)
-  window.aed_nav = {
-      jump: function(idx) {
-          setChildIndex(idx);
-          loadChildData(idx);
-          setActive(1); // Physically moves the screen back to Step 1
-          renderChildNavBar();
-      }
-  };
+  // aed_nav bridge moved to aed-navigation.js (Module 4)
 
   /* =========================
       CONFIG — Aliases from aed-config.js (Module 1)
@@ -1048,7 +1032,7 @@ if (_savedLang) {
         // When Y2 tab is active, we still render (populate the cached DOM)
         // but leave the container hidden so it doesn't overlap Y2 content.
         // Note: window.__aed_activeYearTab is used because this function
-        // lives in a separate IIFE from the _activeYearTab variable.
+        // lives in a separate IIFE from the window.__aed_activeYearTab variable.
         if (window.__aed_activeYearTab !== 'y2') {
           el.style.display = "block";
         }
@@ -1414,391 +1398,28 @@ var DEFAULT_STATE_VALUE              = window.AED.CONSTANTS.DEFAULT_STATE_VALUE;
 
 
   /* =========================
-     STEP NAVIGATION + VALIDATION
+     STEP NAVIGATION + VALIDATION — Moved to aed-navigation.js (Module 4)
+     Local aliases below reference window.* exposures from Module 4.
      ========================= */
-
-  const steps = Array.from(document.querySelectorAll('.step[data-step]'))
-    .sort((a, b) => toInt(a.getAttribute("data-step"), 0) - toInt(b.getAttribute("data-step"), 0));
-
-  const sideSteps = Array.from(document.querySelectorAll(".side-step"));
-
-  if (!steps.length) {
-    console.warn("[Apply-ED] No .step[data-step] found.");
-    return;
-  }
-
-const STEP_FIRST_CHILD = 1;
-const STEP_LAST_CHILD = 5;
-// Change 4: STEP_Y2 is no longer a navigation target. Step 4's containers
-// have been relocated into Step 3 and are controlled by Y1/Y2 tabs.
-// We keep the constant for container-ID references only.
-const STEP_Y2 = 4;
-const STEP_ENVIRONMENT = 6;
-const STEP_PAYMENT = 7;
-
-  // Change 4: Track which curriculum tab is active ('y1' or 'y2')
-  // Exposed on window so the curriculum IIFE (separate scope) can read it.
-  window.__aed_activeYearTab = 'y1';
-  let _activeYearTab = 'y1';
-  // Keep both in sync — local for fast access, window for cross-scope
-  Object.defineProperty(window, '__aed_activeYearTab', {
-    get: function() { return _activeYearTab; },
-    set: function(v) { _activeYearTab = v; },
-    configurable: true
-  });
-
-  let currentStepNum = 0;
-
-  function getStepEl(stepNum) {
-    return steps.find(s => toInt(s.getAttribute("data-step"), -1) === stepNum) || null;
-  }
-
-/* =========================
-   CHILD HEADING (Student name & Number)
-   ========================= */
-
-function updateCurrentChildHeading() {
-  // 1. Identify the active step or current step element
-  const activeStep = document.querySelector(".step.is-active") || getStepEl(currentStepNum) || document;
-
-  // 2. Locate the heading element (ensure this attribute is on your H3/H4 in Webflow)
-  const heading = activeStep.querySelector('[data-child-heading="true"]');
-  if (!heading) return;
-
-  // 3. Get the Child Index and convert to 1-based "Human" number (e.g., Index 0 = Child 1)
-  const childIdx = getChildIndex(); 
-  const displayNum = childIdx + 1;
-
-  // 4. Try to find the name input (checks active step first, then Step 1 as fallback)
-  let nameEl = activeStep.querySelector('input[name="student_first_name"]');
-  if (!nameEl) {
-    const step1 = getStepEl(STEP_FIRST_CHILD);
-    if (step1) nameEl = step1.querySelector('input[name="student_first_name"]');
-  }
-
-  const name = (nameEl && nameEl.value) ? nameEl.value.trim() : "";
-
-  // 5. Update heading text: "Child 1: Alice" or just "Child 1"
-  if (name) {
-    heading.textContent = `Child ${displayNum}: ${name}`;
-  } else {
-    heading.textContent = `Child ${displayNum}`;
-  }
-// Update the section heading
-  const sectionHeading = document.getElementById('child-section-heading');
-  if (sectionHeading) {
-    sectionHeading.textContent = name ? `About ${name}` : 'About';
-  }
-// Update the page heading
-  const pageHeading = document.getElementById('child-page-heading');
-  if (pageHeading) {
-    pageHeading.textContent = name ? `Now tell us about ${name}` : 'Now tell us about your child';
-  }
-
-  // Ensure it is visible
-  heading.style.display = "";
-}
-
-function setActive(stepNum) {
-  steps.forEach(stepEl => {
-    const n = toInt(stepEl.getAttribute("data-step"), -1);
-    stepEl.classList.toggle("is-active", n === stepNum);
-  });
-
-  if (sideSteps.length) {
-    sideSteps.forEach((panel, idx) => panel.classList.toggle("is-active", idx === stepNum));
-  }
-
-  currentStepNum = stepNum;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  
-  if (stepNum === STEP_PAYMENT) {
-    renderChildSummary();
-    bindConfirmationGating();
-     recalcOrderSummaryUIAndHidden();
-  }
-  
-  // Refresh all UI components for the new step
-updateCurrentChildHeading();
-  toggleTravelFamilySection();
-  renderChildNavBar();
-  refreshAllSelectColours();
-  if (stepNum === STEP_FIRST_CHILD) {
-  // Let the DOM "settle" for a beat, then enforce default if needed
-  setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
-}
-
-// Show/hide the Step 3 goal-directed info banner
-  if (stepNum === 3) {
-    setTimeout(showStep4GoalInfo, 0);
-  } else {
-    hideStep4GoalInfo();
-  }
-
-  // NEW: Update the progress bar every time the step changes
-  setTimeout(updateProgressBar, 50);
-
-  // ─── CHANGE 3 + CHANGE 4: Centralised step-activation dispatch ─────────
-  // Replaces 13 MutationObservers that each watched .step elements for
-  // is-active class changes. Since setActive() is the ONLY function that
-  // toggles is-active, we call every "on step activate" callback directly
-  // from here — deterministic, no timing races, no redundant observers.
-  //
-  // Change 4: Step 4 is no longer a navigation target. All Y2 curriculum
-  // rendering is triggered from Step 3 via the tab system.
-  setTimeout(function() {
-    // Curriculum rendering (Step 3 — handles both Y1 and Y2 via tabs)
-    if (stepNum === 3 && typeof window.__aed_refreshCurriculumDisplay === 'function') {
-      window.__aed_refreshCurriculumDisplay();
-      // Change 4: Only render Y2 curriculum here if the Y2 tab is already active
-      // (e.g. back from Step 5 with Y2 tab shown). Otherwise, Y2 renders on-demand
-      // when the user switches to the Y2 tab via switchYearTab(). Rendering Y2
-      // unconditionally caused Y2 content to appear behind Y1 content before
-      // syncYearTabs could hide the panel (visible as Y6/Y7 overlap).
-      if (window.__aed_activeYearTab === 'y2' && typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
-        window.__aed_refreshY2CurriculumDisplay();
-      }
-      // Change 4: syncYearTabs is called AFTER all widgets below, not here.
-      // This ensures newly-rendered widgets get properly hidden/shown.
-    }
-
-    // Change 4: Y2 workload is now calculated as part of Step 3
-    // (triggered when Y2 tab is active or when pills change)
-
-    // Language dropdown show/hide (all steps — syncs visibility on every transition)
-    if (typeof window.__aed_syncLanguageToggle === 'function') {
-      window.__aed_syncLanguageToggle();
-    }
-
-    // Checkbox sync for curriculum cards (all steps)
-    if (typeof window.__aed_updateCheckboxes === 'function') {
-      window.__aed_updateCheckboxes();
-    }
-
-    // Program-type container swap (3A/3B) — two different swap functions
-    if (typeof window.__aed_swapProgramContainers === 'function') {
-      window.__aed_swapProgramContainers();
-    }
-    if (typeof window.__aed_swapGoalContainers === 'function') {
-      window.__aed_swapGoalContainers();
-    }
-
-    // Needs-attention / excelling widget (Step 3 only)
-    if (stepNum === 3 && typeof window.__aed_renderNeedsWidget === 'function') {
-      window.__aed_renderNeedsWidget();
-    }
-
-    // State picker lock/unlock (all steps)
-    if (typeof window.__aed_updateStateLock === 'function') {
-      window.__aed_updateStateLock();
-    }
-
-    // Goal counter (all steps)
-    if (typeof window.__aed_updateGoalCounter === 'function') {
-      window.__aed_updateGoalCounter();
-    }
-
-    // Interest deep dives (all steps)
-    if (typeof window.__aed_updateDeepDives === 'function') {
-      window.__aed_updateDeepDives();
-    }
-
-    // Goal-directed deep dives (all steps)
-    if (typeof window.__aed_updateGoalDeepDives === 'function') {
-      window.__aed_updateGoalDeepDives();
-    }
-
-    // Y1 step heading (Step 3 only)
-    if (stepNum === 3 && typeof window.__aed_updateY1Heading === 'function') {
-      window.__aed_updateY1Heading();
-    }
-
-    // Change 4: Y2 heading is now updated by the tab system within Step 3
-    // (no separate Step 4 dispatch needed)
-
-    // ─── Change 4: syncYearTabs MUST run LAST ─────────────────────────────
-    // All widget renders above (renderNeedsWidget, refreshCurriculumDisplay,
-    // etc.) can create or show Y1 elements. syncYearTabs applies the final
-    // visibility state based on which tab is active, hiding Y1 content when
-    // the Y2 tab is showing. Running it earlier caused the "two pages on
-    // one page" bug where Y1 and Y2 content appeared simultaneously.
-    if (stepNum === 3 && typeof window.__aed_syncYearTabs === 'function') {
-      window.__aed_syncYearTabs();
-    }
-  }, 50);
-  // ─── END CHANGE 3 + 4 dispatch ──────────────────────────────────────
-}
-
-/* -------------------------------------------------------
-   STEP 4: INFO BANNER
-   Shown at top of Step 4 for goal_directed and interest_led programs.
-   ------------------------------------------------------- */
-/* -------------------------------------------------------
-   STEP 4: INFO BANNER & INTEREST BANNER
-   ------------------------------------------------------- */
-function showStep4GoalInfo() {
-  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-
-  // 1. UNIVERSAL INTERESTS BANNER (Shows for all programs)
-  let interestBanner = document.getElementById('aed-interest-banner');
-  if (!interestBanner) {
-    interestBanner = document.createElement('div');
-    interestBanner.id = 'aed-interest-banner';
-    interestBanner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';    
-    const interestsContainer = document.getElementById('step3-interests-container');
-    if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', interestBanner);
-  }
-
-  // Set the correct text for the Interests banner
-  if (pType === 'interest_led') {
-    interestBanner.innerHTML = '<strong>Interest-Led Program</strong><br>Select your child’s curiosities below — even <strong>one strong interest is enough</strong>. We’ll build 4 unique investigations around what your child loves, each tied to curriculum.';
-  } else {
-    interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child’s passions.';
-  }
-  interestBanner.style.setProperty('display', 'block', 'important');
-
-  // 2. GOAL-DIRECTED BANNER (Only for Container 3B)
-  let goalBanner3B = document.getElementById('step4-goal-info');
-  if (!goalBanner3B) {
-    goalBanner3B = document.createElement('div');
-    goalBanner3B.id = 'step4-goal-info';
-    goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
-    
-    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-    if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
-  }
-
-  // Show or hide the 3B banner depending on program type
-  if (pType === 'goal_directed') {
-    goalBanner3B.innerHTML = '<strong>Goal-Directed Program</strong><br>Please select <strong>4–8 short-term goals</strong> (across Academic, Social, and Independence) and <strong>1–2 long-term goals</strong> to help us build a focused, achievable program for your child.';
-    goalBanner3B.style.setProperty('display', 'block', 'important');
-  } else {
-    goalBanner3B.style.setProperty('display', 'none', 'important');
-  }
-}
-
-function hideStep4GoalInfo() {
-  const interestBanner = document.getElementById('aed-interest-banner');
-  if (interestBanner) interestBanner.style.setProperty('display', 'none', 'important');
-  
-  const goalBanner3B = document.getElementById('step4-goal-info');
-  if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
-}
-
-function ensureDefaultProgramTypeForCurrentChild() {
-  const step1 = getStepEl(STEP_FIRST_CHILD);
-  if (!step1) return;
-
-  // If this child already has saved data, do NOT override it
-  const idx = getChildIndex();
-  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
-  if (saved && saved.program_type) return;
-
-  const desired = "curriculum_based";
-
-  const radios = Array.from(step1.querySelectorAll('input[type="radio"][name="program_type"]'));
-  if (!radios.length) return;
-
-  // If something is already checked, leave it alone
-  const alreadyChecked = radios.find(r => r.checked);
-  if (alreadyChecked) return;
-
-  // Otherwise set the default
-  const target = radios.find(r => r.value === desired) || radios[0];
-  target.checked = true;
-
-  // Trigger Webflow visual updates
-  target.dispatchEvent(new Event("input", { bubbles: true }));
-  target.dispatchEvent(new Event("change", { bubbles: true }));
-
-  // Some Webflow radio styles only update on label click
-  if (target.id) {
-    const label = step1.querySelector(`label[for="${CSS.escape(target.id)}"]`);
-    if (label) label.click();
-  }
-}
-
-
+  var STEP_FIRST_CHILD = window.STEP_FIRST_CHILD;
+  var STEP_LAST_CHILD  = window.STEP_LAST_CHILD;
+  var STEP_Y2          = window.STEP_Y2;
+  var STEP_ENVIRONMENT = window.STEP_ENVIRONMENT;
+  var STEP_PAYMENT     = window.STEP_PAYMENT;
+  var getStepEl                             = window.getStepEl;
+  var setActive                             = window.setActive;
+  var validateStep                          = window.validateStep;
+  var showStepError                         = window.showStepError;
+  var clearStepError                        = window.clearStepError;
+  var renderChildNavBar                     = window.renderChildNavBar;
+  var updateProgressBar                     = window.updateProgressBar;
+  var updateCurrentChildHeading             = window.updateCurrentChildHeading;
+  var isElementActuallyFillable             = window.isElementActuallyFillable;
+  var showStep4GoalInfo                     = window.showStep4GoalInfo;
+  var hideStep4GoalInfo                     = window.hideStep4GoalInfo;
+  var ensureDefaultProgramTypeForCurrentChild = window.ensureDefaultProgramTypeForCurrentChild;
   // getTotalChildrenFromStep0 moved to aed-state.js (Module 3)
   var getTotalChildrenFromStep0 = window.getTotalChildrenFromStep0;
-
-function showStepError(stepNum, msg) {
-    const stepEl = getStepEl(stepNum);
-    if (!stepEl) return;
-    
-    let err = stepEl.querySelector(".step-error");
-    if (!err) {
-      // If Webflow didn't provide an error text block, build our own!
-      err = document.createElement("div");
-      err.className = "step-error";
-      err.style.cssText = "color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;";
-      
-      // Try to put it right above the buttons
-      const actionsWrap = stepEl.querySelector("[data-step-action]")?.closest("div");
-      if (actionsWrap) {
-        actionsWrap.parentNode.insertBefore(err, actionsWrap);
-      } else {
-        stepEl.appendChild(err);
-      }
-    }
-    
-    err.textContent = msg || "";
-    err.style.display = msg ? "block" : "none";
-  }
-
-  function clearStepError(stepNum) { showStepError(stepNum, ""); }
-
-function isElementActuallyFillable(el) {
-    if (!el) return false;
-    if (el.disabled) return false;
-    const type = (el.getAttribute("type") || "").toLowerCase();
-    if (type === "hidden") return false;
-    if (el.hasAttribute("data-state-key")) return false;
-
-    // THE ULTIMATE VISIBILITY CHECK: If it has 0 physical width or height, it is completely hidden!
-    if (el.offsetWidth === 0 || el.offsetHeight === 0) return false;
-
-    // Specific fix for Webflow hidden Pill Groups
-    if (el.classList.contains("ms-input")) {
-      const group = el.closest(".ms-group");
-      if (group && (group.offsetWidth === 0 || group.offsetHeight === 0)) return false;
-    }
-
-    return true;
-  }
-
-  function validateStep(stepNum) {
-    const stepEl = getStepEl(stepNum);
-    if (!stepEl) return true;
-
-    const requiredFlag = (stepEl.getAttribute("data-step-required") || "").toLowerCase();
-    if (requiredFlag !== "true") return true;
-
-    clearStepError(stepNum);
-
-    const fields = Array.from(stepEl.querySelectorAll("input, select, textarea"))
-      .filter(isElementActuallyFillable);
-
-    for (const field of fields) {
-      const isMsInput = field.classList && field.classList.contains("ms-input");
-      if (isMsInput && field.hasAttribute("required")) {
-        const raw = (field.value || "").trim();
-        const ok = raw && raw !== "[]" && raw !== "{}" && raw !== '""';
-        if (!ok) {
-          showStepError(stepNum, "Please complete the required fields before continuing.");
-          field.focus();
-          return false;
-        }
-      }
-
-      if (field.hasAttribute("required") && !field.checkValidity()) {
-        showStepError(stepNum, "Please complete the required fields before continuing.");
-        field.reportValidity();
-        return false;
-      }
-    }
-    return true;
-  }
 
   /* =========================
      MULTI-SELECT PILL LOGIC
@@ -2165,7 +1786,7 @@ function collectValueFromField(fieldEl) {
 
 window.saveProgressSilently = function() {
   // Only run this if we are currently looking at a Child Step (Steps 1–5)
-  if (currentStepNum >= STEP_FIRST_CHILD && currentStepNum <= STEP_LAST_CHILD) {
+  if (window.currentStepNum >= STEP_FIRST_CHILD && window.currentStepNum <= STEP_LAST_CHILD) {
     const idx = getChildIndex();
     const currentDOMData = collectChildData();
     const existing = window.__aed_child_applications[idx] || {};
@@ -2393,7 +2014,7 @@ if (window.__aed_clearCurriculumCacheForChild) {
 }
 
   // Change 4: Reset to Y1 tab when switching to a new child
-  _activeYearTab = 'y1';
+  window.__aed_activeYearTab = 'y1';
   if (typeof window.__aed_syncYearTabs === 'function') {
     window.__aed_syncYearTabs();
   }
@@ -3010,272 +2631,7 @@ function waitForCurriculumThenRestore(stepNum) {
   setTimeout(doRestore, 600);
 }
 
-document.addEventListener("click", function (e) {
-
-  // ✅ ADD OTHER (free text reveal) — runs first and exits
-  const addOther = e.target.closest(".add-other-link");
-  if (addOther) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const key = (addOther.getAttribute("data-field") || "").trim();
-
-    const scope =
-      addOther.closest(".field-group") ||
-      addOther.closest(".ms-group") ||
-      addOther.closest('[data-child-scope="true"]') ||
-      document;
-
-    let target =
-      (key ? scope.querySelector(`[data-field="${CSS.escape(key)}"]`) : null) ||
-      (key ? document.getElementById(key) : null) ||
-      scope.querySelector(".free-text-field, .other-textarea");
-
-    if (!target) return;
-
-    const isHidden = window.getComputedStyle(target).display === "none";
-    target.style.display = isHidden ? "block" : "none";
-    addOther.textContent = isHidden ? "[-] Remove Other" : "[+ Add Other]";
-    return; // 🔥 stop here so step logic never runs
-  }
-
-  // --- your existing step-action logic below ---
-  const btn = e.target.closest("[data-step-action]");
-  if (!btn) return;
-
-  e.preventDefault();
-
-  const action = (btn.getAttribute("data-step-action") || "").trim();
-
-if (action === "back") {
-    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
-
-    if (currentStepNum === STEP_PAYMENT) {
-        // From Review & Payment, go back to Environment
-        setActive(STEP_ENVIRONMENT);
-
-    } else if (currentStepNum === STEP_ENVIRONMENT) {
-        // From Environment, go back to the LAST child's Step 5 (Interests & Goals)
-        const lastChildIdx = getChildrenCount() - 1;
-        setChildIndex(lastChildIdx);
-        loadChildData(lastChildIdx);
-        setActive(STEP_LAST_CHILD);
-        renderChildNavBar();
-
-} else if (currentStepNum === STEP_LAST_CHILD) {
-        // Change 4: From Step 5, always go back to Step 3.
-        // If split-year, activate the Y2 tab so user sees where they left off.
-        const childIdx = getChildIndex();
-        const childData = window.__aed_child_applications[childIdx] || {};
-        const studySpan = Array.isArray(childData.study_span)
-            ? childData.study_span[0]
-            : childData.study_span;
-        const isSplit = studySpan && studySpan !== 'all_one_year';
-
-        if (isSplit) {
-            _activeYearTab = 'y2';
-        }
-        setActive(3);
-        waitForCurriculumThenRestore(3);
-
-    } else if (currentStepNum === 1) {
-        // From Step 1, go back to previous child's Step 5, OR Step 0
-        const idx = getChildIndex();
-        if (idx > 0) {
-            setChildIndex(idx - 1);
-            loadChildData(idx - 1);
-            setActive(STEP_LAST_CHILD);
-            renderChildNavBar();
-        } else {
-            setActive(0);
-        }
-
-    } else if (currentStepNum > 0) {
-        // Change 4: Skip step 4 when going back from step 5
-        const prevStep = (currentStepNum - 1 === STEP_Y2) ? 3 : currentStepNum - 1;
-        setActive(prevStep);
-    }
-    return;
-  }
-
-if (action === "next") {
-    // FORCE AUTOSAVE BEFORE NAVIGATING FORWARD
-    if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
-
-    if (!validateStep(currentStepNum)) return;
-    
-    // FOOLPROOF VISIBILITY CHECK: Run validations based on what is actually on screen!
-    const container3B = document.getElementById('container-3b-goaldirected');
-    if (container3B && container3B.offsetParent !== null) {
-      if (typeof validateGoalDirectedStep4 === 'function' && !validateGoalDirectedStep4()) return;
-    }
-
-    const container3A = document.getElementById('container-3a-general');
-    if (container3A && container3A.offsetParent !== null) {
-      if (typeof validateInterestLedStep4 === 'function' && !validateInterestLedStep4()) return;
-    }
-
-   // NEW CODE: Check the curriculum rules! (ONLY on Step 3)
-    if (currentStepNum === 3) {
-      if (typeof window.validateCurriculum === 'function' && !window.validateCurriculum()) return;
-    }
-    if (currentStepNum === 0) {
-      recalcOrderSummaryUIAndHidden();
-      setChildIndex(0);
-      loadChildData(0);
-    }
-
-    recalcOrderSummaryUIAndHidden();
-
-    // --- Change 4: UNIFIED ROUTING LOGIC (no Step 4 navigation) ---
-
-    if (currentStepNum === STEP_LAST_CHILD) {
-      // Step 5 (Interests & Goals) is the last child step. Trigger save & loop!
-      saveCurrentChildAndAdvance();
-      return;
-    }
-
- if (currentStepNum === 3) {
-      // Change 4: Step 3 now handles BOTH Y1 and Y2 curriculum via tabs.
-      // Read study_span to determine if split-year.
-      let studySpan = null;
-
-      const spanInput = document.querySelector('.ms-input[name="study_span"]');
-      if (spanInput && spanInput.value) {
-        try {
-          const parsed = JSON.parse(spanInput.value);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            studySpan = parsed[0];
-          }
-        } catch (e) {}
-      }
-
-      // Fall back to saved data if DOM read failed
-      if (!studySpan) {
-        const childIdx = getChildIndex();
-        const childData = window.__aed_child_applications[childIdx] || {};
-        studySpan = Array.isArray(childData.study_span)
-          ? childData.study_span[0]
-          : childData.study_span;
-      }
-
-      const isSplit = studySpan && studySpan !== 'all_one_year';
-
-      if (isSplit && _activeYearTab === 'y1') {
-            // Change 4: User is on Y1 tab of a split-year child.
-            // Instead of navigating to Step 4, switch to the Y2 tab within Step 3.
-            if (typeof window.__aed_switchYearTab === 'function') {
-              window.__aed_switchYearTab('y2');
-            }
-            // Validate Y2 is not needed yet — they just arrived on the tab.
-            // Scroll to top so they see the tab change.
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            return;
-      }
-
-      if (isSplit && _activeYearTab === 'y2') {
-            // Change 4: User is on Y2 tab. Validate Y2 before advancing.
-            if (typeof window.validateY2Curriculum === 'function' && !window.validateY2Curriculum()) return;
-      }
-
-      // All validation passed — advance to Step 5 (Interests & Goals)
-      _activeYearTab = 'y1'; // Reset to Y1 for next time
-      setActive(STEP_LAST_CHILD);
-      return;
-    }
-
-    if (currentStepNum === STEP_ENVIRONMENT) {
-      setActive(STEP_PAYMENT);
-      return;
-    }
-
-    // Change 4: Skip step 4 in generic forward navigation
-    const nextStep = (currentStepNum + 1 === STEP_Y2) ? STEP_LAST_CHILD : currentStepNum + 1;
-    if (nextStep <= STEP_PAYMENT) setActive(nextStep);
-    return;
-  }
-});
-
-/* =========================
-   CHILD NAVIGATION & DATA LOADING
-   ========================= */
-
-function renderChildNavBar() {
-  const activeStep = document.querySelector(".step.is-active");
-  if (!activeStep) return;
-
-  const container = activeStep.querySelector("#child-nav-bar");
-  if (!container) return;
-
-  container.style.display = "flex";
-  container.innerHTML = "";
-
-  const total = getChildrenCount();
-  const currentIdx = getChildIndex();
-
-  const childrenArr = Array.isArray(window.__aed_child_applications)
-    ? window.__aed_child_applications
-    : [];
-
-  // ---------- Setup tab ----------
-  const setupBtn = document.createElement("button");
-  setupBtn.type = "button";
-  setupBtn.className = (currentStepNum === 0) ? "child-nav-btn is-active" : "child-nav-btn";
-  setupBtn.textContent = "⚙️ Setup";
-setupBtn.onclick = () => {
-    // Save the current child regardless of which step we're on
-    const idx = getChildIndex();
-    if (window.__aed_child_applications[idx] && window.__aed_child_applications[idx].__saved) {
-        const freshData = collectChildData();
-        window.__aed_child_applications[idx] = { 
-            ...window.__aed_child_applications[idx], 
-            ...freshData 
-        };
-    }
-    setActive(0);
-};
-  container.appendChild(setupBtn);
-
-  // ---------- Child tabs ----------
-  if (total > 0) {
-    for (let i = 0; i < total; i++) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-
-      const isActiveChildTab = (i === currentIdx && currentStepNum !== 0);
-      btn.className = isActiveChildTab ? "child-nav-btn is-active" : "child-nav-btn";
-
-      const savedData = childrenArr[i] || {};
-      const name =
-        (savedData.student_first_name && String(savedData.student_first_name).trim())
-          ? savedData.student_first_name.trim()
-          : `Child ${i + 1}`;
-
-      btn.textContent = name;
-      btn.onclick = () => jumpToChild(i);
-      container.appendChild(btn);
-    }
-  }
-
-  // ---------- Review tab (only when editing a saved child) ----------
-  const currentChild = childrenArr[currentIdx] || {};
-  const isOnChildSteps = currentStepNum >= STEP_FIRST_CHILD && currentStepNum <= STEP_LAST_CHILD;
-  const isSavedChild = currentChild.__saved === true;
-
-  if (isOnChildSteps && isSavedChild) {
-    const reviewBtn = document.createElement("button");
-    reviewBtn.type = "button";
-    reviewBtn.className = (currentStepNum === STEP_PAYMENT) ? "child-nav-btn is-active" : "child-nav-btn";
-    reviewBtn.textContent = "Review";
-    reviewBtn.onclick = () => {
-        if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently(); // Autosave!
-        setActive(STEP_PAYMENT); // Step 6
-    };
-    container.appendChild(reviewBtn);
-  }
-}
-
-
+// Navigation click handler (back/next/add-other) moved to aed-navigation.js (Module 4)
 
 /* =========================
    PILL VISUAL SYNC & DATA LOADING
@@ -3414,7 +2770,7 @@ function loadChildData(idx) {
   setTimeout(refreshAllSelectColours, 50);
 
   // Change 4: Reset to Y1 tab when loading a child's data
-  _activeYearTab = 'y1';
+  window.__aed_activeYearTab = 'y1';
 
   // Change 4: Clear curriculum cache for this child to prevent stale renders
   // (e.g. a Y7 child's cached DOM being served for a Y4 child's container)
@@ -3612,7 +2968,7 @@ function liveWriteToChildStore(fieldName, value) {
   if (window.__aed_is_loading_data) return;
 
   // Only save when we're on a child step (Steps 1-5)
-  if (currentStepNum < STEP_FIRST_CHILD || currentStepNum > STEP_LAST_CHILD) return;
+  if (window.currentStepNum < STEP_FIRST_CHILD || window.currentStepNum > STEP_LAST_CHILD) return;
 
   var idx = getChildIndex();
 
@@ -5537,104 +4893,6 @@ function bindGoalContainerSwapper() {
 /* =========================
    DYNAMIC PROGRESS BAR
    ========================= */
-function updateProgressBar() {
-  const activeStep = document.querySelector('.step.is-active');
-  if (!activeStep) return;
-
-  const totalChildren = getChildrenCount();
-  const currentChildIdx = getChildIndex();
-
-  // Work out how many per-child screens each child has
-  // (4 if split year, 4 if all_one_year — Step 4 is skipped but Steps 1,2,3,5 always show)
-  // We count Step 4 for split children only
-function childScreenCount(idx) {
-    const childData = window.__aed_child_applications[idx] || {};
-    let studySpan = Array.isArray(childData.study_span)
-      ? childData.study_span[0]
-      : childData.study_span;
-
-    // If still not found, try reading from the DOM directly (current child only)
-    if (!studySpan && idx === getChildIndex()) {
-      const spanInput = document.querySelector('.ms-input[name="study_span"]');
-      if (spanInput && spanInput.value) {
-        try {
-          const parsed = JSON.parse(spanInput.value);
-          if (Array.isArray(parsed) && parsed.length > 0) studySpan = parsed[0];
-        } catch (e) {}
-      }
-    }
-
-    // If still unknown (future unsaved children), default to 4 (conservative estimate)
-    return (studySpan && studySpan !== 'all_one_year') ? 5 : 4;
-  }
-
-  // Total screens = Setup (1) + sum of per-child screens + Environment (1) + Review (1)
-  let totalScreens = 1 + 1 + 1;
-  for (let i = 0; i < totalChildren; i++) {
-    totalScreens += childScreenCount(i);
-  }
-
-  // Work out how many screens have been completed before the current child
-  let screensBeforeCurrentChild = 1; // Setup
-  for (let i = 0; i < currentChildIdx; i++) {
-    screensBeforeCurrentChild += childScreenCount(i);
-  }
-
-  let currentScreen = 1;
-
-  if (currentStepNum === 0) {
-    currentScreen = 1;
-  } else if (currentStepNum === 1) {
-    currentScreen = screensBeforeCurrentChild + 1;
-  } else if (currentStepNum === 2) {
-    currentScreen = screensBeforeCurrentChild + 2;
-  } else if (currentStepNum === 3) {
-    // Change 4: Step 3 now contains both Y1 and Y2 tabs.
-    // When user is on Y2 tab, count as one screen further.
-    const isOnY2Tab = (_activeYearTab === 'y2');
-    currentScreen = screensBeforeCurrentChild + (isOnY2Tab ? 4 : 3);
-  } else if (currentStepNum === STEP_LAST_CHILD) {
-    const isSplit = childScreenCount(currentChildIdx) === 5;
-    currentScreen = screensBeforeCurrentChild + (isSplit ? 5 : 4);
-  } else if (currentStepNum === STEP_ENVIRONMENT) {
-    currentScreen = totalScreens - 1;
-  } else if (currentStepNum === STEP_PAYMENT) {
-    currentScreen = totalScreens;
-  }
-
-  // Calculate percentage (ensure it never goes over 100%)
-  const percentage = Math.min(100, Math.round((currentScreen / totalScreens) * 100));
-
-  // 2. Find where to put it (right before the child nav pills)
-  const navBar = activeStep.querySelector('#child-nav-bar');
-  if (!navBar) return;
-
-  // 3. Create or update the progress bar HTML dynamically
-  let progressWrap = activeStep.querySelector('.aed-progress-wrapper');
-  
-  if (!progressWrap) {
-    // Build the bar if it doesn't exist on this step yet
-    progressWrap = document.createElement('div');
-    progressWrap.className = 'aed-progress-wrapper';
-    // Using your brand colors!
-    progressWrap.style.cssText = 'width: 100%; background: #eef4ee; border-radius: 10px; height: 11px; margin-bottom: 20px; overflow: hidden; border: 1px solid #DDe4dd;';
-    
-    const progressFill = document.createElement('div');
-    progressFill.className = 'aed-progress-fill';
-    progressFill.style.cssText = `width: ${percentage}%; background: #799377; height: 100%; transition: width 0.4s ease; border-radius: 10px;`;
-    
-    progressWrap.appendChild(progressFill);
-    
-    // Insert it directly above the navigation buttons
-    navBar.parentNode.insertBefore(progressWrap, navBar);
-  } else {
-    // If it already exists, just animate the width to the new percentage!
-    const progressFill = progressWrap.querySelector('.aed-progress-fill');
-    if (progressFill) {
-      progressFill.style.width = percentage + '%';
-    }
-  }
-}
 
 /* =========================
    STEP 0 INFO BANNER UPGRADE
@@ -5844,6 +5102,19 @@ function bindAcademicTrackingWidget() {
 }
 
 /* =========================
+   CROSS-MODULE EXPOSURES — for aed-navigation.js (Module 4)
+   These functions are called by the navigation module via window.*
+   ========================= */
+window.renderChildSummary            = renderChildSummary;
+window.bindConfirmationGating        = bindConfirmationGating;
+window.refreshAllSelectColours       = refreshAllSelectColours;
+window.loadChildData                 = loadChildData;
+window.saveCurrentChildAndAdvance    = saveCurrentChildAndAdvance;
+window.collectChildData              = collectChildData;
+window.waitForCurriculumThenRestore  = waitForCurriculumThenRestore;
+window.getGoalDirectedProgramType    = getGoalDirectedProgramType;
+
+/* =========================
    INIT
    ========================= */
 
@@ -5949,7 +5220,7 @@ function bindStatePickerLock() {
 
   // 1. Function to lock or unlock based on the current step
   function updateLock() {
-    const shouldLock = (typeof currentStepNum !== 'undefined' && currentStepNum > 0);
+    const shouldLock = (typeof window.currentStepNum !== 'undefined' && window.currentStepNum > 0);
 
     pickers.forEach(picker => {
       const wrapper = picker.closest('.w-select') || picker.parentElement;
@@ -5979,7 +5250,7 @@ function bindStatePickerLock() {
   // 2. Prevent leaving Step 0 if State is empty (Double Navbar Proofed)
   document.addEventListener('click', function(e) {
     const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
-    if (nextBtn && typeof currentStepNum !== 'undefined' && currentStepNum === 0) {
+    if (nextBtn && typeof window.currentStepNum !== 'undefined' && window.currentStepNum === 0) {
       
       // Get all state pickers on the page (static and sticky navbars)
       const statePickers = Array.from(document.querySelectorAll('select[name="state-picker"]'));
@@ -6719,7 +5990,7 @@ function initYearTabs() {
     // Save current tab's data before switching
     if (typeof window.saveProgressSilently === 'function') window.saveProgressSilently();
 
-    _activeYearTab = tab;
+    window.__aed_activeYearTab = tab;
 
     // Sync all visual state (tab buttons, panels, Y1 container visibility)
     if (typeof window.__aed_syncYearTabs === 'function') {
@@ -6817,24 +6088,24 @@ function initYearTabs() {
     } else {
       tabBar.classList.remove('is-visible');
       // Force Y1 tab active when not split-year
-      _activeYearTab = 'y1';
+      window.__aed_activeYearTab = 'y1';
     }
 
     // Sync tab button and panel states
-    tabY1.classList.toggle('is-active', _activeYearTab === 'y1');
-    tabY2.classList.toggle('is-active', _activeYearTab === 'y2');
-    y2Panel.classList.toggle('is-active', _activeYearTab === 'y2');
+    tabY1.classList.toggle('is-active', window.__aed_activeYearTab === 'y1');
+    tabY2.classList.toggle('is-active', window.__aed_activeYearTab === 'y2');
+    y2Panel.classList.toggle('is-active', window.__aed_activeYearTab === 'y2');
 
     // Hide Y1 elements when Y2 tab is active
     var y1HeadingEl = document.getElementById('y1-step-heading');
-    if (y1HeadingEl) y1HeadingEl.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+    if (y1HeadingEl) y1HeadingEl.style.display = (window.__aed_activeYearTab === 'y2') ? 'none' : '';
 
     var y1Banner = document.getElementById('aed-curriculum-banner');
-    if (y1Banner) y1Banner.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+    if (y1Banner) y1Banner.style.display = (window.__aed_activeYearTab === 'y2') ? 'none' : '';
 
     // Change 4: Hide the tracking widget (Y1 only) when Y2 tab is active
     var trackingWidget = document.getElementById('aed-tracking-widget');
-    if (trackingWidget) trackingWidget.style.display = (_activeYearTab === 'y2') ? 'none' : '';
+    if (trackingWidget) trackingWidget.style.display = (window.__aed_activeYearTab === 'y2') ? 'none' : '';
 
     // Hide Y1 curriculum containers when Y2 tab is active.
     // When Y1: do NOT touch display — refreshCurriculumDisplay manages it.
@@ -6842,7 +6113,7 @@ function initYearTabs() {
     ['f6-curriculum-container', 'y9-curriculum-container', 'y10-curriculum-container'].forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
-      if (_activeYearTab === 'y2') {
+      if (window.__aed_activeYearTab === 'y2') {
         el.style.setProperty('display', 'none', 'important');
       }
       // When Y1: intentionally do nothing
@@ -6851,7 +6122,7 @@ function initYearTabs() {
     // Update tab labels with correct year names
     updateTabLabels();
 
-    console.log('📑 AED: Tab bar synced — ' + (_activeYearTab === 'y2' ? 'Y2' : 'Y1') + ' active, split=' + isSplit);
+    console.log('📑 AED: Tab bar synced — ' + (window.__aed_activeYearTab === 'y2' ? 'Y2' : 'Y1') + ' active, split=' + isSplit);
   };
 
   // ── 7. Initial sync ───────────────────────────────────────────────────
