@@ -764,7 +764,14 @@ function loadChildData(idx) {
   }
 
   // 🛡️ Deactivate the shield once the DOM has safely settled
-  setTimeout(() => { window.__aed_is_loading_data = false; }, 100);
+  setTimeout(function() {
+    window.__aed_is_loading_data = false;
+    // Re-trigger curriculum visibility now that the shield is down —
+    // checkYearLevel was blocked during loadChildData because the flag was true
+    if (typeof window.__aed_checkYearLevel === 'function') {
+      window.__aed_checkYearLevel();
+    }
+  }, 100);
 }
 /* =========================
    RESTORE DYNAMIC PILLS (Steps 3 & Y2)
