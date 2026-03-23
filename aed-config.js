@@ -749,6 +749,47 @@ window.AED.SMART_DEFAULTS = {
   }
 };
 
+// ─── SHARED DOM HELPERS ──────────────────────────────────────
+// Pure utility functions used across multiple modules.
+// Defined here (Module 1) so all subsequent modules can use them.
+
+window.AED.helpers = {
+  qs:          function(sel, root) { return (root || document).querySelector(sel); },
+  setText:     function(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; },
+  showEl:      function(id, show) { var el = document.getElementById(id); if (el) el.style.display = show ? "" : "none"; },
+  showRow:     function(labelId, priceId, show) { window.AED.helpers.showEl(labelId, show); window.AED.helpers.showEl(priceId, show); },
+  getElByName: function(name) { return document.querySelector('[name="' + name + '"]'); },
+  isChecked:   function(name) { var el = window.AED.helpers.getElByName(name); return !!(el && el.checked); },
+  setTextAll:  function(selector, text) { document.querySelectorAll(selector).forEach(function(el) { el.textContent = text; }); },
+  showAll:     function(selector, show) { document.querySelectorAll(selector).forEach(function(el) { el.style.display = show ? "" : "none"; }); },
+  getSelectInt: function(name, fallback) {
+    var el = window.AED.helpers.getElByName(name);
+    if (!el) return fallback;
+    var n = parseInt(String(el.value || "").trim(), 10);
+    return Number.isFinite(n) ? n : fallback;
+  },
+  writeHidden: function(name, value) {
+    var el = window.AED.helpers.getElByName(name);
+    if (!el) return;
+    el.value = String(value);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  },
+  toInt: function(val, fallback) {
+    var n = parseInt(String(val || "").trim(), 10);
+    return Number.isFinite(n) ? n : fallback;
+  },
+  safeParseJsonArray: function(raw) {
+    try { var v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
+    catch (_) { return []; }
+  },
+  centsToDollars: function(cents) { return (Number(cents || 0) / 100); },
+  aud: function(amountDollars) {
+    try { return Number(amountDollars).toLocaleString("en-AU", { style: "currency", currency: "AUD" }); }
+    catch (_) { return "$" + String(amountDollars); }
+  }
+};
+
 // ─── BACKWARD-COMPATIBLE ALIASES ─────────────────────────────
 // The rest of apply-ed.js currently reads these as bare variable names.
 // These aliases let it continue working without changing every reference
