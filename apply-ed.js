@@ -1391,108 +1391,24 @@ if (!savedLang && isY2) savedLang = data['language_of_study'];
 
 
  /* =========================
-   STATE (IN MEMORY + MIRROR TO HIDDEN FIELDS)
-   + Persist "state" across children
+   STATE — Moved to aed-state.js (Module 3)
+   STATE object, getStateField, readStateFieldInt, writeStateField,
+   getChildIndex, setChildIndex, getChildrenCount, setChildrenCount,
+   getChildStateSelect, captureFirstChildStateIfNeeded,
+   applyStateDefaultForCurrentChild are now in aed-state.js.
+   Local aliases below reference window.* exposures from Module 3.
    ========================= */
-
-const STATE = {
-  childrenCount: null,
-  currentChildIndex: 0,
-
-  // NEW: shared values that should persist across children
-  firstChildStateValue: null
-};
-
-// Set this to match the actual <option value="..."> for Queensland in Webflow
-// DEFAULT_STATE_VALUE moved to aed-config.js (Module 1)
-const DEFAULT_STATE_VALUE = window.AED.CONSTANTS.DEFAULT_STATE_VALUE;
-
-function getStateField(key) {
-  return (
-    document.querySelector('[data-state-key="' + key + '"]') ||
-    document.querySelector("#" + key) ||
-    document.querySelector('input[name="' + key + '"], select[name="' + key + '"], textarea[name="' + key + '"]')
-  );
-}
-
-function readStateFieldInt(key) {
-  const el = getStateField(key);
-  if (!el) return null;
-  const n = toInt(el.value, NaN);
-  return Number.isFinite(n) ? n : null;
-}
-
-function writeStateField(key, val) {
-  const el = getStateField(key);
-  if (!el) return;
-  el.value = String(val);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-  el.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function getChildIndex() {
-  const fieldVal = readStateFieldInt("current_child_index");
-  if (fieldVal !== null) STATE.currentChildIndex = fieldVal;
-  return toInt(STATE.currentChildIndex, 0);
-}
-
-function setChildIndex(n) {
-  STATE.currentChildIndex = toInt(n, 0);
-  writeStateField("current_child_index", STATE.currentChildIndex);
-}
-
-function getChildrenCount() {
-  const fieldVal = readStateFieldInt("children_count");
-  if (fieldVal !== null) STATE.childrenCount = fieldVal;
-  return toInt(STATE.childrenCount, 1);
-}
-
-function setChildrenCount(n) {
-  STATE.childrenCount = Math.max(1, toInt(n, 1));
-  writeStateField("children_count", STATE.childrenCount);
-}
-
-// Expose state functions on window for cross-module access (Module 2+)
-window.getChildIndex      = getChildIndex;
-window.setChildIndex      = setChildIndex;
-window.getChildrenCount   = getChildrenCount;
-window.setChildrenCount   = setChildrenCount;
-
-/* =========================
-   NEW: Persist "state" selection across children
-   ========================= */
-
-function getChildStateSelect() {
-  return document.querySelector('select[name="state"]');
-}
-
-// Capture the first child's chosen state so we can reuse it
-function captureFirstChildStateIfNeeded() {
-  // Only capture for child 0
-  if (getChildIndex() !== 0) return;
-
-  const el = getChildStateSelect();
-  if (!el) return;
-
-  const v = (el.value || "").trim();
-  if (v) STATE.firstChildStateValue = v;
-}
-
-// Apply state to the current child step (defaults to QLD if nothing captured)
-function applyStateDefaultForCurrentChild() {
-  const el = getChildStateSelect();
-  if (!el) return;
-
-  const desired = STATE.firstChildStateValue || DEFAULT_STATE_VALUE;
-
-  // Only set if empty/unset (prevents overwriting if user already changed it)
-  const current = (el.value || "").trim();
-  if (!current) {
-    el.value = desired;
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-}
+var getStateField                    = window.getStateField;
+var readStateFieldInt                = window.readStateFieldInt;
+var writeStateField                  = window.writeStateField;
+var getChildIndex                    = window.getChildIndex;
+var setChildIndex                    = window.setChildIndex;
+var getChildrenCount                 = window.getChildrenCount;
+var setChildrenCount                 = window.setChildrenCount;
+var getChildStateSelect              = window.getChildStateSelect;
+var captureFirstChildStateIfNeeded   = window.captureFirstChildStateIfNeeded;
+var applyStateDefaultForCurrentChild = window.applyStateDefaultForCurrentChild;
+var DEFAULT_STATE_VALUE              = window.AED.CONSTANTS.DEFAULT_STATE_VALUE;
 
 
 
@@ -1803,14 +1719,8 @@ function ensureDefaultProgramTypeForCurrentChild() {
 }
 
 
-  function getTotalChildrenFromStep0() {
-    const el =
-      document.querySelector('#total_children') ||
-      document.querySelector('select[name="total_children"]') ||
-      document.querySelector('input[name="total_children"]');
-    return el ? toInt(el.value, 1) : 1;
-  }
-  window.getTotalChildrenFromStep0 = getTotalChildrenFromStep0;
+  // getTotalChildrenFromStep0 moved to aed-state.js (Module 3)
+  var getTotalChildrenFromStep0 = window.getTotalChildrenFromStep0;
 
 function showStepError(stepNum, msg) {
     const stepEl = getStepEl(stepNum);
@@ -2113,10 +2023,8 @@ function bindLanguageToggle() {
    FOUNDATION LABEL BY STATE — Moved to aed-config.js (Module 1)
    ========================= */
 
-function getSelectedStateValue() {
-  const el = getChildStateSelect(); // you already have this helper
-  return (el && el.value ? String(el.value).trim().toUpperCase() : "");
-}
+// getSelectedStateValue moved to aed-state.js (Module 3)
+var getSelectedStateValue = window.getSelectedStateValue;
 
 function updateFoundationOptionLabel() {
   const yearLevelSelect = document.querySelector('select[name="student_year_level"]');
@@ -2243,7 +2151,7 @@ function applyCarryOverDataForCurrentChild() {
     console.log("   🎨 Visual pills synced.");
   }
 }
-window.__aed_child_applications = window.__aed_child_applications || [];
+// __aed_child_applications init moved to aed-state.js (Module 3)
 
 function collectValueFromField(fieldEl) {
   const tag = (fieldEl.tagName || "").toLowerCase();
