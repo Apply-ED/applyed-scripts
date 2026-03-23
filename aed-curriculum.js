@@ -1657,7 +1657,10 @@ function setCheckboxLock(selector, lockAndCheck) {
   }
 
   yearDropdown.addEventListener('change', checkYearLevel);
-  checkYearLevel(); 
+  checkYearLevel();
+
+  // Expose so loadChildData can re-trigger after __aed_is_loading_data clears
+  window.__aed_checkYearLevel = checkYearLevel;
 }
 
 /* =========================
