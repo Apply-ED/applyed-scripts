@@ -637,6 +637,8 @@ function syncPillsFromInput(inputEl) {
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
 
+  console.log('🔍 loadChildData — idx=' + idx + ' hasData=' + !!data + ' savedYear="' + (data ? data.student_year_level : 'N/A') + '"');
+
   if (!data) {
     resetChildFields();
     return;
@@ -766,10 +768,17 @@ function loadChildData(idx) {
   // 🛡️ Deactivate the shield once the DOM has safely settled
   setTimeout(function() {
     window.__aed_is_loading_data = false;
-    // Re-trigger curriculum visibility now that the shield is down —
-    // checkYearLevel was blocked during loadChildData because the flag was true
+    var dropdownNow = document.querySelector('select[name="student_year_level"]');
+    console.log('🔍 loadChildData 100ms callback — flag cleared. DOMdropdown="' + (dropdownNow ? dropdownNow.value : 'NOT FOUND') + '" childIdx=' + getChildIndex());
+    // Re-trigger curriculum visibility and rendering now that the shield is down.
     if (typeof window.__aed_checkYearLevel === 'function') {
       window.__aed_checkYearLevel();
+    }
+    if (typeof window.__aed_refreshCurriculumDisplay === 'function') {
+      window.__aed_refreshCurriculumDisplay();
+    }
+    if (typeof window.__aed_syncLanguageToggle === 'function') {
+      window.__aed_syncLanguageToggle();
     }
   }, 100);
 }
