@@ -969,6 +969,14 @@ function liveWriteToChildStore(fieldName, value) {
   if (!window.__aed_child_applications) window.__aed_child_applications = [];
   if (!window.__aed_child_applications[idx]) window.__aed_child_applications[idx] = {};
 
+  // Protect pill arrays from being overwritten by checkbox "on" values.
+  // Curriculum fields like the_arts_y2 are used by BOTH a checkbox ("on"/"") 
+  // and the pill system (["Music", "Drama"]). Never let a scalar overwrite an array.
+  var existing = window.__aed_child_applications[idx][fieldName];
+  if (Array.isArray(existing) && existing.length > 0 && !Array.isArray(value)) {
+    return;
+  }
+
   // Write the value
   window.__aed_child_applications[idx][fieldName] = value;
 }
