@@ -1013,20 +1013,22 @@ if (_savedLang) {
     else if (yearNum === 9)                 containerId = "y9-curriculum-container";
     else if (yearNum === 10)                containerId = "y10-curriculum-container";
 
+    console.log('🔍 refreshCurriculumDisplay(Y1) — will show containerId=' + containerId);
+
     if (containerId) {
       var el = document.getElementById(containerId);
       if (el) {
         // Change 4: Only show the Y1 container if the Y1 tab is active.
         // When Y2 tab is active, we still render (populate the cached DOM)
         // but leave the container hidden so it doesn't overlap Y2 content.
-        // Note: window.__aed_activeYearTab is used because this function
-        // lives in a separate IIFE from the window.__aed_activeYearTab variable.
         if (window.__aed_activeYearTab !== 'y2') {
           el.style.display = "block";
         }
         renderCurriculumOptions(containerId);
       }
     }
+    // Log final container states after render
+    console.log('🔍 refreshCurriculumDisplay(Y1) AFTER RENDER — f6=' + (document.getElementById('f6-curriculum-container') ? document.getElementById('f6-curriculum-container').style.display : 'N/A') + ' y9=' + (document.getElementById('y9-curriculum-container') ? document.getElementById('y9-curriculum-container').style.display : 'N/A') + ' y10=' + (document.getElementById('y10-curriculum-container') ? document.getElementById('y10-curriculum-container').style.display : 'N/A') + ' banner=' + (document.getElementById('aed-curriculum-banner') ? document.getElementById('aed-curriculum-banner').style.display : 'N/A'));
   }
 
   // ─── REFRESH STEP 4 (Y2) ────────────────────────────────────────────────
@@ -1227,6 +1229,8 @@ if (_savedLang) {
   function restoreSavedCurriculumPills(containerEl, isY2) {
     var idx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var data = (window.__aed_child_applications && window.__aed_child_applications[idx]) || {};
+
+    console.log('🔍 restoreSavedCurriculumPills — childIdx=' + idx + ' isY2=' + isY2 + ' dataKeys=' + Object.keys(data).filter(function(k) { return k.indexOf('pathway') !== -1 || k.indexOf('the_arts') !== -1 || k.indexOf('technologies') !== -1 || k.indexOf('hass') !== -1 || k.indexOf('hpe') !== -1; }).map(function(k) { return k + '=' + JSON.stringify(data[k]); }).join(', '));
 
 var fields = isY2
       ? ["english_pathway_y2","mathematics_pathway_y2","science_pathway_y2","the_arts_y2","technologies_y2","hass_y2", "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2"]
@@ -1656,6 +1660,9 @@ function setCheckboxLock(selector, lockAndCheck) {
 
     if (isY78 && artsPillsY78) artsPillsY78.style.display = 'block';
     
+    // Diagnostic: log final banner state
+    console.log('🔍 checkYearLevel FINAL — banner display="' + (bannerContainer ? bannerContainer.style.display : 'NO ELEMENT') + '" banner.id="' + (bannerContainer ? bannerContainer.id : 'N/A') + '" banner in DOM=' + (bannerContainer ? document.contains(bannerContainer) : false) + ' f6 display="' + (coreF8Container ? coreF8Container.style.display : 'N/A') + '" y9 display="' + (y9Container ? y9Container.style.display : 'N/A') + '" y10 display="' + (y10Container ? y10Container.style.display : 'N/A') + '"');
+
     if (isY9 && y9Container) {
       // Y9 container is owned by the dynamic rendering system — do not show old static content.
       // Dynamic system handles visibility via refreshCurriculumDisplay.
