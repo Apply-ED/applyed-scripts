@@ -652,19 +652,12 @@ window.AED.CURRICULUM_CONFIG = {
           ]
         },
         hass: {
-          label: "HASS Electives", helpText: "Select 0–2 subjects:", min: 0, max: 2,
+          label: "HASS Electives", helpText: "History is mandatory. You may also select 0–1 additional:", min: 1, max: 2,
           options: [
-            { id: "History", value: "History", label: "History" },
+            { id: "History", value: "History", label: "History", locked: true },
             { id: "Geography", value: "Geography", label: "Geography" },
             { id: "Civics_and_Citizenship", value: "Civics and Citizenship", label: "Civics and Citizenship" },
             { id: "Economics_and_Business", value: "Economics and Business", label: "Economics and Business" }
-          ]
-        },
-        hpe: {
-          label: "Health and Physical Education", helpText: "Select 0–1 elective:", min: 0, max: 1,
-          options: [
-            { id: "Outdoor_Education", value: "Outdoor Education", label: "Outdoor Education" },
-            { id: "Sport_and_Recreation", value: "Sport and Recreation", label: "Sport and Recreation" }
           ]
         }
       },

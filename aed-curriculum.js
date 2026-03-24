@@ -904,7 +904,6 @@ if (_savedLang) {
     }
 
     var context = getCurriculumContext();
-    console.log('🔍 renderCurriculumOptions — container=' + targetContainerId + ' yearBand=' + context.yearBand + ' yearNum=' + context.yearNum + ' pathwayId=' + context.pathwayId + ' DOMdropdown="' + (document.querySelector('select[name="student_year_level"]') || {}).value + '"');
     if (!context.yearBand) return;
 
     var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
@@ -994,11 +993,9 @@ if (_savedLang) {
     // Fallback to DOM dropdown
     if (yearNum === null) {
       yearNum = getCurrentYearNum();
-      console.log('🔍 refreshCurriculumDisplay(Y1) — fell back to DOM, yearNum=' + yearNum);
     }
     if (yearNum === null) return;
 
-    console.log('🔍 refreshCurriculumDisplay(Y1) — childIdx=' + childIdx + ' savedYear="' + (savedData.student_year_level || 'none') + '" yearNum=' + yearNum + ' loading=' + window.__aed_is_loading_data);
 
     // Hide all containers first
     ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
@@ -1013,7 +1010,6 @@ if (_savedLang) {
     else if (yearNum === 9)                 containerId = "y9-curriculum-container";
     else if (yearNum === 10)                containerId = "y10-curriculum-container";
 
-    console.log('🔍 refreshCurriculumDisplay(Y1) — will show containerId=' + containerId);
 
     if (containerId) {
       var el = document.getElementById(containerId);
@@ -1028,7 +1024,6 @@ if (_savedLang) {
       }
     }
     // Log final container states after render
-    console.log('🔍 refreshCurriculumDisplay(Y1) AFTER RENDER — f6=' + (document.getElementById('f6-curriculum-container') ? document.getElementById('f6-curriculum-container').style.display : 'N/A') + ' y9=' + (document.getElementById('y9-curriculum-container') ? document.getElementById('y9-curriculum-container').style.display : 'N/A') + ' y10=' + (document.getElementById('y10-curriculum-container') ? document.getElementById('y10-curriculum-container').style.display : 'N/A') + ' banner=' + (document.getElementById('aed-curriculum-banner') ? document.getElementById('aed-curriculum-banner').style.display : 'N/A'));
   }
 
   // ─── REFRESH STEP 4 (Y2) ────────────────────────────────────────────────
@@ -1230,7 +1225,6 @@ if (_savedLang) {
     var idx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     var data = (window.__aed_child_applications && window.__aed_child_applications[idx]) || {};
 
-    console.log('🔍 restoreSavedCurriculumPills — childIdx=' + idx + ' isY2=' + isY2 + ' dataKeys=' + Object.keys(data).filter(function(k) { return k.indexOf('pathway') !== -1 || k.indexOf('the_arts') !== -1 || k.indexOf('technologies') !== -1 || k.indexOf('hass') !== -1 || k.indexOf('hpe') !== -1; }).map(function(k) { return k + '=' + JSON.stringify(data[k]); }).join(', '));
 
 var fields = isY2
       ? ["english_pathway_y2","mathematics_pathway_y2","science_pathway_y2","the_arts_y2","technologies_y2","hass_y2", "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2"]
@@ -1525,10 +1519,21 @@ function bindFoundationLabelByState() {
 function bindCurriculumVisibility() {
   var yearDropdown = document.querySelector('select[name="student_year_level"]');
   
-  var coreF8Container = document.getElementById('f6-curriculum-container'); 
+  // Select the NON-legacy curriculum containers.
+  // Webflow has duplicate IDs (legacy and dynamic). Use querySelectorAll and
+  // pick the one that is NOT inside a legacy wrapper.
+  function getNonLegacyById(id) {
+    var all = document.querySelectorAll('#' + id);
+    for (var i = 0; i < all.length; i++) {
+      if (!all[i].closest('[class*="legacy"]')) return all[i];
+    }
+    return all[0] || null; // fallback to first if no non-legacy found
+  }
+
+  var coreF8Container = getNonLegacyById('f6-curriculum-container'); 
   var artsPillsY78 = document.getElementById('y78-arts-pills');
-  var y9Container = document.getElementById('y9-curriculum-container');
-  var y10Container = document.getElementById('y10-curriculum-container');
+  var y9Container = getNonLegacyById('y9-curriculum-container');
+  var y10Container = getNonLegacyById('y10-curriculum-container');
 
   if (!yearDropdown) return;
 
@@ -1590,11 +1595,9 @@ function setCheckboxLock(selector, lockAndCheck) {
 
   function checkYearLevel() {
      if (window.__aed_is_loading_data) {
-       console.log('🔍 checkYearLevel BLOCKED — __aed_is_loading_data is true');
        return;
      }
     var rawValue = yearDropdown.value;
-    console.log('🔍 checkYearLevel RUNNING — rawValue="' + rawValue + '", dropdown element:', yearDropdown);
     
     if (coreF8Container) coreF8Container.style.display = 'none';
     if (artsPillsY78) artsPillsY78.style.display = 'none';
@@ -1603,7 +1606,6 @@ function setCheckboxLock(selector, lockAndCheck) {
     if (bannerContainer) bannerContainer.style.display = 'none';
 
     if (!rawValue) {
-      console.log('🔍 checkYearLevel — rawValue is empty, returning');
       return;
     }
 
@@ -1621,7 +1623,6 @@ function setCheckboxLock(selector, lockAndCheck) {
         if (yearNum === 10) isY10 = true;
       }
     }
-    console.log('🔍 checkYearLevel — isF6=' + isF6 + ' isY78=' + isY78 + ' isY9=' + isY9 + ' isY10=' + isY10);
 
     if (isF6 || isY78) {
       if (coreF8Container) {
@@ -1659,18 +1660,16 @@ function setCheckboxLock(selector, lockAndCheck) {
     }
 
     if (isY78 && artsPillsY78) artsPillsY78.style.display = 'block';
-    
-    // Diagnostic: log final banner state
-    console.log('🔍 checkYearLevel FINAL — banner display="' + (bannerContainer ? bannerContainer.style.display : 'NO ELEMENT') + '" banner.id="' + (bannerContainer ? bannerContainer.id : 'N/A') + '" banner in DOM=' + (bannerContainer ? document.contains(bannerContainer) : false) + ' f6 display="' + (coreF8Container ? coreF8Container.style.display : 'N/A') + '" y9 display="' + (y9Container ? y9Container.style.display : 'N/A') + '" y10 display="' + (y10Container ? y10Container.style.display : 'N/A') + '"');
 
-    if (isY9 && y9Container) {
-      // Y9 container is owned by the dynamic rendering system — do not show old static content.
-      // Dynamic system handles visibility via refreshCurriculumDisplay.
+    if (isY9) {
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 9)</strong><br>Core subjects are mandatory. Select subject pathways and electives to personalise learning.';
+      bannerContainer.style.display = 'block';
       setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false);
     }
     
-    if (isY10 && y10Container) {
-      // Y10 container is owned by the dynamic rendering system — do not show old static content.
+    if (isY10) {
+      bannerContainer.innerHTML = '<strong>Curriculum Requirements (Year 10)</strong><br>Core subjects remain mandatory. Select subject pathways and electives to shape the senior pathway.';
+      bannerContainer.style.display = 'block';
       setCheckboxLock('input.curriculum-checkbox[data-value="languages"], input[name="languages"], input[id="languages"]', false);
     }
   }

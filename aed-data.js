@@ -141,6 +141,11 @@ window.saveProgressSilently = function() {
         continue; // keep the existing saved value
       }
 
+      // Protect pill arrays from being overwritten by checkbox "on" values
+      if (Array.isArray(oldVal) && oldVal.length > 0 && !Array.isArray(newVal)) {
+        continue;
+      }
+
       merged[key] = newVal;
     }
     window.__aed_child_applications[idx] = merged;
@@ -395,6 +400,8 @@ function saveCurrentChildAndAdvance() {
     // Skip if the scrape returned empty but we already have data from live-save
     if (Array.isArray(newVal) && newVal.length === 0 && Array.isArray(oldVal) && oldVal.length > 0) continue;
     if ((newVal === '' || newVal === undefined || newVal === null) && oldVal && oldVal !== '') continue;
+    // Protect pill arrays from being overwritten by checkbox "on" values
+    if (Array.isArray(oldVal) && oldVal.length > 0 && !Array.isArray(newVal)) continue;
 
     existing[key] = newVal;
   }
@@ -637,7 +644,6 @@ function syncPillsFromInput(inputEl) {
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
 
-  console.log('🔍 loadChildData — idx=' + idx + ' hasData=' + !!data + ' savedYear="' + (data ? data.student_year_level : 'N/A') + '"');
 
   if (!data) {
     resetChildFields();
@@ -769,7 +775,6 @@ function loadChildData(idx) {
   setTimeout(function() {
     window.__aed_is_loading_data = false;
     var dropdownNow = document.querySelector('select[name="student_year_level"]');
-    console.log('🔍 loadChildData 100ms callback — flag cleared. DOMdropdown="' + (dropdownNow ? dropdownNow.value : 'NOT FOUND') + '" childIdx=' + getChildIndex());
     // Re-trigger curriculum visibility and rendering now that the shield is down.
     if (typeof window.__aed_checkYearLevel === 'function') {
       window.__aed_checkYearLevel();

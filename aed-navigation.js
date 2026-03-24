@@ -167,7 +167,6 @@ window.Webflow.push(function () {
     // Change 4: Step 4 is no longer a navigation target. All Y2 curriculum
     // rendering is triggered from Step 3 via the tab system.
     setTimeout(function() {
-      console.log('🔍 setActive dispatch (50ms) — stepNum=' + stepNum + ' loading=' + window.__aed_is_loading_data + ' childIdx=' + getChildIndex());
 
       // Curriculum banner and container visibility (all steps)
       if (typeof window.__aed_checkYearLevel === 'function') {
@@ -787,7 +786,6 @@ window.Webflow.push(function () {
 
   window.aed_nav = {
     jump: function(idx) {
-      console.log('🔍 aed_nav.jump — switching to child ' + idx);
       setChildIndex(idx);
       if (typeof window.loadChildData === 'function') window.loadChildData(idx);
       setActive(1);
