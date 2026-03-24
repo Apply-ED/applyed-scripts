@@ -904,6 +904,7 @@ if (_savedLang) {
     }
 
     var context = getCurriculumContext();
+    console.log('🔍 renderCurriculumOptions — container=' + targetContainerId + ' yearBand=' + context.yearBand + ' yearNum=' + context.yearNum + ' pathwayId=' + context.pathwayId + ' DOMdropdown="' + (document.querySelector('select[name="student_year_level"]') || {}).value + '"');
     if (!context.yearBand) return;
 
     var childIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
@@ -993,8 +994,11 @@ if (_savedLang) {
     // Fallback to DOM dropdown
     if (yearNum === null) {
       yearNum = getCurrentYearNum();
+      console.log('🔍 refreshCurriculumDisplay(Y1) — fell back to DOM, yearNum=' + yearNum);
     }
     if (yearNum === null) return;
+
+    console.log('🔍 refreshCurriculumDisplay(Y1) — childIdx=' + childIdx + ' savedYear="' + (savedData.student_year_level || 'none') + '" yearNum=' + yearNum + ' loading=' + window.__aed_is_loading_data);
 
     // Hide all containers first
     ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container"].forEach(function(id) {
@@ -1581,8 +1585,12 @@ function setCheckboxLock(selector, lockAndCheck) {
   
 
   function checkYearLevel() {
-     if (window.__aed_is_loading_data) return;
+     if (window.__aed_is_loading_data) {
+       console.log('🔍 checkYearLevel BLOCKED — __aed_is_loading_data is true');
+       return;
+     }
     var rawValue = yearDropdown.value;
+    console.log('🔍 checkYearLevel RUNNING — rawValue="' + rawValue + '", dropdown element:', yearDropdown);
     
     if (coreF8Container) coreF8Container.style.display = 'none';
     if (artsPillsY78) artsPillsY78.style.display = 'none';
@@ -1590,7 +1598,10 @@ function setCheckboxLock(selector, lockAndCheck) {
     if (y10Container) y10Container.style.display = 'none';
     if (bannerContainer) bannerContainer.style.display = 'none';
 
-    if (!rawValue) return;
+    if (!rawValue) {
+      console.log('🔍 checkYearLevel — rawValue is empty, returning');
+      return;
+    }
 
     var isF6 = false, isY78 = false, isY9 = false, isY10 = false;
 
@@ -1606,6 +1617,7 @@ function setCheckboxLock(selector, lockAndCheck) {
         if (yearNum === 10) isY10 = true;
       }
     }
+    console.log('🔍 checkYearLevel — isF6=' + isF6 + ' isY78=' + isY78 + ' isY9=' + isY9 + ' isY10=' + isY10);
 
     if (isF6 || isY78) {
       if (coreF8Container) {
