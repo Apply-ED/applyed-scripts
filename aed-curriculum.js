@@ -1140,6 +1140,10 @@ if (_savedLang) {
     var wrap = document.createElement("div");
     wrap.className = "aed-dynamic-curriculum";
 
+    // Append wrap to container FIRST so that parentEl.closest('[id$="_y2"]')
+    // can walk up to the container and detect Y2 context for hidden input naming.
+    container.appendChild(wrap);
+
     if (context.mandatory) renderMandatoryBanner(context.mandatory, wrap);
 
     if (context.electives) {
@@ -1154,7 +1158,6 @@ if (_savedLang) {
     }
 
     renderLanguagesSection(wrap, yearBand);
-    container.appendChild(wrap);
 
     // Store in cache
     _curriculumDOMCache[targetContainerId][childIdx] = {
