@@ -28,6 +28,12 @@ function getCurriculumPathway(stateCode) {
 }
 
 function getCurrentStateValue() {
+  // Read from the in-form state dropdown (select[name="state"]) — the single source of truth.
+  // Falls back to localStorage for any edge-case where the DOM isn't ready yet.
+  var el = document.querySelector('select[name="state"]');
+  if (el && el.value && el.value.trim()) {
+    return el.value.trim().toUpperCase();
+  }
   return (localStorage.getItem("aed_selected_state") || "").trim().toUpperCase() || null;
 }
 

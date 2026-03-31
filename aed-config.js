@@ -156,7 +156,7 @@ window.AED.FAMILY_FIELDS = [
   "study_spaces_custom", "screen_time_custom",
   "resources_physical_custom", "resources_digital_custom", "resources_management_custom",
   "confirm_accuracy_oversight", "confirm_program_approval", "confirm_ai_privacy",
-  "state", "state-picker", "intake_secret", "application_group_id",
+  "state", "intake_secret", "application_group_id",
   "order_currency", "order_total_cents", "order_add_ons_json", "order_line_items_json"
 ];
 

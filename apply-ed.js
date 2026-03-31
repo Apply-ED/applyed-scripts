@@ -238,115 +238,88 @@ if (paymentStatus === "failed") {
   setActive(0);
 }
 /* =========================
-   DYNAMIC STATE PICKER LOCK & VALIDATION (Sticky Navbar Fix v3)
+   STATE DROPDOWN — In-form select[name="state"] on Step 0
+   (Replaces the old dual navbar/form state-picker system)
    ========================= */
-function bindStatePickerLock() {
-  const pickers = document.querySelectorAll('select[name="state-picker"], [data-aed-state-picker="1"], select[name="state"]');
+function bindStateDropdown() {
+  const stateSelect = document.querySelector('select[name="state"]');
+  if (!stateSelect) return;
 
-  // 1. Function to lock or unlock based on the current step
+  // 1. Lock/unlock: editable on Step 0, locked on all other steps
   function updateLock() {
     const shouldLock = (typeof window.currentStepNum !== 'undefined' && window.currentStepNum > 0);
+    const wrapper = stateSelect.closest('.w-select') || stateSelect.parentElement;
 
-    pickers.forEach(picker => {
-      const wrapper = picker.closest('.w-select') || picker.parentElement;
-
-      if (shouldLock) {
-        picker.style.setProperty('pointer-events', 'none', 'important');
-        picker.style.setProperty('opacity', '0.6', 'important');
-        
-        if (wrapper) {
-            wrapper.style.setProperty('pointer-events', 'none', 'important');
-            wrapper.style.setProperty('opacity', '0.6', 'important');
-            wrapper.title = "State cannot be changed once you have started. Please return to Setup to change.";
-        }
-      } else {
-        picker.style.setProperty('pointer-events', 'auto', 'important');
-        picker.style.setProperty('opacity', '1', 'important');
-
-        if (wrapper) {
-            wrapper.style.setProperty('pointer-events', 'auto', 'important');
-            wrapper.style.setProperty('opacity', '1', 'important');
-            wrapper.title = "";
-        }
+    if (shouldLock) {
+      stateSelect.style.setProperty('pointer-events', 'none', 'important');
+      stateSelect.style.setProperty('opacity', '0.6', 'important');
+      if (wrapper) {
+        wrapper.style.setProperty('pointer-events', 'none', 'important');
+        wrapper.style.setProperty('opacity', '0.6', 'important');
+        wrapper.title = "State cannot be changed once you have started. Please return to Setup to change.";
       }
-    });
+    } else {
+      stateSelect.style.setProperty('pointer-events', 'auto', 'important');
+      stateSelect.style.setProperty('opacity', '1', 'important');
+      if (wrapper) {
+        wrapper.style.setProperty('pointer-events', 'auto', 'important');
+        wrapper.style.setProperty('opacity', '1', 'important');
+        wrapper.title = "";
+      }
+    }
   }
 
-  // 2. Prevent leaving Step 0 if State is empty (Double Navbar Proofed)
+  // 2. Validate: prevent leaving Step 0 if state is empty
   document.addEventListener('click', function(e) {
     const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
     if (nextBtn && typeof window.currentStepNum !== 'undefined' && window.currentStepNum === 0) {
-      
-      // Get all state pickers on the page (static and sticky navbars)
-      const statePickers = Array.from(document.querySelectorAll('select[name="state-picker"]'));
-      
-      // Does ANY picker have a valid selection?
-      const validPicker = statePickers.find(p => p.value && p.value.trim() !== '');
+      if (!stateSelect.value || !stateSelect.value.trim()) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
 
-      // If none of them have a value, block submission
-      if (!validPicker) {
-         e.preventDefault();
-         e.stopImmediatePropagation();
-         
-         // Find the sticky/visible picker to attach the error box to
-         let visiblePicker = statePickers.reverse().find(p => p.offsetWidth > 0) || statePickers[0];
-         
-         if (visiblePicker) {
-             let errEl = document.getElementById('state-picker-error');
-             if (!errEl) {
-               errEl = document.createElement('div');
-               errEl.id = 'state-picker-error';
-               errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
-               
-               const container = visiblePicker.closest('.field-group') || visiblePicker.parentElement;
-               if (container) container.appendChild(errEl);
-             }
-             errEl.textContent = 'Please select your State from the dropdown before starting your application.';
-             errEl.style.display = 'block';
-             errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-         }
+        let errEl = document.getElementById('state-picker-error');
+        if (!errEl) {
+          errEl = document.createElement('div');
+          errEl.id = 'state-picker-error';
+          errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
+          const container = stateSelect.closest('.field-group') || stateSelect.parentElement;
+          if (container) container.appendChild(errEl);
+        }
+        errEl.textContent = 'Please select your State before starting your application.';
+        errEl.style.display = 'block';
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-         const errEl = document.getElementById('state-picker-error');
-         if (errEl) errEl.style.display = 'none';
-         
-         // SYNC FIX: If one has a value, silently update all the others
-         statePickers.forEach(p => {
-            if (p.value !== validPicker.value) {
-               p.value = validPicker.value;
-            }
-         });
+        const errEl = document.getElementById('state-picker-error');
+        if (errEl) errEl.style.display = 'none';
       }
     }
   }, true);
 
-  // 3. Keep all pickers in sync when the user changes one manually
-  document.addEventListener('change', function(e) {
-     if (e.target && e.target.name === 'state-picker') {
-        const errEl = document.getElementById('state-picker-error');
-        if (errEl) errEl.style.display = 'none';
-        
-        // Auto-sync the sticky navbar with the static one (and vice versa)
-        document.querySelectorAll('select[name="state-picker"]').forEach(p => {
-            if (p !== e.target && p.value !== e.target.value) {
-                p.value = e.target.value;
-            }
-        });
+  // 3. On change: sync localStorage (legacy) + fire custom event for curriculum
+  stateSelect.addEventListener('change', function() {
+    const errEl = document.getElementById('state-picker-error');
+    if (errEl) errEl.style.display = 'none';
 
-        // Notify curriculum system that state changed (Change 2 — replaces setInterval polling)
-        document.dispatchEvent(new CustomEvent("aed:stateChanged", { detail: { state: e.target.value } }));
-     }
+    const val = (stateSelect.value || '').trim().toUpperCase();
+    if (val) {
+      localStorage.setItem('aed_selected_state', val);
+    }
+    document.dispatchEvent(new CustomEvent("aed:stateChanged", { detail: { state: val } }));
   });
 
-  // Change 3: Expose for centralised dispatch from setActive()
+  // 4. Expose lock updater for centralised dispatch from setActive()
   window.__aed_updateStateLock = updateLock;
 
-
-  // 4. Change 3: MutationObserver REMOVED — updateLock is now called from setActive()
+  // 5. Seed localStorage from current value on load (in case it's pre-set)
+  var initial = (stateSelect.value || '').trim().toUpperCase();
+  if (initial) {
+    localStorage.setItem('aed_selected_state', initial);
+  }
 
   setTimeout(updateLock, 100);
 }
 
-bindStatePickerLock();
+bindStateDropdown();
 
 // Run immediately, on load, and half a second later just in case Webflow loads slowly
 /* =========================================
