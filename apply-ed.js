@@ -269,31 +269,10 @@ function bindStateDropdown() {
     }
   }
 
-  // 2. Validate: prevent leaving Step 0 if state is empty
-  document.addEventListener('click', function(e) {
-    const nextBtn = e.target.closest('#btn-next-step0, [data-step-action="next"]');
-    if (nextBtn && typeof window.currentStepNum !== 'undefined' && window.currentStepNum === 0) {
-      if (!stateSelect.value || !stateSelect.value.trim()) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        let errEl = document.getElementById('state-picker-error');
-        if (!errEl) {
-          errEl = document.createElement('div');
-          errEl.id = 'state-picker-error';
-          errEl.style.cssText = 'color: #c62828; background-color: #ffebee; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; margin-top: 12px; font-family: Montserrat, sans-serif; font-size: 14px; font-weight: 500;';
-          const container = stateSelect.closest('.field-group') || stateSelect.parentElement;
-          if (container) container.appendChild(errEl);
-        }
-        errEl.textContent = 'Please select your State before starting your application.';
-        errEl.style.display = 'block';
-        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        const errEl = document.getElementById('state-picker-error');
-        if (errEl) errEl.style.display = 'none';
-      }
-    }
-  }, true);
+  // 2. State validation removed — state is no longer selected in the nav bar.
+  //    Any legacy state-picker-error element is hidden on load.
+  var _legacyStateErr = document.getElementById('state-picker-error');
+  if (_legacyStateErr) _legacyStateErr.style.display = 'none';
 
   // 3. On change: sync localStorage (legacy) + fire custom event for curriculum
   stateSelect.addEventListener('change', function() {
