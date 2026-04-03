@@ -379,7 +379,63 @@ window.validateInterestLedStep4 = function() {
 
 // 3. Goal-Directed Validation
 window.validateGoalDirectedStep4 = function() {
-  // Path 2: No goal-directed program type. Always passes.
+  // Path 2: Everyone uses the detailed goals (3B). Validate them.
+  showGoalError(null);
+
+  // Enforce at least 1 Interest
+  const primaryGrid = document.getElementById('primary-interests-grid');
+  if (primaryGrid) {
+    const interestCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+    if (interestCount < 1) {
+      showGoalError('Please select at least 1 area of interest so we can build investigations around your child\u2019s passions.', 'step3-interests-container');
+      return false;
+    }
+  }
+
+  let shortCount = 0;
+  let longCount = 0;
+  let socialShortCount = 0;
+  let coreShortCount = 0;
+
+  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
+    if (pill.offsetParent !== null) { 
+      const type = pill.getAttribute('data-goal-type');
+      const isSocial = pill.getAttribute('data-category') === 'social';
+
+      if (type === 'short') {
+         shortCount++;
+         if (isSocial) socialShortCount++;
+         else coreShortCount++;
+      }
+      if (type === 'long') longCount++;
+    }
+  });
+
+  // Count custom text fields (short-term)
+  ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') shortCount++;
+  });
+  
+  // Count custom text fields (long-term)
+  ['long_term_custom'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') longCount++;
+  });
+
+  if (shortCount < 4 || shortCount > 8) {
+    showGoalError('Please select between 4 and 8 short-term goals. You currently have ' + shortCount + ' selected.', 'container-3b-goaldirected');
+    return false;
+  }
+  if (socialShortCount > coreShortCount) {
+    showGoalError('Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.', 'container-3b-goaldirected');
+    return false;
+  }
+  if (longCount < 1 || longCount > 2) {
+    showGoalError('Please select 1 or 2 long-term goals. You currently have ' + longCount + ' selected.', 'container-3b-goaldirected');
+    return false;
+  }
+
   return true;
 };
 
@@ -460,7 +516,6 @@ function bindGoalCounter() {
   }
 
   function updateCounter() {
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
     
     // Check if goal section is visible
     let hasVisibleGoals = false;
@@ -468,7 +523,8 @@ function bindGoalCounter() {
        if (pill.offsetWidth > 0 || pill.offsetParent !== null) hasVisibleGoals = true;
     });
 
-    if (pType !== 'goal_directed' || !hasVisibleGoals) {
+// Path 2: Always show the counter when goals are visible (everyone uses 3B)
+    if (!hasVisibleGoals) {
       banner.style.setProperty('display', 'none', 'important');
       return;
     }
@@ -545,22 +601,13 @@ function getGoalDirectedProgramType() {
    CONTAINER 3A / 3B MASTER SWITCH & BANNERS
    ========================================= */
 function bindGoalContainerSwapper() {
-  // Path 2: Always show container 3A (general goals), always hide 3B (goal-directed).
+  // Path 2: Always show container 3B (detailed goals), always hide 3A (flat pills).
   const container3A = document.getElementById('container-3a-general'); 
   const container3B = document.getElementById('container-3b-goaldirected');
-  
-  // Inject the friendly green banner into Container 3A
-  if (container3A && !document.getElementById('aed-3a-banner')) {
-    const banner = document.createElement('div');
-    banner.id = 'aed-3a-banner';
-    banner.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
-    banner.innerHTML = '<strong>Program Goals</strong><br>Please select <strong>at least 3 goals in total</strong> across the categories below to help shape the overall direction of your child\'s learning.';
-    container3A.insertAdjacentElement('afterbegin', banner);
-  }
 
   function swapContainers() {
-    if (container3A) container3A.style.setProperty('display', 'block', 'important');
-    if (container3B) container3B.style.setProperty('display', 'none', 'important');
+    if (container3A) container3A.style.setProperty('display', 'none', 'important');
+    if (container3B) container3B.style.setProperty('display', 'block', 'important');
   }
 
   // Expose for centralised dispatch from setActive()
@@ -725,8 +772,6 @@ function initGoalDirectedDeepDives() {
   };
 
   function updateGoalDeepDives() {
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    if (pType !== 'goal_directed') return;
 
     // 2. NEW METHOD: Bypass the hidden inputs and read the live visible pills directly
     const selectedPills = Array.from(document.querySelectorAll('.ms-option.is-selected'))

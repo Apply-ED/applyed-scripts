@@ -264,8 +264,17 @@ window.Webflow.push(function () {
     interestBanner.style.setProperty('display', 'block', 'important');
 
     // 2. Goal-directed banner — always hidden (Path 2: no GD program type)
+// 2. Goal-directed banner — always shown (Path 2: everyone uses detailed goals)
     var goalBanner3B = document.getElementById('step4-goal-info');
-    if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
+    if (!goalBanner3B) {
+      goalBanner3B = document.createElement('div');
+      goalBanner3B.id = 'step4-goal-info';
+      goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
+      var container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+      if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
+    }
+    goalBanner3B.innerHTML = '<strong>Program Goals</strong><br>Please select <strong>4\u20138 short-term goals</strong> (across Academic, Social, and Independence) and <strong>1\u20132 long-term goals</strong> to help us build a focused, achievable program for your child.';
+    goalBanner3B.style.setProperty('display', 'block', 'important');
   }
 
   function hideStep4GoalInfo() {
@@ -485,13 +494,13 @@ window.Webflow.push(function () {
 
       if (!validateStep(currentStepNum)) return;
 
-// Path 2: Only container 3A (general goals) is ever visible.
-      // Container 3B (goal-directed) is always hidden.
-      var container3A = document.getElementById('container-3a-general');
-      if (container3A && container3A.offsetParent !== null) {
-        if (typeof window.validateInterestLedStep4 === 'function' && !window.validateInterestLedStep4()) return;
-      }
 
+// Path 2: Container 3B (detailed goals) is always visible.
+      // Validate interests (at least 1) then goals via 3B validation.
+      var container3B = document.getElementById('container-3b-goaldirected');
+      if (container3B && container3B.offsetParent !== null) {
+        if (typeof window.validateGoalDirectedStep4 === 'function' && !window.validateGoalDirectedStep4()) return;
+      }
       // Check the curriculum rules (ONLY on Step 3)
       if (currentStepNum === 3) {
         if (typeof window.validateCurriculum === 'function' && !window.validateCurriculum()) return;

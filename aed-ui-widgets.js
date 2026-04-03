@@ -1861,13 +1861,13 @@ function bindPersonalisedHeading() {
    CONTAINER 3A / 3B MASTER SWITCH
    ========================================= */
 function bindGoalContainerSwapper() {
-  // Path 2: Always show container 3A (general goals), always hide 3B (goal-directed).
+  // Path 2: Always show container 3B (detailed goals), always hide 3A (flat pills).
   const container3A = document.getElementById('container-3a-general'); 
   const container3B = document.getElementById('container-3b-goaldirected');
   
   function swapContainers() {
-    if (container3A) container3A.style.setProperty('display', 'grid', 'important');
-    if (container3B) container3B.style.setProperty('display', 'none', 'important');
+    if (container3A) container3A.style.setProperty('display', 'none', 'important');
+    if (container3B) container3B.style.setProperty('display', 'block', 'important');
   }
 
   // Expose for centralised dispatch from setActive()
