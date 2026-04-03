@@ -100,15 +100,21 @@ window.Webflow.push(function () {
     } else {
       heading.textContent = "Child " + displayNum;
     }
-    // Update the section heading
+// Update the section heading
     var sectionHeading = document.getElementById('child-section-heading');
     if (sectionHeading) {
       sectionHeading.textContent = name ? ("About " + name) : 'About';
     }
-    // Update the page heading
+    // Update the page heading based on current step
     var pageHeading = document.getElementById('child-page-heading');
     if (pageHeading) {
-      pageHeading.textContent = name ? ("Now tell us about " + name) : 'Now tell us about your child';
+      if (currentStepNum === STEP_FIRST_CHILD) {
+        pageHeading.textContent = name ? ("About " + name) : 'About your child';
+      } else if (currentStepNum === 2) {
+        pageHeading.textContent = name ? ("How does " + name + " learn?") : 'How does your child learn?';
+      } else {
+        pageHeading.textContent = name ? ("Now tell us about " + name) : 'Now tell us about your child';
+      }
     }
 
     // Ensure it is visible
@@ -242,9 +248,9 @@ window.Webflow.push(function () {
      STEP 4: INFO BANNER & INTEREST BANNER
      ------------------------------------------------------- */
   function showStep4GoalInfo() {
-    var pType = typeof window.getGoalDirectedProgramType === 'function' ? window.getGoalDirectedProgramType() : null;
+    // Path 2: Single program type — always show the generic interests banner.
 
-    // 1. UNIVERSAL INTERESTS BANNER (Shows for all programs)
+    // 1. INTERESTS BANNER
     var interestBanner = document.getElementById('aed-interest-banner');
     if (!interestBanner) {
       interestBanner = document.createElement('div');
@@ -254,32 +260,12 @@ window.Webflow.push(function () {
       if (interestsContainer) interestsContainer.insertAdjacentElement('afterbegin', interestBanner);
     }
 
-    // Set the correct text for the Interests banner
-    if (pType === 'interest_led') {
-      interestBanner.innerHTML = '<strong>Interest-Led Program</strong><br>Select your child\u2019s curiosities below \u2014 even <strong>one strong interest is enough</strong>. We\u2019ll build 4 unique investigations around what your child loves, each tied to curriculum.';
-    } else {
-      interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child\u2019s passions.';
-    }
+    interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child\u2019s passions.';
     interestBanner.style.setProperty('display', 'block', 'important');
 
-    // 2. GOAL-DIRECTED BANNER (Only for Container 3B)
+    // 2. Goal-directed banner — always hidden (Path 2: no GD program type)
     var goalBanner3B = document.getElementById('step4-goal-info');
-    if (!goalBanner3B) {
-      goalBanner3B = document.createElement('div');
-      goalBanner3B.id = 'step4-goal-info';
-      goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
-
-      var container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-      if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
-    }
-
-    // Show or hide the 3B banner depending on program type
-    if (pType === 'goal_directed') {
-      goalBanner3B.innerHTML = '<strong>Goal-Directed Program</strong><br>Please select <strong>4\u20138 short-term goals</strong> (across Academic, Social, and Independence) and <strong>1\u20132 long-term goals</strong> to help us build a focused, achievable program for your child.';
-      goalBanner3B.style.setProperty('display', 'block', 'important');
-    } else {
-      goalBanner3B.style.setProperty('display', 'none', 'important');
-    }
+    if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
   }
 
   function hideStep4GoalInfo() {
@@ -294,37 +280,19 @@ window.Webflow.push(function () {
      DEFAULT PROGRAM TYPE
      ========================= */
 
-  function ensureDefaultProgramTypeForCurrentChild() {
+    function ensureDefaultProgramTypeForCurrentChild() {
+    // Path 2: Program type is always curriculum_based.
+    // Radio cards are hidden in Webflow; just ensure the hidden radio stays checked.
     var step1 = getStepEl(STEP_FIRST_CHILD);
     if (!step1) return;
-
-    // If this child already has saved data, do NOT override it
-    var idx = getChildIndex();
-    var saved = window.__aed_child_applications && window.__aed_child_applications[idx];
-    if (saved && saved.program_type) return;
-
-    var desired = "curriculum_based";
 
     var radios = Array.from(step1.querySelectorAll('input[type="radio"][name="program_type"]'));
     if (!radios.length) return;
 
-    // If something is already checked, leave it alone
-    var alreadyChecked = radios.find(function(r) { return r.checked; });
-    if (alreadyChecked) return;
-
-    // Otherwise set the default
-    var target = radios.find(function(r) { return r.value === desired; }) || radios[0];
+    var target = radios.find(function(r) { return r.value === "curriculum_based"; }) || radios[0];
     target.checked = true;
-
-    // Trigger Webflow visual updates
     target.dispatchEvent(new Event("input", { bubbles: true }));
     target.dispatchEvent(new Event("change", { bubbles: true }));
-
-    // Some Webflow radio styles only update on label click
-    if (target.id) {
-      var label = step1.querySelector('label[for="' + CSS.escape(target.id) + '"]');
-      if (label) label.click();
-    }
   }
 
   /* =========================
@@ -517,12 +485,8 @@ window.Webflow.push(function () {
 
       if (!validateStep(currentStepNum)) return;
 
-      // FOOLPROOF VISIBILITY CHECK: Run validations based on what is actually on screen!
-      var container3B = document.getElementById('container-3b-goaldirected');
-      if (container3B && container3B.offsetParent !== null) {
-        if (typeof window.validateGoalDirectedStep4 === 'function' && !window.validateGoalDirectedStep4()) return;
-      }
-
+// Path 2: Only container 3A (general goals) is ever visible.
+      // Container 3B (goal-directed) is always hidden.
       var container3A = document.getElementById('container-3a-general');
       if (container3A && container3A.offsetParent !== null) {
         if (typeof window.validateInterestLedStep4 === 'function' && !window.validateInterestLedStep4()) return;

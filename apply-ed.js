@@ -345,35 +345,33 @@ window.showGoalError = showGoalError;
 
 // 2. Interest-Led & Standard Validation
 window.validateInterestLedStep4 = function() {
+  // Path 2: Validates interests (at least 1) and general goals (at least 3).
   showGoalError(null); 
-  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
 
-  if (pType === 'interest_led' || pType === 'curriculum_based' || pType === 'curriculum_aligned') {
-    const primaryGrid = document.getElementById('primary-interests-grid');
-    if (primaryGrid) {
-      const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
-      if (count < 1) {
-        showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.', 'step3-interests-container');
-        return false;
-      }
+  // Validate interests
+  const primaryGrid = document.getElementById('primary-interests-grid');
+  if (primaryGrid) {
+    const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+    if (count < 1) {
+      showGoalError('Please select at least 1 area of interest so we can build investigations around your child\u2019s passions.', 'step3-interests-container');
+      return false;
     }
   }
 
-  if (pType !== 'goal_directed') {
-    const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
-    if (container3A) {
-      let count = container3A.querySelectorAll('.ms-option.is-selected').length;
-      
-      // NEW: Count custom text fields!
-      ['other_goal_1', 'other_goal_2', 'other_goal_3'].forEach(name => {
-        const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-        if (el && el.offsetParent !== null && el.value.trim() !== '') count++;
-      });
+  // Validate general goals (container 3A)
+  const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
+  if (container3A) {
+    let count = container3A.querySelectorAll('.ms-option.is-selected').length;
+    
+    // Count custom text fields
+    ['other_goal_1', 'other_goal_2', 'other_goal_3'].forEach(name => {
+      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
+      if (el && el.offsetParent !== null && el.value.trim() !== '') count++;
+    });
 
-      if (count < 3) {
-        showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'container-3a-general');
-        return false;
-      }
+    if (count < 3) {
+      showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'container-3a-general');
+      return false;
     }
   }
   return true;
@@ -381,9 +379,9 @@ window.validateInterestLedStep4 = function() {
 
 // 3. Goal-Directed Validation
 window.validateGoalDirectedStep4 = function() {
-  showGoalError(null); 
-  const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-  if (pType !== 'goal_directed') return true;
+  // Path 2: No goal-directed program type. Always passes.
+  return true;
+};
 
   // Enforce at least 1 Interest
   const primaryGrid = document.getElementById('primary-interests-grid');
@@ -439,7 +437,6 @@ window.validateGoalDirectedStep4 = function() {
   }
 
   return true;
-};
 
 // 4. Sticky Counter
 function bindGoalCounter() {
@@ -541,29 +538,18 @@ setTimeout(bindGoalCounter, 500);
    PROGRAM TYPE HELPER
    ========================================= */
 function getGoalDirectedProgramType() {
-  // 1. Check the live radio button on the screen first
-  const checkedRadio = document.querySelector('input[type="radio"][name="program_type"]:checked');
-  if (checkedRadio && checkedRadio.value) {
-    return checkedRadio.value;
-  }
-
-  // 2. Fall back to saved memory state if no radio is currently selected
-  const idx = typeof getChildIndex === 'function' ? getChildIndex() : 0;
-  const saved = window.__aed_child_applications && window.__aed_child_applications[idx];
-  if (saved && saved.program_type) {
-    return saved.program_type;
-  }
-
-  return null;
+  // Path 2: Always return curriculum_based. Single unified program type.
+  return 'curriculum_based';
 }
 /* =========================================
    CONTAINER 3A / 3B MASTER SWITCH & BANNERS
    ========================================= */
 function bindGoalContainerSwapper() {
+  // Path 2: Always show container 3A (general goals), always hide 3B (goal-directed).
   const container3A = document.getElementById('container-3a-general'); 
   const container3B = document.getElementById('container-3b-goaldirected');
   
-  // NEW: Inject the friendly green banner into Container 3A
+  // Inject the friendly green banner into Container 3A
   if (container3A && !document.getElementById('aed-3a-banner')) {
     const banner = document.createElement('div');
     banner.id = 'aed-3a-banner';
@@ -573,26 +559,14 @@ function bindGoalContainerSwapper() {
   }
 
   function swapContainers() {
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    
-    if (pType === 'goal_directed') {
-      if (container3A) container3A.style.setProperty('display', 'none', 'important');
-      if (container3B) container3B.style.setProperty('display', 'block', 'important');
-    } else {
-      if (container3A) container3A.style.setProperty('display', 'block', 'important');
-      if (container3B) container3B.style.setProperty('display', 'none', 'important');
-    }
+    if (container3A) container3A.style.setProperty('display', 'block', 'important');
+    if (container3B) container3B.style.setProperty('display', 'none', 'important');
   }
 
-  // Change 3: Expose for centralised dispatch from setActive()
+  // Expose for centralised dispatch from setActive()
   window.__aed_swapGoalContainers = swapContainers;
 
-  document.addEventListener('change', function(e) {
-    if (e.target.name === 'program_type') setTimeout(swapContainers, 50);
-  });
-  
-  // Change 3: MutationObserver REMOVED — swapContainers is now called from setActive()
-
+  // No need to listen for program_type changes — it's always curriculum_based.
   setTimeout(swapContainers, 100);
 }
 setTimeout(bindGoalContainerSwapper, 500);
@@ -655,23 +629,15 @@ function initInterestDeepDives() {
   const primaryGrid = document.getElementById('primary-interests-grid');
   if (!primaryGrid) return;
 
-  function updateDeepDives() {
-    let isInterestLed = false;
-    
-    // 1. Bulletproof Program Type Check
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    if (pType === 'interest_led') isInterestLed = true;
+function updateDeepDives() {
+    // Path 2: Deep dives show for ALL users when they select an interest.
+    // No program-type gating.
 
-    const radioBtn = document.getElementById('interest_led');
-    if (radioBtn && radioBtn.checked) {
-        isInterestLed = true;
-    }
-
-    // 2. Toggle the subheadings based on program type
+    // Always show standard subheading, hide interest-led subheading
     const stdSub = document.getElementById('subheading-standard');
     const intSub = document.getElementById('subheading-interest-led');
-    if (stdSub) stdSub.style.display = isInterestLed ? 'none' : 'block';
-    if (intSub) intSub.style.display = isInterestLed ? 'block' : 'none';
+    if (stdSub) stdSub.style.display = 'block';
+    if (intSub) intSub.style.display = 'none';
 
     // 3. The COMPLETE "Map" - Links Tier 1 data-value to Tier 2 Div ID
     const deepDiveMap = {
@@ -697,12 +663,11 @@ function initInterestDeepDives() {
       try { selectedPills = JSON.parse(primaryInput.value); } catch(e) {}
     }
 
-    // 5. Show or Hide the Deep Dives
+// 5. Show or Hide the Deep Dives (Path 2: show for ALL users)
     for (const [pillValue, containerId] of Object.entries(deepDiveMap)) {
       const deepDiveDiv = document.getElementById(containerId);
       if (deepDiveDiv) {
-        // Show if Interest-Led AND they clicked the matching pill
-        if (isInterestLed && selectedPills.includes(pillValue)) {
+        if (selectedPills.includes(pillValue)) {
           deepDiveDiv.style.display = 'block';
         } else {
           deepDiveDiv.style.display = 'none';

@@ -1052,17 +1052,17 @@ function bindCustomValidation() {
       { name: 'plan_start_date', label: 'Program Start Date' }
   ];
 
-// Step 1 now only has the child's name
+// Step 1: Child identity + learning background (Path 2 layout)
   var step1Fields = [
-    { name: 'student_first_name', label: 'Student First Name' }
-  ];
-
-// Step 2 now checks for Identity, Background, and Rhythm dropdowns
-  var step2Fields = [
+    { name: 'student_first_name', label: 'Student First Name' },
     { name: 'student_pronouns', label: 'Student Pronouns' },
     { name: 'student_year_level', label: 'Current Year Level' },
     { name: 'previous_schooling', label: 'Previous Schooling' },
-    { name: 'time_home_educated', label: 'Time Home Educated' },
+    { name: 'time_home_educated', label: 'Time Home Educated' }
+  ];
+
+// Step 2: Learning preferences + rhythm & boundaries (Path 2 layout)
+  var step2Fields = [
     { name: 'structured_hours_week', label: 'Structured Learning Time' },
     { name: 'daily_peak', label: 'Daily Energy Peak' },
     { name: 'attention_span', label: 'Attention Span' },
@@ -1196,7 +1196,8 @@ function bindCustomValidation() {
    ========================= */
 
 function bindStep1Validation() {
-  var nextBtn = document.getElementById('btn-next-step2');
+  // Path 2: Study span pills are now on Step 1, so validate on Step 1's next button.
+  var nextBtn = document.getElementById('btn-next-step1');
   if (!nextBtn) return;
 
   nextBtn.addEventListener('click', function(e) {
@@ -1860,39 +1861,19 @@ function bindPersonalisedHeading() {
    CONTAINER 3A / 3B MASTER SWITCH
    ========================================= */
 function bindGoalContainerSwapper() {
+  // Path 2: Always show container 3A (general goals), always hide 3B (goal-directed).
   const container3A = document.getElementById('container-3a-general'); 
   const container3B = document.getElementById('container-3b-goaldirected');
   
   function swapContainers() {
-    const pType = typeof getGoalDirectedProgramType === 'function' ? getGoalDirectedProgramType() : null;
-    
-    if (pType === 'goal_directed') {
-      if (container3A) container3A.style.setProperty('display', 'none', 'important');
-      if (container3B) container3B.style.setProperty('display', 'block', 'important'); 
-    } else {
-      if (container3A) container3A.style.setProperty('display', 'grid', 'important');
-      if (container3B) container3B.style.setProperty('display', 'none', 'important');
-    }
+    if (container3A) container3A.style.setProperty('display', 'grid', 'important');
+    if (container3B) container3B.style.setProperty('display', 'none', 'important');
   }
 
-  // Change 3: Expose for centralised dispatch from setActive()
+  // Expose for centralised dispatch from setActive()
   window.__aed_swapProgramContainers = swapContainers;
 
-  document.addEventListener('change', function(e) {
-    if (e.target && e.target.name === 'program_type') {
-      setTimeout(swapContainers, 50);
-    }
-  });
-
-  document.addEventListener('click', function(e) {
-    const radioWrapper = e.target.closest('.w-radio');
-    if (radioWrapper && radioWrapper.querySelector('input[name="program_type"]')) {
-      setTimeout(swapContainers, 50);
-    }
-  }, true);
-  
-  // Change 3: MutationObserver REMOVED — swapContainers is now called from setActive()
-
+  // No need to listen for program_type changes — it's always curriculum_based.
   setTimeout(swapContainers, 100);
 }
 /* =========================

@@ -241,13 +241,8 @@ function collectChildData() {
     }
   }
 
-  if (!data.program_type) {
-    const step0 = getStepEl(0);
-    if (step0) {
-      const progEl = step0.querySelector('input[name="program_type"]:checked') || step0.querySelector('select[name="program_type"]');
-      if (progEl) data.program_type = progEl.value;
-    }
-  }
+// Path 2: Always set program_type to curriculum_aligned
+  data.program_type = 'curriculum_aligned';
 
   console.log("✅ Child Data Captured:", data);
   return data;
@@ -315,29 +310,15 @@ if (window.__aed_clearCurriculumCacheForChild) {
     p.classList.remove("is-selected");
   });
 
-  // C. DEFAULT PROGRAM TYPE (RADIO)
-  // Force Child 2+ to default to Curriculum-Based
+// C. DEFAULT PROGRAM TYPE (Path 2: always curriculum_based)
   const step1 = getStepEl(STEP_FIRST_CHILD);
   if (step1) {
-    const desired = "curriculum_based";
-
     const radios = Array.from(step1.querySelectorAll('input[type="radio"][name="program_type"]'));
     if (radios.length) {
-      // Clear them first (prevents stale checked state)
-      radios.forEach(r => { r.checked = false; });
-
-      // Pick the matching value if present, else fall back to the first radio
-      const target = radios.find(r => r.value === desired) || radios[0];
+      var target = radios.find(r => r.value === "curriculum_based") || radios[0];
       target.checked = true;
-
-      // Trigger events so Webflow visual state updates
       target.dispatchEvent(new Event("input", { bubbles: true }));
       target.dispatchEvent(new Event("change", { bubbles: true }));
-
-      // Extra nudge: click the label if Webflow styling is tied to click
-      const id = target.id;
-      const label = id ? step1.querySelector(`label[for="${CSS.escape(id)}"]`) : null;
-      if (label) label.click();
     }
   }
 
@@ -454,11 +435,13 @@ function renderChildSummary() {
     return;
   }
 
+// Path 2: Single unified program type
   const programMap = {
-    "acara_aligned": "Curriculum-Based (ACARA)",
-    "goal_directed": "Goal-Directed",
-    "interest_led": "Interest-Led (Thematic)",
-    "curriculum_based": "Curriculum-Based (ACARA)"
+    "acara_aligned": "Personalised Program",
+    "goal_directed": "Personalised Program",
+    "interest_led": "Personalised Program",
+    "curriculum_based": "Personalised Program",
+    "curriculum_aligned": "Personalised Program"
   };
 
   let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 10px;">';
