@@ -441,94 +441,45 @@ var valContainer3B = document.getElementById('container-3b-goaldirected');
   return true;
 };
 // 4. Sticky Counter
+// 4. Accordion Category Counters
 function bindGoalCounter() {
-  let banner = document.getElementById('aed-goal-counter');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'aed-goal-counter';
-    banner.style.cssText = `
-      display: none; background: #fdfdfd; border: 1px solid #DDe4dd; padding: 12px 20px;
-      border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      justify-content: center; gap: 24px; font-family: Montserrat, sans-serif;
-      font-size: 14px; color: #263358;
-    `;
-    
-    const container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-    if (container3B) {
-      container3B.insertAdjacentElement('afterbegin', banner);
-    } else {
-      document.body.appendChild(banner);
-    }
-  }
-
   function updateCounter() {
-    
-    // Check if goal section is visible
-  // Path 2: Show the counter whenever the 3B container is visible.
-    var goalSection = document.getElementById('container-3b-goaldirected');
-    if (!goalSection || goalSection.offsetParent === null) {
-      banner.style.setProperty('display', 'none', 'important');
-      return;
-    }
+    // Find every accordion category wrapper on the page
+    document.querySelectorAll('.cat-item').forEach(item => {
+      let count = 0;
 
-    banner.style.setProperty('display', 'flex', 'important');
+      // 1. Count selected pills within this specific category
+      count += item.querySelectorAll('.ms-option.is-selected').length;
 
-    let shortCount = 0;
-    let longCount = 0;
-
-// 1. Count clicked pills (Path 2: count ALL selected pills in 3B,
-    // even inside collapsed accordions where offsetParent is null)
-    var container3B = document.getElementById('container-3b-goaldirected');
-    if (container3B) {
-      container3B.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-        if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
-        if (pill.getAttribute('data-goal-type') === 'long') longCount++;
+      // 2. Count filled custom text fields within this specific category
+      item.querySelectorAll('input[type="text"], textarea').forEach(input => {
+        if (input.offsetParent !== null && input.value.trim() !== '') {
+          count++;
+        }
       });
-    }
 
-    // 2. NEW: Count custom "Other" text inputs (Short-Term)
-    ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      // If the field is visible and actually has text typed in it, count it!
-      if (el && el.offsetParent !== null && el.value.trim() !== '') {
-        shortCount++;
+      // 3. Update your Webflow badge text
+      const badgeText = item.querySelector('.cat-badge-text');
+      if (badgeText) {
+        badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
       }
     });
-
-    // 3. NEW: Count custom "Other" text inputs (Long-Term)
-    ['long_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') {
-        longCount++;
-      }
-    });
-
-    const shortColor = (shortCount >= 4 && shortCount <= 8) ? '#386641' : '#c62828';
-    const longColor = (longCount >= 1 && longCount <= 2) ? '#386641' : '#c62828';
-
-    banner.innerHTML = `
-      <div><strong>Short-Term:</strong> <span style="color: ${shortColor}; font-weight: bold;">${shortCount}</span> (Target: 4-8)</div>
-      <div><strong>Long-Term:</strong> <span style="color: ${longColor}; font-weight: bold;">${longCount}</span> (Target: 1-2)</div>
-    `;
   }
 
-  // Change 3: Expose for centralised dispatch from setActive()
+  // Expose for centralised dispatch from setActive()
   window.__aed_updateGoalCounter = updateCounter;
 
-  // Listen for pill clicks
+  // Listeners to update instantly on click or type
   document.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
   }, true);
 
-  // NEW: Listen for typing in the custom text fields
   document.addEventListener('input', function(e) {
     const n = e.target.name || "";
     if (n.includes('other_goal') || n.includes('custom')) {
       setTimeout(updateCounter, 50);
     }
   }, true);
-
-  // Change 3: MutationObserver REMOVED — updateCounter is now called from setActive()
 
   setTimeout(updateCounter, 100);
 }

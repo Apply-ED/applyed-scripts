@@ -344,24 +344,25 @@ if (window.__aed_clearCurriculumCacheForChild) {
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
 
-  // Path 2: Collapse 3B goal accordion sections on child switch.
-  // Webflow IX2 uses GSAP to animate height. We reset by:
-  // 1. Finding all open accordion items (the ones with visible content)
-  // 2. Clicking their trigger to close them via IX2
+ // Path 2: Collapse 3B goal accordion sections on child switch.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
-    // Find all accordion triggers that are currently open.
-    // Webflow IX2 accordions use data-collapse on the wrapper div.
-    // When open, the content sibling has non-zero height.
-    // Brute-force: reset all GSAP-animated panels to closed state
+    // 1. Remove the open class from your new accordions
+    goalContainer3B.querySelectorAll('.is-open').forEach(function(el) {
+      el.classList.remove('is-open');
+    });
+
+    // 2. Clear the count badges (e.g., "9 selected")
+    goalContainer3B.querySelectorAll('.aed-elective-card-count').forEach(function(el) {
+      el.textContent = '';
+    });
+
+    // 3. Fallback for Webflow IX2 (just in case)
     goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
-      // Find all child divs that might be content panels
       var children = wrapper.children;
       for (var c = 0; c < children.length; c++) {
         var child = children[c];
-        // Skip the trigger/header element (usually the first child)
         if (c === 0) continue;
-        // Reset the panel to collapsed
         child.style.height = '0px';
         child.style.overflow = 'hidden';
         child.style.opacity = '0';
@@ -712,10 +713,20 @@ function loadChildData(idx) {
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
-  // Path 2: Collapse all 3B goal accordion sections when loading a child.
-  // This prevents the previous child's open accordions from persisting.
+// Path 2: Collapse 3B goal accordion sections on child switch.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
+    // 1. Remove the open class from your new accordions
+    goalContainer3B.querySelectorAll('.is-open').forEach(function(el) {
+      el.classList.remove('is-open');
+    });
+
+    // 2. Clear the count badges (e.g., "9 selected")
+    goalContainer3B.querySelectorAll('.aed-elective-card-count').forEach(function(el) {
+      el.textContent = '';
+    });
+
+    // 3. Fallback for Webflow IX2 (just in case)
     goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
       var children = wrapper.children;
       for (var c = 0; c < children.length; c++) {
@@ -726,6 +737,8 @@ function loadChildData(idx) {
         child.style.opacity = '0';
       }
     });
+
+    // Also collapse goal deep dive sub-sections
     ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
      'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
      'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',

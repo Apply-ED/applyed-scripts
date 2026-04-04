@@ -165,85 +165,55 @@ window.Webflow.push(function () {
     setTimeout(updateProgressBar, 50);
 
     // ─── CHANGE 3 + CHANGE 4: Centralised step-activation dispatch ─────────
-    // Replaces 13 MutationObservers that each watched .step elements for
-    // is-active class changes. Since setActive() is the ONLY function that
-    // toggles is-active, we call every "on step activate" callback directly
-    // from here — deterministic, no timing races, no redundant observers.
-    //
-    // Change 4: Step 4 is no longer a navigation target. All Y2 curriculum
-    // rendering is triggered from Step 3 via the tab system.
-    setTimeout(function() {
-
+    function dispatchAllStepUpdates() {
       // Curriculum banner and container visibility (all steps)
-      if (typeof window.__aed_checkYearLevel === 'function') {
-        window.__aed_checkYearLevel();
-      }
+      if (typeof window.__aed_checkYearLevel === 'function') window.__aed_checkYearLevel();
 
       // Curriculum rendering (Step 3 — handles both Y1 and Y2 via tabs)
       if (stepNum === 3 && typeof window.__aed_refreshCurriculumDisplay === 'function') {
         window.__aed_refreshCurriculumDisplay();
-        // Change 4: Only render Y2 curriculum here if the Y2 tab is already active
         if (window.__aed_activeYearTab === 'y2' && typeof window.__aed_refreshY2CurriculumDisplay === 'function') {
           window.__aed_refreshY2CurriculumDisplay();
         }
       }
 
-      // Language dropdown show/hide (all steps — syncs visibility on every transition)
-      if (typeof window.__aed_syncLanguageToggle === 'function') {
-        window.__aed_syncLanguageToggle();
-      }
+      // Language dropdown show/hide (all steps)
+      if (typeof window.__aed_syncLanguageToggle === 'function') window.__aed_syncLanguageToggle();
 
       // Checkbox sync for curriculum cards (all steps)
-      if (typeof window.__aed_updateCheckboxes === 'function') {
-        window.__aed_updateCheckboxes();
-      }
+      if (typeof window.__aed_updateCheckboxes === 'function') window.__aed_updateCheckboxes();
 
-      // Program-type container swap (3A/3B) — two different swap functions
-      if (typeof window.__aed_swapProgramContainers === 'function') {
-        window.__aed_swapProgramContainers();
-      }
-      if (typeof window.__aed_swapGoalContainers === 'function') {
-        window.__aed_swapGoalContainers();
-      }
+      // Program-type container swap (3A/3B)
+      if (typeof window.__aed_swapProgramContainers === 'function') window.__aed_swapProgramContainers();
+      if (typeof window.__aed_swapGoalContainers === 'function') window.__aed_swapGoalContainers();
 
       // Needs-attention / excelling widget (Step 3 only)
-      if (stepNum === 3 && typeof window.__aed_renderNeedsWidget === 'function') {
-        window.__aed_renderNeedsWidget();
-      }
+      if (stepNum === 3 && typeof window.__aed_renderNeedsWidget === 'function') window.__aed_renderNeedsWidget();
 
       // State picker lock/unlock (all steps)
-      if (typeof window.__aed_updateStateLock === 'function') {
-        window.__aed_updateStateLock();
-      }
+      if (typeof window.__aed_updateStateLock === 'function') window.__aed_updateStateLock();
 
       // Goal counter (all steps)
-      if (typeof window.__aed_updateGoalCounter === 'function') {
-        window.__aed_updateGoalCounter();
-      }
+      if (typeof window.__aed_updateGoalCounter === 'function') window.__aed_updateGoalCounter();
 
       // Interest deep dives (all steps)
-      if (typeof window.__aed_updateDeepDives === 'function') {
-        window.__aed_updateDeepDives();
-      }
+      if (typeof window.__aed_updateDeepDives === 'function') window.__aed_updateDeepDives();
 
       // Goal-directed deep dives (all steps)
-      if (typeof window.__aed_updateGoalDeepDives === 'function') {
-        window.__aed_updateGoalDeepDives();
-      }
+      if (typeof window.__aed_updateGoalDeepDives === 'function') window.__aed_updateGoalDeepDives();
 
       // Y1 step heading (Step 3 only)
-      if (stepNum === 3 && typeof window.__aed_updateY1Heading === 'function') {
-        window.__aed_updateY1Heading();
-      }
+      if (stepNum === 3 && typeof window.__aed_updateY1Heading === 'function') window.__aed_updateY1Heading();
 
       // ─── Change 4: syncYearTabs MUST run LAST ─────────────────────────────
-      if (stepNum === 3 && typeof window.__aed_syncYearTabs === 'function') {
-        window.__aed_syncYearTabs();
-      }
-    }, 50);
+      if (stepNum === 3 && typeof window.__aed_syncYearTabs === 'function') window.__aed_syncYearTabs();
+    }
+
+    // Fire immediately for fast UI, and again at 400ms to catch post-fade visibility!
+    setTimeout(dispatchAllStepUpdates, 50);
+    setTimeout(dispatchAllStepUpdates, 400); 
     // ─── END CHANGE 3 + 4 dispatch ──────────────────────────────────────
   }
-
   /* -------------------------------------------------------
      STEP 4: INFO BANNER & INTEREST BANNER
      ------------------------------------------------------- */
