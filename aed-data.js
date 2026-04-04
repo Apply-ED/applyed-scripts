@@ -340,9 +340,45 @@ if (window.__aed_clearCurriculumCacheForChild) {
   applyCarryOverDataForCurrentChild();
   updateCurrentChildHeading();
 
-  // E. Safe Collapse & Custom Fields
+// E. Safe Collapse & Custom Fields
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
+
+  // Path 2: Collapse 3B goal accordion sections on child switch.
+  // Webflow IX2 uses GSAP to animate height. We reset by:
+  // 1. Finding all open accordion items (the ones with visible content)
+  // 2. Clicking their trigger to close them via IX2
+  var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+  if (goalContainer3B) {
+    // Find all accordion triggers that are currently open.
+    // Webflow IX2 accordions use data-collapse on the wrapper div.
+    // When open, the content sibling has non-zero height.
+    goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
+      // The trigger is usually the first child (the clickable header row)
+      var trigger = wrapper.querySelector('.w-dropdown-toggle, [role="button"], [data-w-id]');
+      // The content panel is the sibling that animates
+      var content = wrapper.querySelector('.w-dropdown-list, [style*="height"]');
+      
+      if (content) {
+        var h = content.style.height;
+        // If content has height set to something other than 0px or empty, it's open
+        if (h && h !== '0px' && h !== '0' && h !== '') {
+          // Click the trigger to close it via IX2 animation
+          if (trigger) trigger.click();
+        }
+      }
+    });
+
+    // Also collapse goal deep dive sub-sections
+    ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
+     'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
+     'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
+     'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
+    ].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.setProperty('display', 'none', 'important');
+    });
+  }
   
   // Change 4: Clear tracking widget hidden inputs so collectChildData()
   // doesn't pick up the previous child's tracking selections.
@@ -755,7 +791,7 @@ function loadChildData(idx) {
   }
 
   // 🛡️ Deactivate the shield once the DOM has safely settled
-  setTimeout(function() {
+ setTimeout(function() {
     window.__aed_is_loading_data = false;
     var dropdownNow = document.querySelector('select[name="student_year_level"]');
     // Re-trigger curriculum visibility and rendering now that the shield is down.
@@ -769,6 +805,18 @@ function loadChildData(idx) {
       window.__aed_syncLanguageToggle();
     }
   }, 100);
+
+  // Path 2: Re-trigger goal counter and deep dives after pill restore.
+  // The counter fires from setActive() before pills are restored,
+  // so it counts 0. This delayed re-trigger catches the restored state.
+  setTimeout(function() {
+    if (typeof window.__aed_updateGoalCounter === 'function') {
+      window.__aed_updateGoalCounter();
+    }
+    if (typeof window.__aed_updateGoalDeepDives === 'function') {
+      window.__aed_updateGoalDeepDives();
+    }
+  }, 200);
 }
 /* =========================
    RESTORE DYNAMIC PILLS (Steps 3 & Y2)
