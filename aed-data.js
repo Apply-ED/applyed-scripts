@@ -353,19 +353,18 @@ if (window.__aed_clearCurriculumCacheForChild) {
     // Find all accordion triggers that are currently open.
     // Webflow IX2 accordions use data-collapse on the wrapper div.
     // When open, the content sibling has non-zero height.
+    // Brute-force: reset all GSAP-animated panels to closed state
     goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
-      // The trigger is usually the first child (the clickable header row)
-      var trigger = wrapper.querySelector('.w-dropdown-toggle, [role="button"], [data-w-id]');
-      // The content panel is the sibling that animates
-      var content = wrapper.querySelector('.w-dropdown-list, [style*="height"]');
-      
-      if (content) {
-        var h = content.style.height;
-        // If content has height set to something other than 0px or empty, it's open
-        if (h && h !== '0px' && h !== '0' && h !== '') {
-          // Click the trigger to close it via IX2 animation
-          if (trigger) trigger.click();
-        }
+      // Find all child divs that might be content panels
+      var children = wrapper.children;
+      for (var c = 0; c < children.length; c++) {
+        var child = children[c];
+        // Skip the trigger/header element (usually the first child)
+        if (c === 0) continue;
+        // Reset the panel to collapsed
+        child.style.height = '0px';
+        child.style.overflow = 'hidden';
+        child.style.opacity = '0';
       }
     });
 
