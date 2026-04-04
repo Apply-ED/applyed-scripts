@@ -38,13 +38,6 @@ window.Webflow.push(function () {
   var ensureDefaultProgramTypeForCurrentChild = window.ensureDefaultProgramTypeForCurrentChild;
 
 /* =========================
-   CHILD SAVE + RESET + LOOP
-   ========================= */
-/* =========================
-   CARRY_OVER_FIELDS — Moved to aed-config.js (Module 1)
-   ========================= */
-
-/* =========================
    NEW: CARRY OVER SPECIFIC FIELDS (ENVIRONMENT & RESOURCES)
    ========================= */
 function applyCarryOverDataForCurrentChild() {
@@ -102,7 +95,6 @@ function applyCarryOverDataForCurrentChild() {
     console.log("   🎨 Visual pills synced.");
   }
 }
-// __aed_child_applications init moved to aed-state.js (Module 3)
 
 function collectValueFromField(fieldEl) {
   const tag = (fieldEl.tagName || "").toLowerCase();
@@ -128,17 +120,15 @@ window.saveProgressSilently = function() {
       const oldVal = merged[key];
 
       // Protect non-empty arrays from being wiped by empty arrays
-      // (this happens when curriculum pills are on a hidden step and their
-      //  hidden inputs read as [] during collectChildData)
       if (Array.isArray(newVal) && newVal.length === 0
           && Array.isArray(oldVal) && oldVal.length > 0) {
-        continue; // keep the existing saved selections
+        continue; 
       }
 
       // Protect non-empty strings from being blanked by invisible fields
       if ((newVal === '' || newVal === undefined || newVal === null)
           && oldVal && oldVal !== '' && oldVal !== undefined) {
-        continue; // keep the existing saved value
+        continue; 
       }
 
       // Protect pill arrays from being overwritten by checkbox "on" values
@@ -172,7 +162,6 @@ function collectChildData() {
     input.value = JSON.stringify(selected);
   });
 
-  // Read from aed-config.js (Module 1)
   const ALWAYS_CAPTURE = window.AED.ALWAYS_CAPTURE;
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -223,8 +212,6 @@ function collectChildData() {
         }
       }
 
-      // 🛡️ BULLETPROOF MEMORY PROTECTION
-      // Never allow a hidden/empty Webflow fallback input to overwrite an array we've already saved
       if (Array.isArray(parsed)) {
         if (parsed.length > 0) {
             data[name] = parsed; 
@@ -241,7 +228,6 @@ function collectChildData() {
     }
   }
 
-// Path 2: Always set program_type to curriculum_aligned
   data.program_type = 'curriculum_aligned';
 
   console.log("✅ Child Data Captured:", data);
@@ -249,13 +235,11 @@ function collectChildData() {
 }
 
 function resetChildFields() {
-  // A. Clear standard fields across all child steps safely
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     clearStepError(s);
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
 
-    // THE FIX: Target all inputs in the step directly
     stepEl.querySelectorAll("input, select, textarea").forEach(el => {
       const type = (el.getAttribute("type") || "").toLowerCase();
       const tagName = el.tagName.toLowerCase();
@@ -276,24 +260,19 @@ function resetChildFields() {
       } else {
         el.value = "";
       }
-      // FIX: Skip event dispatch for locked checkboxes
-if (!(type === "checkbox" && el.classList.contains("locked-checkbox"))) {
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-  el.dispatchEvent(new Event("change", { bubbles: true }));
-}
+      
+      if (!(type === "checkbox" && el.classList.contains("locked-checkbox"))) {
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     });
   }
-// Only clear the cache for THIS new child — not the entire cache.
-// Previously clearCurriculumRenderCache() wiped all children's cached DOM,
-// which meant jumping back to a previously-visited child would force a
-// rebuild and lose the language dropdown value.
-if (window.__aed_clearCurriculumCacheForChild) {
-  var newChildIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
-  window.__aed_clearCurriculumCacheForChild(newChildIdx);
-}
 
-  // Also detach any curriculum wrapper currently in the containers so
-  // stale DOM from the previous child isn't visible during the reset.
+  if (window.__aed_clearCurriculumCacheForChild) {
+    var newChildIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
+    window.__aed_clearCurriculumCacheForChild(newChildIdx);
+  }
+
   ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container",
    "f6-curriculum-container_y2", "y9-curriculum-container_y2", "y10-curriculum-container_y2"].forEach(function(id) {
     var ctr = document.getElementById(id);
@@ -303,14 +282,10 @@ if (window.__aed_clearCurriculumCacheForChild) {
     }
   });
 
-  // B. THE STICKY BUBBLE FIX — clear pill visuals on non-curriculum steps.
-  // Curriculum pills (.aed-dynamic-pill) are managed by the DOM cache and will
-  // be restored by restoreSavedCurriculumPills when the cached DOM is reattached.
   document.querySelectorAll(".ms-option:not(.aed-dynamic-pill)").forEach(p => {
     p.classList.remove("is-selected");
   });
 
-// C. DEFAULT PROGRAM TYPE (Path 2: always curriculum_based)
   const step1 = getStepEl(STEP_FIRST_CHILD);
   if (step1) {
     const radios = Array.from(step1.querySelectorAll('input[type="radio"][name="program_type"]'));
@@ -322,14 +297,11 @@ if (window.__aed_clearCurriculumCacheForChild) {
     }
   }
 
+  for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
+    const stepEl = getStepEl(s);
+    if (stepEl) window.resyncAllMultiSelectGroups(stepEl);
+  }
 
-  // D. Run Refresh Logic
- for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
-  const stepEl = getStepEl(s);
-  if (stepEl) window.resyncAllMultiSelectGroups(stepEl);
-}
-
-  // Change 4: Reset to Y1 tab when switching to a new child
   window.__aed_activeYearTab = 'y1';
   if (typeof window.__aed_syncYearTabs === 'function') {
     window.__aed_syncYearTabs();
@@ -340,37 +312,30 @@ if (window.__aed_clearCurriculumCacheForChild) {
   applyCarryOverDataForCurrentChild();
   updateCurrentChildHeading();
 
-// E. Safe Collapse & Custom Fields
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
 
- // Path 2: Collapse 3B goal accordion sections on child switch.
+  // Path 2: Collapse 3B goal accordion sections on child switch safely.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
-    // 1. Remove the open class from your new accordions
-    goalContainer3B.querySelectorAll('.cat-item, .is-open').forEach(function(el) {
-      el.classList.remove('is-open');
-    });
-
-    // 2. Force the body to collapse
-    goalContainer3B.querySelectorAll('.cat-body').forEach(function(el) {
-      el.style.height = '0px';
-      el.style.overflow = 'hidden';
-    });
-
-    // 3. Fallback for Webflow IX2 (just in case)
     goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
       var children = wrapper.children;
       for (var c = 0; c < children.length; c++) {
-        var child = children[c];
         if (c === 0) continue;
-        child.style.height = '0px';
-        child.style.overflow = 'hidden';
-        child.style.opacity = '0';
+        children[c].style.height = '';
+        children[c].style.overflow = '';
+        children[c].style.opacity = '';
       }
     });
 
-    // Also collapse goal deep dive sub-sections
+    goalContainer3B.querySelectorAll('.w-dropdown-toggle.w--open').forEach(function(trigger) {
+       trigger.click();
+    });
+    
+    goalContainer3B.querySelectorAll('.cat-item.is-open').forEach(function(el) {
+       el.classList.remove('is-open');
+    });
+
     ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
      'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
      'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
@@ -381,8 +346,6 @@ if (window.__aed_clearCurriculumCacheForChild) {
     });
   }
   
-  // Change 4: Clear tracking widget hidden inputs so collectChildData()
-  // doesn't pick up the previous child's tracking selections.
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
     var inp = document.getElementById(id);
     if (inp) inp.value = '[]';
@@ -404,10 +367,6 @@ function saveCurrentChildAndAdvance() {
   }
 
   const idx = getChildIndex();
-
-  // Live-save has been keeping __aed_child_applications[idx] up to date.
-  // Do one final safety scrape to catch any edge-case fields live-save might miss,
-  // but only write non-empty values (never overwrite good data with empty).
   const finalScrape = collectChildData();
   const existing = window.__aed_child_applications[idx] || {};
 
@@ -415,10 +374,8 @@ function saveCurrentChildAndAdvance() {
     const newVal = finalScrape[key];
     const oldVal = existing[key];
 
-    // Skip if the scrape returned empty but we already have data from live-save
     if (Array.isArray(newVal) && newVal.length === 0 && Array.isArray(oldVal) && oldVal.length > 0) continue;
     if ((newVal === '' || newVal === undefined || newVal === null) && oldVal && oldVal !== '') continue;
-    // Protect pill arrays from being overwritten by checkbox "on" values
     if (Array.isArray(oldVal) && oldVal.length > 0 && !Array.isArray(newVal)) continue;
 
     existing[key] = newVal;
@@ -439,7 +396,6 @@ function saveCurrentChildAndAdvance() {
     return;
   }
 
-  // Move to the next child
   setChildIndex(nextIdx);
 
   const nextChildData = window.__aed_child_applications[nextIdx];
@@ -453,10 +409,6 @@ function saveCurrentChildAndAdvance() {
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
   renderChildNavBar();
 }
-
-/* =========================
-      STEP 6: SUMMARY & MERGED CONFIRMATIONS
-      ========================= */
 
 function renderChildSummary() {
   const container = document.getElementById('child-summary-display');
@@ -472,7 +424,6 @@ function renderChildSummary() {
     return;
   }
 
-// Path 2: Single unified program type
   const programMap = {
     "acara_aligned": "Personalised Program",
     "goal_directed": "Personalised Program",
@@ -503,13 +454,10 @@ function renderChildSummary() {
       ).join(", ");
     };
 
-// 1. DATA PREPARATION
     const yearLevel = child.student_year_level || "Not Specified";
-    
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
-// Build curriculum from individual checkboxes since curriculum_coverage is empty
     let currArray = [];
     if (child.english === "on") currArray.push("English");
     if (child.mathematics === "on") currArray.push("Mathematics");
@@ -520,7 +468,6 @@ function renderChildSummary() {
     if (child.the_arts === "on") currArray.push("The Arts");
     if (child.languages === "on") currArray.push("Languages");
 
-    // NEW: Pull in specific elective pill selections!
     const electiveItems = [
       formatPills(child.hass_electives),
       formatPills(child.arts_electives),
@@ -529,10 +476,9 @@ function renderChildSummary() {
       formatPills(child.hpe_electives),
       formatPills(child.maths_electives),
       formatPills(child.science_electives),
-      child.Language_of_study || child.language_of_study // Added this to ensure your language fix gets displayed!
+      child.Language_of_study || child.language_of_study
     ].filter(Boolean);
 
-    // Combine them all
     if (electiveItems.length > 0) {
        currArray = currArray.concat(electiveItems);
     }
@@ -540,7 +486,6 @@ function renderChildSummary() {
     let curriculum = currArray.length > 0 ? currArray.join(", ") : formatPills(child.curriculum_coverage);
     if (!curriculum || curriculum === "[]" || curriculum === "") curriculum = "Australian Curriculum";
 
-    // Pulling in your Interests (added 'curiosities' back to catch the current Webflow data!)
     const interestItems = [
       formatPills(child.curiosities),
       formatPills(child.interests),
@@ -561,7 +506,6 @@ function renderChildSummary() {
       child.interests_custom
     ].filter(Boolean).join(", ");
 
-    // Combining your General Goals with Specific Goals AND the "other_goal" fields
     const goalItems = [
       formatPills(child.general_academic_goals),
       formatPills(child.general_independence_goals),
@@ -579,7 +523,6 @@ function renderChildSummary() {
       child.other_goal_3
     ].filter(Boolean).join(", ");
 
-    // 2. HELPER TO CREATE CONSISTENT ROWS (Tighter spacing)
     const renderRow = (label, value) => `
       <div style="margin-bottom: 1px; line-height: 1.2;">
         <span style="font-weight: 600; color: #263358; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">${label}:</span>
@@ -587,7 +530,6 @@ function renderChildSummary() {
       </div>
     `;
 
-    // 3. HTML CONSTRUCTION
     html += `
       <div style="padding: 16px; border: 1px solid #DDe4dd; border-radius: 16px; background: #fff; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
         
@@ -600,7 +542,7 @@ function renderChildSummary() {
           </button>
         </div>
 
-<div style="padding-right: 10px;">
+        <div style="padding-right: 10px;">
           ${renderRow("Year Level", yearLevel)}
           ${renderRow("Program Type", programType)}
           ${renderRow("Curriculum", curriculum)}
@@ -622,21 +564,13 @@ function waitForCurriculumThenRestore(stepNum) {
     handled = true;
     restoreDynamicPillsForStep(stepNum);
   }
-  // Primary: event-driven (fires when renderer completes)
   document.addEventListener("aed:curriculumRendered", function handler(e) {
     document.removeEventListener("aed:curriculumRendered", handler);
-    // Small extra frame delay to ensure DOM is painted
     requestAnimationFrame(() => doRestore());
   });
-  // Fallback: safety net in case the event doesn't fire (e.g. no re-render needed)
   setTimeout(doRestore, 600);
 }
 
-/* =========================
-   PILL VISUAL SYNC & DATA LOADING
-   ========================= */
-
-// 1. This function handles the "Visual" side of the pills
 function syncPillsFromInput(inputEl) {
   const group = inputEl.closest(".ms-group");
   if (!group) return;
@@ -660,17 +594,14 @@ function syncPillsFromInput(inputEl) {
   });
 }
 
-// 2. This function handles filling the form when jumping between children
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
-
 
   if (!data) {
     resetChildFields();
     return;
   }
 
-  // 🛡️ Activate the shield so aggressive listeners don't clear data while loading
   window.__aed_is_loading_data = true;
 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
@@ -710,37 +641,29 @@ function loadChildData(idx) {
     });
   }
 
-  // Sync pill visuals
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
-// Path 2: Collapse 3B goal accordion sections on child switch.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
-    // 1. Remove the open class from your new accordions
-    goalContainer3B.querySelectorAll('.cat-item, .is-open').forEach(function(el) {
-      el.classList.remove('is-open');
-    });
-
-    // 2. Force the body to collapse
-    goalContainer3B.querySelectorAll('.cat-body').forEach(function(el) {
-      el.style.height = '0px';
-      el.style.overflow = 'hidden';
-    });
-
-    // 3. Fallback for Webflow IX2 (just in case)
     goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
       var children = wrapper.children;
       for (var c = 0; c < children.length; c++) {
-        var child = children[c];
         if (c === 0) continue;
-        child.style.height = '0px';
-        child.style.overflow = 'hidden';
-        child.style.opacity = '0';
+        children[c].style.height = '';
+        children[c].style.overflow = '';
+        children[c].style.opacity = '';
       }
     });
 
-    // Also collapse goal deep dive sub-sections
+    goalContainer3B.querySelectorAll('.w-dropdown-toggle.w--open').forEach(function(trigger) {
+       trigger.click();
+    });
+    
+    goalContainer3B.querySelectorAll('.cat-item.is-open').forEach(function(el) {
+       el.classList.remove('is-open');
+    });
+
     ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
      'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
      'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
@@ -751,9 +674,6 @@ function loadChildData(idx) {
     });
   }
 
-  // Change 4: Clear tracking hidden inputs before restoring the loaded child's
-  // values. Without this, the previous child's tracking pills persist in the
-  // hidden inputs and get scraped by collectChildData() on the next save.
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
     var inp = document.getElementById(id);
     if (inp) {
@@ -762,36 +682,21 @@ function loadChildData(idx) {
     }
   });
 
-  // FIX 1: If study_span has a saved value, make sure the pill section is visible
   if (data.study_span) {
     const pillSection = document.getElementById('year-level-pills');
     if (pillSection) pillSection.style.display = '';
   }
 
-  // FIX 2: REMOVED (Change 2).
-  // This used to set the hidden Webflow select[name="language_of_study"] after a
-  // 150ms delay. But the hidden select has lowercase option values ("arabic") while
-  // __aed_child_applications stores capitalised values ("Arabic") from the dynamic
-  // dropdown. The case mismatch caused .value to silently fail, setting it to "",
-  // which then triggered the live-save to overwrite the correct saved value with
-  // empty. Language restore is now handled entirely by syncLanguageDropdown() which
-  // runs after every curriculum render (cache hit or miss) with case-insensitive
-  // matching and proper sync-back to the hidden Webflow select.
-
-  // FIX 3: If other_goal fields have saved values, show their hidden wrappers
   ["other_goal_1", "other_goal_2", "other_goal_3"].forEach((fieldName, i) => {
     const val = data[fieldName];
-    if (!val) return; // Nothing saved, leave hidden
+    if (!val) return; 
 
-    // Find the textarea
     const textarea = document.querySelector(`textarea[name="${fieldName}"], input[name="${fieldName}"]`);
     if (!textarea) return;
 
-    // Show the wrapper div (it uses display:none to hide)
     const wrapper = textarea.closest('[data-show]') || textarea.parentElement;
     if (wrapper) wrapper.style.display = "block";
 
-    // Update the corresponding "Add Other" button text
     const btnLabel = `[+ Add Other ${i + 1}]`;
     const allAddOtherLinks = document.querySelectorAll('.add-other-link');
     allAddOtherLinks.forEach(link => {
@@ -806,15 +711,12 @@ function loadChildData(idx) {
   setTimeout(function() { if (typeof window.setupAutoExpandingTextareas === 'function') window.setupAutoExpandingTextareas(); }, 50);
   setTimeout(function() { if (typeof window.refreshAllSelectColours === 'function') window.refreshAllSelectColours(); }, 50);
 
-  // Change 4: Reset to Y1 tab when loading a child's data
   window.__aed_activeYearTab = 'y1';
 
-  // Change 4: Clear curriculum cache for this child to prevent stale renders
-  // (e.g. a Y7 child's cached DOM being served for a Y4 child's container)
   if (window.__aed_clearCurriculumCacheForChild) {
     window.__aed_clearCurriculumCacheForChild(idx);
   }
-  // Also detach stale curriculum wrappers from all containers
+  
   ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container",
    "f6-curriculum-container_y2", "y9-curriculum-container_y2", "y10-curriculum-container_y2"].forEach(function(id) {
     var ctr = document.getElementById(id);
@@ -828,11 +730,9 @@ function loadChildData(idx) {
     setTimeout(window.__aed_syncYearTabs, 150);
   }
 
-  // 🛡️ Deactivate the shield once the DOM has safely settled
  setTimeout(function() {
     window.__aed_is_loading_data = false;
     var dropdownNow = document.querySelector('select[name="student_year_level"]');
-    // Re-trigger curriculum visibility and rendering now that the shield is down.
     if (typeof window.__aed_checkYearLevel === 'function') {
       window.__aed_checkYearLevel();
     }
@@ -844,9 +744,6 @@ function loadChildData(idx) {
     }
   }, 100);
 
-  // Path 2: Re-trigger goal counter and deep dives after pill restore.
-  // The counter fires from setActive() before pills are restored,
-  // so it counts 0. This delayed re-trigger catches the restored state.
   setTimeout(function() {
     if (typeof window.__aed_updateGoalCounter === 'function') {
       window.__aed_updateGoalCounter();
@@ -856,20 +753,13 @@ function loadChildData(idx) {
     }
   }, 200);
 }
-/* =========================
-   RESTORE DYNAMIC PILLS (Steps 3 & Y2)
-   Called after back-navigation so saved selections are re-applied
-   to freshly-rendered curriculum pill DOM.
-   Change 4: Y2 containers are now inside Step 3, so we always
-   use Step 3's element but select the right field set.
-   ========================= */
+
 function restoreDynamicPillsForStep(stepNum) {
   const idx = getChildIndex();
   const data = window.__aed_child_applications[idx];
   if (!data) return;
 
-  // Map of saved data keys → the input name used by the dynamic pill system
-const DYNAMIC_PILL_FIELDS_Y1 = [
+  const DYNAMIC_PILL_FIELDS_Y1 = [
     "english_pathway", "mathematics_pathway", "science_pathway",
     "the_arts", "technologies", "hass",
     "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe"
@@ -886,25 +776,20 @@ const DYNAMIC_PILL_FIELDS_Y1 = [
   ];
 
   const fields = stepNum === STEP_Y2 ? DYNAMIC_PILL_FIELDS_Y2 : DYNAMIC_PILL_FIELDS_Y1;
-  // Change 4: Y2 containers now live inside Step 3
   const stepEl = getStepEl(stepNum === STEP_Y2 ? 3 : stepNum);
   if (!stepEl) return;
 
-  // 1. Restore dynamic curriculum pills (pathway cards + elective accordions)
   fields.forEach(function(fieldName) {
     const savedValues = data[fieldName];
     if (!savedValues || !savedValues.length) return;
 
-    // Find the hidden input with this name inside the step
     const hiddenInput = stepEl.querySelector('input[name="' + fieldName + '"].aed-hidden-input');
     if (!hiddenInput) return;
 
-    // Walk up to find the card that owns this input
     const card = hiddenInput.closest('[data-learning-area]');
     if (!card) return;
 
-    // Apply is-selected to matching pills
-card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
+    card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       const isLocked = pill.getAttribute('data-locked') === 'true';
       if (!isLocked) {
         const submitVal = pill.getAttribute('data-submit-value');
@@ -915,11 +800,9 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       }
     });
 
-    // Update the hidden input value to match
     hiddenInput.value = JSON.stringify(savedValues);
     hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Update the count badge if it's an accordion card
     const countEl = card.querySelector('.aed-elective-card-count');
     if (countEl) {
       const selected = card.querySelectorAll('.aed-dynamic-pill.is-selected').length;
@@ -927,31 +810,24 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
     }
   });
 
-  // 2. Restore language dropdown inside the dynamic Languages card
   const langKey = stepNum === STEP_Y2 ? 'language_of_study_y2' : 'language_of_study';
   const savedLang = data[langKey] || (stepNum === STEP_Y2 ? data['language_of_study'] : '');
   if (savedLang) {
-    // Change 4: When restoring Y2 language, search within the Y2 panel
-    // to avoid accidentally finding the Y1 language card first.
     var langSearchScope = stepEl;
     if (stepNum === STEP_Y2) {
       var y2p = document.getElementById('aed-y2-curriculum-panel');
       if (y2p) langSearchScope = y2p;
     }
-    // The dynamic select is rendered inside the step but is NOT a named form input —
-    // find it by its position inside .aed-languages-card-body
     const langBody = langSearchScope.querySelector('.aed-languages-card-body');
     if (langBody) {
       const dynSelect = langBody.querySelector('select');
       if (dynSelect) {
-        // Try direct match first, then case-insensitive fallback
         dynSelect.value = savedLang;
         if (!dynSelect.value || dynSelect.value === '') {
           var lowerLang = savedLang.toLowerCase();
           for (var li = 0; li < dynSelect.options.length; li++) {
             if (dynSelect.options[li].value.toLowerCase() === lowerLang) {
               dynSelect.value = dynSelect.options[li].value;
-              // Fix stored value for future lookups
               if (window.__aed_child_applications && window.__aed_child_applications[idx]) {
                 window.__aed_child_applications[idx][langKey] = dynSelect.options[li].value;
               }
@@ -963,7 +839,6 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
     }
   }
 
-  // 3. Restore tracking widget pills (Step 3 only)
   if (stepNum === 3) {
     TRACKING_FIELDS.forEach(function(fieldName) {
       const savedValues = data[fieldName];
@@ -972,12 +847,11 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       const trackingInput = document.getElementById(fieldName);
       if (!trackingInput) return;
 
-      // Find the pills container for this type
       const type = fieldName.replace('aed-tracking-', '');
       stepEl.querySelectorAll('.aed-tracking-pill[data-type="' + type + '"]').forEach(function(pill) {
         const area = pill.getAttribute('data-area');
         if (savedValues.includes(area)) {
-          pill.classList.add(type); // 'needs-attention' or 'excelling'
+          pill.classList.add(type); 
         }
       });
 
@@ -988,31 +862,21 @@ card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
   console.log('✅ AED: Dynamic pills restored for Step ' + stepNum);
 }
 
-/* =========================
-   LIVE NAME SYNC
-   ========================= */
-
 function setupLiveNameSync() {
-  // Find the student first name input (Step 1)
   const nameInput = document.querySelector('input[name="student_first_name"]');
   if (!nameInput) return;
 
-  // Listen for typing
   nameInput.addEventListener('input', (e) => {
     const newName = e.target.value.trim();
     const currentIdx = getChildIndex();
     const displayNum = currentIdx + 1;
 
-    // 1. Update the H3 heading (e.g., "Child 1: Alice")
     updateCurrentChildHeading();
 
-    // 2. Find the Navigation bar on the active step
     const activeStep = document.querySelector(".step.is-active");
     if (!activeStep) return;
 
     const navButtons = activeStep.querySelectorAll('.child-nav-btn');
-    
-    // In our new setup, Index 0 is "Setup", so Child 1 is Index 1, Child 2 is Index 2...
     const targetBtn = navButtons[currentIdx + 1]; 
 
     if (targetBtn) {
@@ -1020,39 +884,26 @@ function setupLiveNameSync() {
     }
   });
 }
-/* =========================
-   LIVE-SAVE: Write to __aed_child_applications on every input change
-   Added as part of Change 1 (data store authority)
-   ========================= */
 
 function liveWriteToChildStore(fieldName, value) {
-  // Don't write during bulk data loading (child switch)
   if (window.__aed_is_loading_data) return;
 
-  // Only save when we're on a child step (Steps 1-5)
   if (window.currentStepNum < STEP_FIRST_CHILD || window.currentStepNum > STEP_LAST_CHILD) return;
 
   var idx = getChildIndex();
 
-  // Make sure the array and the child's object exist
   if (!window.__aed_child_applications) window.__aed_child_applications = [];
   if (!window.__aed_child_applications[idx]) window.__aed_child_applications[idx] = {};
 
-  // Protect pill arrays from being overwritten by checkbox "on" values.
-  // Curriculum fields like the_arts_y2 are used by BOTH a checkbox ("on"/"") 
-  // and the pill system (["Music", "Drama"]). Never let a scalar overwrite an array.
   var existing = window.__aed_child_applications[idx][fieldName];
   if (Array.isArray(existing) && existing.length > 0 && !Array.isArray(value)) {
     return;
   }
 
-  // Write the value
   window.__aed_child_applications[idx][fieldName] = value;
 }
 
 function initLiveSave() {
-  // --- TEXT INPUTS, TEXTAREAS, SELECTS ---
-  // Listen on the whole document (delegation) so dynamically created fields are caught too
   document.addEventListener("input", function(e) {
     var el = e.target;
     if (!el) return;
@@ -1060,19 +911,15 @@ function initLiveSave() {
     var name = el.getAttribute("name");
     if (!name) return;
 
-    // Skip family-level fields (these live on Step 0 and Step 6, not per-child)
-    var familyFields = window.AED.FAMILY_FIELDS; // Read from aed-config.js (Module 1)
+    var familyFields = window.AED.FAMILY_FIELDS; 
     if (familyFields.indexOf(name) !== -1) return;
 
-    // Skip hidden state-tracking fields
     if (el.hasAttribute("data-state-key")) return;
     var type = (el.getAttribute("type") || "").toLowerCase();
     if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
 
-    // Get the value
     var value;
     if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
-      // Pill hidden inputs store JSON arrays
       try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }
     } else {
       value = (el.value || "").trim();
@@ -1081,7 +928,6 @@ function initLiveSave() {
     liveWriteToChildStore(name, value);
   }, true);
 
-  // --- CHANGE events (covers selects and checkboxes that don't fire "input") ---
   document.addEventListener("change", function(e) {
     var el = e.target;
     if (!el) return;
@@ -1089,14 +935,12 @@ function initLiveSave() {
     var name = el.getAttribute("name");
     if (!name) return;
 
-    // Same family-field skip list — read from aed-config.js (Module 1)
     var familyFields = window.AED.FAMILY_FIELDS;
     if (familyFields.indexOf(name) !== -1) return;
     if (el.hasAttribute("data-state-key")) return;
 
     var type = (el.getAttribute("type") || "").toLowerCase();
 
-    // Radio buttons
     if (type === "radio") {
       if (el.checked) {
         liveWriteToChildStore(name, el.value);
@@ -1104,16 +948,13 @@ function initLiveSave() {
       return;
     }
 
-    // Checkboxes (curriculum checkboxes store "on" or "")
     if (type === "checkbox") {
       liveWriteToChildStore(name, el.checked ? (el.value || "on") : "");
       return;
     }
 
-    // Hidden inputs from pill systems
     if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
 
-    // Everything else (selects, textareas, hidden pill inputs)
     var value;
     if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
       try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }

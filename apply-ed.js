@@ -442,32 +442,33 @@ var valContainer3B = document.getElementById('container-3b-goaldirected');
 };
 // 4. Sticky Counter
 // 4. Accordion Category Counters
+// 4. Accordion Category Counters
 function bindGoalCounter() {
+  // 1. Kill the old ugly banner if it exists in the DOM
+  const uglyBanner = document.getElementById('aed-goal-counter');
+  if (uglyBanner) uglyBanner.remove();
+
   function updateCounter() {
-    // Find every accordion category wrapper on the page
+    // 2. Find every accordion category wrapper on the page
     document.querySelectorAll('.cat-item').forEach(item => {
       let count = 0;
 
-      // 1. Count selected pills within this specific category
+      // Count selected pills within this specific category
       count += item.querySelectorAll('.ms-option.is-selected').length;
 
-      // 2. Count filled custom text fields within this specific category
+      // Count filled custom text fields within this specific category
       item.querySelectorAll('input[type="text"], textarea').forEach(input => {
         if (input.offsetParent !== null && input.value.trim() !== '') {
           count++;
         }
       });
 
-      // 3. Update your Webflow badge text
+      // 3. Update your Webflow badge text!
       const badgeText = item.querySelector('.cat-badge-text');
       if (badgeText) {
         badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
       }
     });
-
-    // 4. Clean up any leftover ugly banner if it exists in the DOM
-    const oldBanner = document.getElementById('aed-goal-counter');
-    if (oldBanner) oldBanner.remove();
   }
 
   // Expose for centralised dispatch from setActive()
