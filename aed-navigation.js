@@ -233,18 +233,10 @@ window.Webflow.push(function () {
     interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child\u2019s passions.';
     interestBanner.style.setProperty('display', 'block', 'important');
 
-    // 2. Goal-directed banner — always hidden (Path 2: no GD program type)
-// 2. Goal-directed banner — always shown (Path 2: everyone uses detailed goals)
+    // 2. Goal-directed banner — removed in Path 2. 
+    // Counter is now handled by Webflow-native .cat-badge-text elements.
     var goalBanner3B = document.getElementById('step4-goal-info');
-    if (!goalBanner3B) {
-      goalBanner3B = document.createElement('div');
-      goalBanner3B.id = 'step4-goal-info';
-      goalBanner3B.style.cssText = 'color: #263358; background-color: #e2e8e2; border: 1px solid #799377; border-radius: 8px; padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 16px; font-family: Montserrat, sans-serif; max-width: 1450px; width: 100%; box-sizing: border-box;';
-      var container3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-      if (container3B) container3B.insertAdjacentElement('afterbegin', goalBanner3B);
-    }
-    goalBanner3B.innerHTML = '<strong>Program Goals</strong><br>Please select <strong>4\u20138 short-term goals</strong> (across Academic, Social, and Independence) and <strong>1\u20132 long-term goals</strong> to help us build a focused, achievable program for your child.';
-    goalBanner3B.style.setProperty('display', 'block', 'important');
+    if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
   }
 
   function hideStep4GoalInfo() {

@@ -92,24 +92,7 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     width: 100% !important;
     box-sizing: border-box !important;
   }
-   /* Path 2: Goal counter banner — clean styling */
-  #aed-goal-counter {
-    background: #fdfdfd !important;
-    border: 1px solid #DDe4dd !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
-    outline: none !important;
-  }
-  #aed-goal-counter * {
-    background: transparent !important;
-    outline: none !important;
-  }
-  /* Prevent parent focus states from bleeding into the counter */
-  .step3b-goal-container > #aed-goal-counter,
-  #container-3b-goaldirected > #aed-goal-counter {
-    position: relative;
-    z-index: 1;
-  } 
+
 </style>`);
 
 // ─── SELECTORS & CONSTANTS ───────────────────────────────────

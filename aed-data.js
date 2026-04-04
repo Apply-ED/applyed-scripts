@@ -315,27 +315,23 @@ function resetChildFields() {
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
 
-  // Path 2: Collapse 3B goal accordion sections on child switch safely.
+  // Path 2: Collapse 3B goal accordion sections on child switch.
+  // Click every open Webflow dropdown toggle to close it via native IX2.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
-    goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
-      var children = wrapper.children;
-      for (var c = 0; c < children.length; c++) {
-        if (c === 0) continue;
-        children[c].style.height = '';
-        children[c].style.overflow = '';
-        children[c].style.opacity = '';
+    // Close Webflow dropdowns that have w--open class
+    goalContainer3B.querySelectorAll('.w-dropdown.w--open > .w-dropdown-toggle').forEach(function(trigger) {
+      trigger.click();
+    });
+    // Also try clicking any toggle inside a cat-item that appears open
+    goalContainer3B.querySelectorAll('.cat-item').forEach(function(item) {
+      var content = item.querySelector('.w-dropdown-list');
+      if (content && (content.classList.contains('w--open') || content.style.height === 'auto' || (content.offsetHeight > 0 && content.style.display !== 'none'))) {
+        var toggle = item.querySelector('.w-dropdown-toggle');
+        if (toggle) toggle.click();
       }
     });
-
-    goalContainer3B.querySelectorAll('.w-dropdown-toggle.w--open').forEach(function(trigger) {
-       trigger.click();
-    });
-    
-    goalContainer3B.querySelectorAll('.cat-item.is-open').forEach(function(el) {
-       el.classList.remove('is-open');
-    });
-
+    // Collapse goal deep dive sub-sections
     ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
      'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
      'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
@@ -644,26 +640,19 @@ function loadChildData(idx) {
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
+  // Path 2: Collapse 3B goal accordions when loading a child.
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
-    goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
-      var children = wrapper.children;
-      for (var c = 0; c < children.length; c++) {
-        if (c === 0) continue;
-        children[c].style.height = '';
-        children[c].style.overflow = '';
-        children[c].style.opacity = '';
+    goalContainer3B.querySelectorAll('.w-dropdown.w--open > .w-dropdown-toggle').forEach(function(trigger) {
+      trigger.click();
+    });
+    goalContainer3B.querySelectorAll('.cat-item').forEach(function(item) {
+      var content = item.querySelector('.w-dropdown-list');
+      if (content && (content.classList.contains('w--open') || content.style.height === 'auto' || (content.offsetHeight > 0 && content.style.display !== 'none'))) {
+        var toggle = item.querySelector('.w-dropdown-toggle');
+        if (toggle) toggle.click();
       }
     });
-
-    goalContainer3B.querySelectorAll('.w-dropdown-toggle.w--open').forEach(function(trigger) {
-       trigger.click();
-    });
-    
-    goalContainer3B.querySelectorAll('.cat-item.is-open').forEach(function(el) {
-       el.classList.remove('is-open');
-    });
-
     ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
      'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
      'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
