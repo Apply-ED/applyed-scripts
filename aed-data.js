@@ -348,13 +348,14 @@ if (window.__aed_clearCurriculumCacheForChild) {
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
     // 1. Remove the open class from your new accordions
-    goalContainer3B.querySelectorAll('.is-open').forEach(function(el) {
+    goalContainer3B.querySelectorAll('.cat-item, .is-open').forEach(function(el) {
       el.classList.remove('is-open');
     });
 
-    // 2. Clear the count badges (e.g., "9 selected")
-    goalContainer3B.querySelectorAll('.aed-elective-card-count').forEach(function(el) {
-      el.textContent = '';
+    // 2. Force the body to collapse
+    goalContainer3B.querySelectorAll('.cat-body').forEach(function(el) {
+      el.style.height = '0px';
+      el.style.overflow = 'hidden';
     });
 
     // 3. Fallback for Webflow IX2 (just in case)
@@ -717,13 +718,14 @@ function loadChildData(idx) {
   var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
   if (goalContainer3B) {
     // 1. Remove the open class from your new accordions
-    goalContainer3B.querySelectorAll('.is-open').forEach(function(el) {
+    goalContainer3B.querySelectorAll('.cat-item, .is-open').forEach(function(el) {
       el.classList.remove('is-open');
     });
 
-    // 2. Clear the count badges (e.g., "9 selected")
-    goalContainer3B.querySelectorAll('.aed-elective-card-count').forEach(function(el) {
-      el.textContent = '';
+    // 2. Force the body to collapse
+    goalContainer3B.querySelectorAll('.cat-body').forEach(function(el) {
+      el.style.height = '0px';
+      el.style.overflow = 'hidden';
     });
 
     // 3. Fallback for Webflow IX2 (just in case)

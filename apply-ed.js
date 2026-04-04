@@ -464,6 +464,10 @@ function bindGoalCounter() {
         badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
       }
     });
+
+    // 4. Clean up any leftover ugly banner if it exists in the DOM
+    const oldBanner = document.getElementById('aed-goal-counter');
+    if (oldBanner) oldBanner.remove();
   }
 
   // Expose for centralised dispatch from setActive()
