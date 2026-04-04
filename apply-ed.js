@@ -397,8 +397,10 @@ window.validateGoalDirectedStep4 = function() {
   let socialShortCount = 0;
   let coreShortCount = 0;
 
-  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-    if (pill.offsetParent !== null) { 
+var valContainer3B = document.getElementById('container-3b-goaldirected');
+  (valContainer3B || document).querySelectorAll('.ms-option.is-selected').forEach(pill => {
+    // Path 2: Count all selected pills in 3B, even inside collapsed accordions
+    if (pill.getAttribute('data-goal-type') || pill.getAttribute('data-category')) {
       const type = pill.getAttribute('data-goal-type');
       const isSocial = pill.getAttribute('data-category') === 'social';
 
@@ -518,13 +520,9 @@ function bindGoalCounter() {
   function updateCounter() {
     
     // Check if goal section is visible
-    let hasVisibleGoals = false;
-    document.querySelectorAll('.ms-option[data-goal-type="short"]').forEach(pill => {
-       if (pill.offsetWidth > 0 || pill.offsetParent !== null) hasVisibleGoals = true;
-    });
-
-// Path 2: Always show the counter when goals are visible (everyone uses 3B)
-    if (!hasVisibleGoals) {
+  // Path 2: Show the counter whenever the 3B container is visible.
+    var goalSection = document.getElementById('container-3b-goaldirected');
+    if (!goalSection || goalSection.offsetParent === null) {
       banner.style.setProperty('display', 'none', 'important');
       return;
     }
@@ -534,13 +532,15 @@ function bindGoalCounter() {
     let shortCount = 0;
     let longCount = 0;
 
-    // 1. Count clicked pills
-    document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-      if (pill.offsetParent !== null) { 
+// 1. Count clicked pills (Path 2: count ALL selected pills in 3B,
+    // even inside collapsed accordions where offsetParent is null)
+    var container3B = document.getElementById('container-3b-goaldirected');
+    if (container3B) {
+      container3B.querySelectorAll('.ms-option.is-selected').forEach(pill => {
         if (pill.getAttribute('data-goal-type') === 'short') shortCount++;
         if (pill.getAttribute('data-goal-type') === 'long') longCount++;
-      }
-    });
+      });
+    }
 
     // 2. NEW: Count custom "Other" text inputs (Short-Term)
     ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
