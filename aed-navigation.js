@@ -233,8 +233,7 @@ window.Webflow.push(function () {
     interestBanner.innerHTML = '<strong>Student Interests</strong><br>Please select <strong>at least 1 area of interest</strong> so we can build investigations and activities around your child\u2019s passions.';
     interestBanner.style.setProperty('display', 'block', 'important');
 
-    // 2. Goal-directed banner — removed in Path 2. 
-    // Counter is now handled by Webflow-native .cat-badge-text elements.
+    // 2. Goal banner — removed in Path 2. Counter handled by Webflow .cat-badge-text.
     var goalBanner3B = document.getElementById('step4-goal-info');
     if (goalBanner3B) goalBanner3B.style.setProperty('display', 'none', 'important');
   }

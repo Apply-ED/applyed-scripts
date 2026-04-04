@@ -92,7 +92,6 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     width: 100% !important;
     box-sizing: border-box !important;
   }
-
 </style>`);
 
 // ─── SELECTORS & CONSTANTS ───────────────────────────────────
