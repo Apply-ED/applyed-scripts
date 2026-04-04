@@ -468,6 +468,9 @@ function bindGoalCounter() {
       if (badgeText) {
         badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
       }
+      // Path 2: Clear the green background that Webflow IX2 sets on the badge
+      const badge = item.querySelector('.cat-badge');
+      if (badge) badge.style.backgroundColor = 'transparent';
     });
   }
 
