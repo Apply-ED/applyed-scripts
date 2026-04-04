@@ -92,6 +92,11 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     width: 100% !important;
     box-sizing: border-box !important;
   }
+  /* Path 2: Remove green background from goal category badge */
+  .cat-badge {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
 </style>`);
 
 // ─── SELECTORS & CONSTANTS ───────────────────────────────────

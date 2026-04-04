@@ -316,32 +316,28 @@ function resetChildFields() {
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
 
   // Path 2: Collapse 3B goal accordion sections on child switch.
-  // DOM structure: .cat-item > .cat-header + .cat-body
-  // Open state: .cat-body has max-height:none; opacity:1; overflow:visible
-  // Closed state: .cat-body has max-height:0; opacity:0; overflow:hidden
-  // .cat-chevron rotates 180deg when open.
-  var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-  if (goalContainer3B) {
-    // Reset all .cat-body panels to closed state
-    goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
-      body.style.maxHeight = '0px';
-      body.style.opacity = '0';
-      body.style.overflow = 'hidden';
-    });
-    // Reset chevrons to closed rotation
-    goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
-      chev.style.transform = 'rotate(0deg)';
-    });
-    // Collapse goal deep dive sub-sections
-    ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
-     'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
-     'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
-     'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
-    ].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.style.setProperty('display', 'none', 'important');
-    });
-  }
+  // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
+  setTimeout(function() {
+    var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+    if (goalContainer3B) {
+      goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
+       'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
+       'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
+       'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
+      ].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.setProperty('display', 'none', 'important');
+      });
+    }
+  }, 300);
   
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
     var inp = document.getElementById(id);
@@ -642,25 +638,28 @@ function loadChildData(idx) {
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
   // Path 2: Collapse 3B goal accordions when loading a child.
-  var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
-  if (goalContainer3B) {
-    goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
-      body.style.maxHeight = '0px';
-      body.style.opacity = '0';
-      body.style.overflow = 'hidden';
-    });
-    goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
-      chev.style.transform = 'rotate(0deg)';
-    });
-    ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
-     'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
-     'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
-     'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
-    ].forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.style.setProperty('display', 'none', 'important');
-    });
-  }
+  // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
+  setTimeout(function() {
+    var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+    if (goalContainer3B) {
+      goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
+       'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
+       'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
+       'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
+      ].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.setProperty('display', 'none', 'important');
+      });
+    }
+  }, 300);
 
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
     var inp = document.getElementById(id);
