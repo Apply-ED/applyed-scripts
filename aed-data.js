@@ -712,6 +712,30 @@ function loadChildData(idx) {
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
+  // Path 2: Collapse all 3B goal accordion sections when loading a child.
+  // This prevents the previous child's open accordions from persisting.
+  var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
+  if (goalContainer3B) {
+    goalContainer3B.querySelectorAll('[data-collapse]').forEach(function(wrapper) {
+      var children = wrapper.children;
+      for (var c = 0; c < children.length; c++) {
+        var child = children[c];
+        if (c === 0) continue;
+        child.style.height = '0px';
+        child.style.overflow = 'hidden';
+        child.style.opacity = '0';
+      }
+    });
+    ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
+     'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
+     'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
+     'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
+    ].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.setProperty('display', 'none', 'important');
+    });
+  }
+
   // Change 4: Clear tracking hidden inputs before restoring the loaded child's
   // values. Without this, the previous child's tracking pills persist in the
   // hidden inputs and get scraped by collectChildData() on the next save.

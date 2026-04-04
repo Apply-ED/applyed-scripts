@@ -440,62 +440,6 @@ var valContainer3B = document.getElementById('container-3b-goaldirected');
 
   return true;
 };
-
-  // Enforce at least 1 Interest
-  const primaryGrid = document.getElementById('primary-interests-grid');
-  if (primaryGrid) {
-    const interestCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
-    if (interestCount < 1) {
-      showGoalError('Please select at least 1 area of interest so we can build investigations around your child’s passions.', 'step3-interests-container');
-      return false;
-    }
-  }
-
-  let shortCount = 0;
-  let longCount = 0;
-  let socialShortCount = 0;
-  let coreShortCount = 0;
-
-  document.querySelectorAll('.ms-option.is-selected').forEach(pill => {
-    if (pill.offsetParent !== null) { 
-      const type = pill.getAttribute('data-goal-type');
-      const isSocial = pill.getAttribute('data-category') === 'social';
-
-      if (type === 'short') {
-         shortCount++;
-         if (isSocial) socialShortCount++;
-         else coreShortCount++;
-      }
-      if (type === 'long') longCount++;
-    }
-  });
-
-  // NEW: Add custom text fields to the Goal-Directed validation count!
-  ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') shortCount++;
-  });
-  
-  ['long_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') longCount++;
-  });
-
-  if (shortCount < 4 || shortCount > 8) {
-    showGoalError(`Please select between 4 and 8 short-term goals. You currently have ${shortCount} selected.`, 'container-3b-goaldirected');
-    return false;
-  }
-  if (socialShortCount > coreShortCount) {
-    showGoalError(`Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.`, 'container-3b-goaldirected');
-    return false;
-  }
-  if (longCount < 1 || longCount > 2) {
-    showGoalError(`Please select 1 or 2 long-term goals. You currently have ${longCount} selected.`, 'container-3b-goaldirected');
-    return false;
-  }
-
-  return true;
-
 // 4. Sticky Counter
 function bindGoalCounter() {
   let banner = document.getElementById('aed-goal-counter');
