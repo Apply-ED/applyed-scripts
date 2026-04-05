@@ -573,6 +573,15 @@ function initInterestDeepDives() {
   if (primaryGrid) {
     var fieldGroup = primaryGrid.closest('.field-group');
     if (fieldGroup) fieldGroup.style.display = 'none';
+    // Also hide the parent div-connections wrapper if it contains the grid
+    var divConnections = primaryGrid.closest('[class*="div-connections"]') || primaryGrid.closest('.div-connections_curiosities-rig');
+    if (divConnections) divConnections.style.display = 'none';
+  }
+  // Hide the "AREAS OF INTEREST" heading and helper text
+  var areaHeading = document.querySelector('.field-label-identifier');
+  if (areaHeading && areaHeading.textContent.indexOf('AREAS OF INTEREST') !== -1) {
+    var headingParent = areaHeading.closest('.field-group') || areaHeading.parentElement;
+    if (headingParent) headingParent.style.display = 'none';
   }
   // Also hide the old subheadings
   var stdSub = document.getElementById('subheading-standard');
@@ -725,6 +734,16 @@ function initInterestDeepDives() {
   function updateInterests() {
     syncPrimaryFromSubInterests();
     updateInterestBadges();
+    // Re-hide the primary grid every time (belt-and-braces)
+    document.querySelectorAll('.grid-curiosities').forEach(function(el) { el.style.display = 'none'; });
+    if (primaryGrid) {
+      var fg = primaryGrid.closest('.field-group');
+      if (fg) fg.style.display = 'none';
+    }
+    // Kill green badges on all cat-badge elements (goals + interests)
+    document.querySelectorAll('.cat-badge').forEach(function(el) {
+      el.style.setProperty('background-color', 'transparent', 'important');
+    });
   }
 
   // Expose for centralised dispatch from setActive()
@@ -745,23 +764,24 @@ function initInterestDeepDives() {
   }, true);
 
   // Run once on load
-// Run once on load
+  // Run once on load
   setTimeout(updateInterests, 200);
 
   // Path 2: Permanently suppress green badge backgrounds.
-  // Webflow IX2 re-applies inline styles after interactions,
-  // so we observe and re-clear on any attribute change.
-// Observe the entire step for badge style changes — catches badges
-  // that exist now AND any Webflow IX2 re-applies after interactions.
-  var stepEl = document.querySelector('.step.is-active') || document.body;
-  var badgeObserver = new MutationObserver(function() {
+  // Use both a MutationObserver AND a periodic interval as belt-and-braces.
+  // The observer catches most changes; the interval catches anything the observer misses.
+  function killGreenBadges() {
     document.querySelectorAll('.cat-badge').forEach(function(el) {
       if (el.style.backgroundColor && el.style.backgroundColor !== 'transparent') {
         el.style.setProperty('background-color', 'transparent', 'important');
       }
     });
-  });
-  badgeObserver.observe(stepEl, { attributes: true, attributeFilter: ['style'], subtree: true });
+  }
+  var badgeObserver = new MutationObserver(killGreenBadges);
+  badgeObserver.observe(document.body, { attributes: true, attributeFilter: ['style'], subtree: true });
+  // Also run every 500ms for 10 seconds to catch late Webflow IX2 animations
+  var badgeInterval = setInterval(killGreenBadges, 500);
+  setTimeout(function() { clearInterval(badgeInterval); }, 10000);
 }
 
 // Start the watcher
