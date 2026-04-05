@@ -567,10 +567,12 @@ function initInterestDeepDives() {
   var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
   if (!interestWrap) return;
 
-var primaryGrid = document.getElementById('primary-interests-grid');
+// Hide the primary interest pills grid and its parent labels
+  document.querySelectorAll('.grid-curiosities').forEach(function(el) { el.style.display = 'none'; });
+  var primaryGrid = document.getElementById('primary-interests-grid');
   if (primaryGrid) {
-    var primaryGroup = primaryGrid.closest('.grid-curiosities') || primaryGrid.closest('.w-layout-grid') || primaryGrid.closest('.field-group') || primaryGrid;
-    if (primaryGroup) primaryGroup.style.display = 'none';
+    var fieldGroup = primaryGrid.closest('.field-group');
+    if (fieldGroup) fieldGroup.style.display = 'none';
   }
   // Also hide the old subheadings
   var stdSub = document.getElementById('subheading-standard');
@@ -749,6 +751,9 @@ var primaryGrid = document.getElementById('primary-interests-grid');
   // Path 2: Permanently suppress green badge backgrounds.
   // Webflow IX2 re-applies inline styles after interactions,
   // so we observe and re-clear on any attribute change.
+// Observe the entire step for badge style changes — catches badges
+  // that exist now AND any Webflow IX2 re-applies after interactions.
+  var stepEl = document.querySelector('.step.is-active') || document.body;
   var badgeObserver = new MutationObserver(function() {
     document.querySelectorAll('.cat-badge').forEach(function(el) {
       if (el.style.backgroundColor && el.style.backgroundColor !== 'transparent') {
@@ -756,9 +761,7 @@ var primaryGrid = document.getElementById('primary-interests-grid');
       }
     });
   });
-  document.querySelectorAll('.cat-badge').forEach(function(badge) {
-    badgeObserver.observe(badge, { attributes: true, attributeFilter: ['style'] });
-  });
+  badgeObserver.observe(stepEl, { attributes: true, attributeFilter: ['style'], subtree: true });
 }
 
 // Start the watcher
