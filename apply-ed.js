@@ -454,7 +454,7 @@ function bindGoalCounter() {
       }
       // Path 2: Clear the green background that Webflow IX2 sets on the badge
       const badge = item.querySelector('.cat-badge');
-      if (badge) badge.style.backgroundColor = 'transparent';
+    if (badge) badge.style.setProperty('background-color', 'transparent', 'important');
     });
   }
 
@@ -716,7 +716,7 @@ function initInterestDeepDives() {
       }
       // Clear green background on badge
       var badge = catItem.querySelector('.cat-badge');
-      if (badge) badge.style.backgroundColor = 'transparent';
+    if (badge) badge.style.setProperty('background-color', 'transparent', 'important');
     });
   }
 
