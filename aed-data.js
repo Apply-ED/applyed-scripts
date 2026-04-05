@@ -337,6 +337,26 @@ function resetChildFields() {
         if (el) el.style.setProperty('display', 'none', 'important');
       });
     }
+    // Path 2: Also collapse interest accordion sections
+    var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
+    if (interestWrap) {
+      interestWrap.querySelectorAll('.cat-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      interestWrap.querySelectorAll('.cat-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      interestWrap.querySelectorAll('.sub-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      interestWrap.querySelectorAll('.sub-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+    }
   }, 300);
   
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
@@ -658,6 +678,30 @@ function loadChildData(idx) {
         var el = document.getElementById(id);
         if (el) el.style.setProperty('display', 'none', 'important');
       });
+    }
+    // Path 2: Also collapse interest accordion sections
+    var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
+    if (interestWrap) {
+      interestWrap.querySelectorAll('.cat-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      interestWrap.querySelectorAll('.cat-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      interestWrap.querySelectorAll('.sub-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      interestWrap.querySelectorAll('.sub-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+    }
+    // Re-trigger interest badge counts after pill restore
+    if (typeof window.__aed_updateDeepDives === 'function') {
+      window.__aed_updateDeepDives();
     }
   }, 300);
 

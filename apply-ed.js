@@ -345,35 +345,19 @@ window.showGoalError = showGoalError;
 
 // 2. Interest-Led & Standard Validation
 window.validateInterestLedStep4 = function() {
-  // Path 2: Validates interests (at least 1) and general goals (at least 3).
+  // Path 2: Validates interests (at least 1 sub-interest selected).
   showGoalError(null); 
 
-  // Validate interests
-  const primaryGrid = document.getElementById('primary-interests-grid');
-  if (primaryGrid) {
-    const count = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+  // Validate interests from the accordion groups
+  var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
+  if (interestWrap) {
+    var count = interestWrap.querySelectorAll('.ms-option.is-selected').length;
     if (count < 1) {
       showGoalError('Please select at least 1 area of interest so we can build investigations around your child\u2019s passions.', 'step3-interests-container');
       return false;
     }
   }
 
-  // Validate general goals (container 3A)
-  const container3A = document.getElementById('container-3a-general') || document.querySelector('.step3a-goal-container');
-  if (container3A) {
-    let count = container3A.querySelectorAll('.ms-option.is-selected').length;
-    
-    // Count custom text fields
-    ['other_goal_1', 'other_goal_2', 'other_goal_3'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') count++;
-    });
-
-    if (count < 3) {
-      showGoalError(`Please select at least 3 goals in total. You currently have ${count} selected.`, 'container-3a-general');
-      return false;
-    }
-  }
   return true;
 };
 
@@ -382,10 +366,10 @@ window.validateGoalDirectedStep4 = function() {
   // Path 2: Everyone uses the detailed goals (3B). Validate them.
   showGoalError(null);
 
-  // Enforce at least 1 Interest
-  const primaryGrid = document.getElementById('primary-interests-grid');
-  if (primaryGrid) {
-    const interestCount = primaryGrid.querySelectorAll('.ms-option.is-selected').length;
+  // Enforce at least 1 Interest (check sub-interest pills inside the accordion groups)
+  var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
+  if (interestWrap) {
+    var interestCount = interestWrap.querySelectorAll('.ms-option.is-selected').length;
     if (interestCount < 1) {
       showGoalError('Please select at least 1 area of interest so we can build investigations around your child\u2019s passions.', 'step3-interests-container');
       return false;
@@ -573,79 +557,194 @@ document.addEventListener('change', function(e) {
   }
 });
 /* =========================================
-   STEP 3: SMART INTEREST DEEP DIVES (ALL 13 CATEGORIES)
+   STEP 5: INTEREST ACCORDION SYSTEM (Path 2)
+   Replaces the old deep-dive show/hide logic.
+   Interest categories are now grouped into 4 accordion sections
+   built in Webflow with .cat-item/.cat-header/.cat-body/.sub-item/.sub-header/.sub-body
+   inside interest-deep-dive-wrap.
    ========================================= */
 function initInterestDeepDives() {
-  const primaryGrid = document.getElementById('primary-interests-grid');
-  if (!primaryGrid) return;
+  var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
+  if (!interestWrap) return;
 
-function updateDeepDives() {
-    // Path 2: Deep dives show for ALL users when they select an interest.
-    // No program-type gating.
+  // 1. Hide the primary interest pills grid — we use accordions now.
+  var primaryGrid = document.getElementById('primary-interests-grid');
+  if (primaryGrid) {
+    var primaryGroup = primaryGrid.closest('.ms-group') || primaryGrid.closest('.field-group') || primaryGrid;
+    if (primaryGroup) primaryGroup.style.display = 'none';
+  }
+  // Also hide the old subheadings
+  var stdSub = document.getElementById('subheading-standard');
+  var intSub = document.getElementById('subheading-interest-led');
+  if (stdSub) stdSub.style.display = 'none';
+  if (intSub) intSub.style.display = 'none';
 
-    // Always show standard subheading, hide interest-led subheading
-    const stdSub = document.getElementById('subheading-standard');
-    const intSub = document.getElementById('subheading-interest-led');
-    if (stdSub) stdSub.style.display = 'block';
-    if (intSub) intSub.style.display = 'none';
+  // 2. Map sub-interest field names to their top-level interest value
+  //    (used to auto-populate the hidden primary grid)
+  var subToTopMap = {
+    'interest_technology_digital_coding': 'technology_digital_coding',
+    'interest_science_experiments': 'science_experiments',
+    'interest_space_astronomy': 'space_astronomy',
+    'interest_building_construction': 'building_construction',
+    'interest_art_creativity': 'art_creativity',
+    'interest_creative_writing': 'creative_writing',
+    'interest_music': 'music',
+    'interest_animals_nature': 'animals_nature',
+    'interest_history_culture': 'history_culture',
+    'interest_sport': 'sport',
+    'interest_cooking_life_skills': 'cooking_life_skills',
+    'interest_strategic_games': 'strategic_games',
+    'interest_online_gaming': 'online_gaming'
+  };
 
-    // 3. The COMPLETE "Map" - Links Tier 1 data-value to Tier 2 Div ID
-    const deepDiveMap = {
-      'animals_nature': 'deep-dive-animals-nature',
-      'technology_digital_coding': 'deep-dive-technology-digital-coding', /* Check if your main pill is digital_coding or digital_design! */
-      'art_creativity': 'deep-dive-art-creativity',
-      'building_construction': 'deep-dive-building-construction',
-      'creative_writing': 'deep-dive-creative-writing',
-      'space_astronomy': 'deep-dive-space-astronomy',
-      'strategic_games': 'deep-dive-strategic-games',
-      'online_gaming': 'deep-dive-online-gaming',
-      'history_culture': 'deep-dive-history-culture',
-      'cooking_life_skills': 'deep-dive-cooking-life-skills',
-      'science_experiments': 'deep-dive-science-experiments',
-      'music': 'deep-dive-music',
-      'sport': 'deep-dive-sport'
-    };
+  // 3. Wire up top-level accordion click handlers (.cat-header inside interest-deep-dive-wrap)
+  interestWrap.querySelectorAll('.cat-item > .cat-header').forEach(function(header) {
+    if (header.dataset.aedInterestBound === '1') return;
+    header.dataset.aedInterestBound = '1';
+    header.style.cursor = 'pointer';
 
-    // 4. Get selected values safely from the hidden input
-    const primaryInput = primaryGrid.querySelector('.ms-input');
-    let selectedPills = [];
-    if (primaryInput && primaryInput.value) {
-      try { selectedPills = JSON.parse(primaryInput.value); } catch(e) {}
+    header.addEventListener('click', function() {
+      var catItem = header.closest('.cat-item');
+      if (!catItem) return;
+      var body = catItem.querySelector('.cat-body');
+      var chevron = catItem.querySelector('.cat-chevron');
+      if (!body) return;
+
+      var isOpen = body.style.maxHeight === 'none' || body.style.opacity === '1';
+      if (isOpen) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      } else {
+        body.style.maxHeight = 'none';
+        body.style.opacity = '1';
+        body.style.overflow = 'visible';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      }
+    });
+  });
+
+  // 4. Wire up sub-level accordion click handlers (.sub-header inside interest-deep-dive-wrap)
+  interestWrap.querySelectorAll('.sub-header').forEach(function(header) {
+    if (header.dataset.aedInterestBound === '1') return;
+    header.dataset.aedInterestBound = '1';
+    header.style.cursor = 'pointer';
+
+    header.addEventListener('click', function() {
+      var subItem = header.closest('.sub-item');
+      if (!subItem) return;
+      var body = subItem.querySelector('.sub-body');
+      var chevron = subItem.querySelector('.sub-chevron');
+      if (!body) return;
+
+      var isOpen = body.style.maxHeight === 'none' || body.style.opacity === '1';
+      if (isOpen) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      } else {
+        body.style.maxHeight = 'none';
+        body.style.opacity = '1';
+        body.style.overflow = 'visible';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      }
+    });
+  });
+
+  // 5. Auto-populate hidden primary interests grid from sub-interest selections
+  function syncPrimaryFromSubInterests() {
+    var primaryInput = document.querySelector('#primary-interests-grid .ms-input');
+    if (!primaryInput) return;
+
+    var selectedTopLevel = [];
+    for (var fieldName in subToTopMap) {
+      var input = document.querySelector('.ms-input[name="' + fieldName + '"]');
+      if (!input) continue;
+      var vals = [];
+      try { vals = JSON.parse(input.value || '[]'); } catch(e) {}
+      if (vals.length > 0) {
+        selectedTopLevel.push(subToTopMap[fieldName]);
+      }
     }
 
-// 5. Show or Hide the Deep Dives (Path 2: show for ALL users)
-    for (const [pillValue, containerId] of Object.entries(deepDiveMap)) {
-      const deepDiveDiv = document.getElementById(containerId);
-      if (deepDiveDiv) {
-        if (selectedPills.includes(pillValue)) {
-          deepDiveDiv.style.display = 'block';
-        } else {
-          deepDiveDiv.style.display = 'none';
+    // Also check for custom text fields — if a parent typed something, count the category
+    for (var fieldName2 in subToTopMap) {
+      var customInput = document.querySelector('input[name="' + fieldName2 + '_custom"], textarea[name="' + fieldName2 + '_custom"]');
+      if (customInput && customInput.value && customInput.value.trim() !== '') {
+        var topVal = subToTopMap[fieldName2];
+        if (selectedTopLevel.indexOf(topVal) === -1) {
+          selectedTopLevel.push(topVal);
         }
       }
     }
+
+    // Deduplicate and write to hidden primary input
+    var unique = selectedTopLevel.filter(function(v, i, a) { return a.indexOf(v) === i; });
+    primaryInput.value = JSON.stringify(unique);
+    primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Also sync the primary grid pill visuals (even though hidden, for data consistency)
+    var primaryGroup = primaryInput.closest('.ms-group');
+    if (primaryGroup) {
+      primaryGroup.querySelectorAll('.ms-option').forEach(function(opt) {
+        var val = opt.getAttribute('data-value');
+        if (unique.indexOf(val) !== -1) {
+          opt.classList.add('is-selected');
+        } else {
+          opt.classList.remove('is-selected');
+        }
+      });
+    }
   }
 
-  // Change 3: Expose for centralised dispatch from setActive()
-  window.__aed_updateDeepDives = updateDeepDives;
-
-  // Listen for native hidden input changes
-  const primaryInput = primaryGrid.querySelector('.ms-input');
-  if (primaryInput) {
-    primaryInput.addEventListener('change', updateDeepDives);
+  // 6. Update the badge counts on each interest accordion group
+  function updateInterestBadges() {
+    interestWrap.querySelectorAll('.cat-item').forEach(function(catItem) {
+      var count = 0;
+      catItem.querySelectorAll('.ms-option.is-selected').forEach(function() { count++; });
+      // Also count filled custom text fields
+      catItem.querySelectorAll('input[type="text"], textarea').forEach(function(input) {
+        if (input.value && input.value.trim() !== '' && input.name && input.name.indexOf('_custom') !== -1) {
+          count++;
+        }
+      });
+      var badgeText = catItem.querySelector('.cat-badge-text');
+      if (badgeText) {
+        badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
+      }
+      // Clear green background on badge
+      var badge = catItem.querySelector('.cat-badge');
+      if (badge) badge.style.backgroundColor = 'transparent';
+    });
   }
 
-  // Listen for clicks on the main grid
-  primaryGrid.addEventListener('click', function(e) {
+  // 7. Combined update function
+  function updateInterests() {
+    syncPrimaryFromSubInterests();
+    updateInterestBadges();
+  }
+
+  // Expose for centralised dispatch from setActive()
+  window.__aed_updateDeepDives = updateInterests;
+
+  // Listen for clicks on any pill inside the interest section
+  interestWrap.addEventListener('click', function(e) {
     if (e.target.closest('.ms-option')) {
-      setTimeout(updateDeepDives, 50); 
+      setTimeout(updateInterests, 50);
     }
   }, true);
 
-  // Change 3: MutationObserver REMOVED — updateDeepDives is now called from setActive()
+  // Listen for typing in custom fields
+  interestWrap.addEventListener('input', function(e) {
+    if (e.target && e.target.name && e.target.name.indexOf('_custom') !== -1) {
+      setTimeout(updateInterests, 100);
+    }
+  }, true);
 
-  // Run once on load just in case
-  setTimeout(updateDeepDives, 100);
+  // Run once on load
+  setTimeout(updateInterests, 200);
 }
 
 // Start the watcher

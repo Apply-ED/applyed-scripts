@@ -92,11 +92,24 @@ document.head.insertAdjacentHTML("beforeend", `<style>
     width: 100% !important;
     box-sizing: border-box !important;
   }
-  /* Path 2: Remove green background from goal category badge */
-  .cat-badge {
-    background-color: transparent !important;
-    background: transparent !important;
+   /* Path 2: Goal counter banner — clean styling */
+  #aed-goal-counter {
+    background: #fdfdfd !important;
+    border: 1px solid #DDe4dd !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
+    outline: none !important;
   }
+  #aed-goal-counter * {
+    background: transparent !important;
+    outline: none !important;
+  }
+  /* Prevent parent focus states from bleeding into the counter */
+  .step3b-goal-container > #aed-goal-counter,
+  #container-3b-goaldirected > #aed-goal-counter {
+    position: relative;
+    z-index: 1;
+  } 
 </style>`);
 
 // ─── SELECTORS & CONSTANTS ───────────────────────────────────
@@ -148,7 +161,12 @@ window.AED.ALWAYS_CAPTURE = [
   "creative_arts", "technological_and_applied_studies", "hsie", "pdhpe", "humanities", "hpe",
   "english_pathway_y2", "mathematics_pathway_y2", "science_pathway_y2", "the_arts_y2", "technologies_y2", "hass_y2",
   "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2",
-  "aed-tracking-needs_attention", "aed-tracking-excelling"
+  "aed-tracking-needs_attention", "aed-tracking-excelling",
+  "interests", "interests_custom",
+  "interest_technology_digital_coding", "interest_art_creativity", "interest_animals_nature",
+  "interest_building_construction", "interest_creative_writing", "interest_space_astronomy",
+  "interest_strategic_games", "interest_online_gaming", "interest_history_culture",
+  "interest_cooking_life_skills", "interest_science_experiments", "interest_music", "interest_sport"
 ];
 
 // ─── FAMILY-LEVEL FIELDS (excluded from per-child live-save) ─
