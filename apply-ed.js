@@ -567,10 +567,9 @@ function initInterestDeepDives() {
   var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
   if (!interestWrap) return;
 
-  // 1. Hide the primary interest pills grid — we use accordions now.
-  var primaryGrid = document.getElementById('primary-interests-grid');
+var primaryGrid = document.getElementById('primary-interests-grid');
   if (primaryGrid) {
-    var primaryGroup = primaryGrid.closest('.ms-group') || primaryGrid.closest('.field-group') || primaryGrid;
+    var primaryGroup = primaryGrid.closest('.grid-curiosities') || primaryGrid.closest('.w-layout-grid') || primaryGrid.closest('.field-group') || primaryGrid;
     if (primaryGroup) primaryGroup.style.display = 'none';
   }
   // Also hide the old subheadings
@@ -744,7 +743,22 @@ function initInterestDeepDives() {
   }, true);
 
   // Run once on load
+// Run once on load
   setTimeout(updateInterests, 200);
+
+  // Path 2: Permanently suppress green badge backgrounds.
+  // Webflow IX2 re-applies inline styles after interactions,
+  // so we observe and re-clear on any attribute change.
+  var badgeObserver = new MutationObserver(function() {
+    document.querySelectorAll('.cat-badge').forEach(function(el) {
+      if (el.style.backgroundColor && el.style.backgroundColor !== 'transparent') {
+        el.style.setProperty('background-color', 'transparent', 'important');
+      }
+    });
+  });
+  document.querySelectorAll('.cat-badge').forEach(function(badge) {
+    badgeObserver.observe(badge, { attributes: true, attributeFilter: ['style'] });
+  });
 }
 
 // Start the watcher
