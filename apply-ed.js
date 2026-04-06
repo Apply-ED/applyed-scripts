@@ -613,14 +613,16 @@ function initInterestDeepDives() {
     header.dataset.aedInterestBound = '1';
     header.style.cursor = 'pointer';
 
-    header.addEventListener('click', function() {
+header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       var catItem = header.closest('.cat-item');
       if (!catItem) return;
       var body = catItem.querySelector('.cat-body');
       var chevron = catItem.querySelector('.cat-chevron');
       if (!body) return;
 
-      var isOpen = body.style.maxHeight === 'none' || body.style.opacity === '1';
+      var isOpen = body.style.maxHeight === 'none';
       if (isOpen) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
@@ -632,7 +634,7 @@ function initInterestDeepDives() {
         body.style.overflow = 'visible';
         if (chevron) chevron.style.transform = 'rotate(180deg)';
       }
-    });
+    }, true);
   });
 
   // 4. Wire up sub-level accordion click handlers (.sub-header inside interest-deep-dive-wrap)
@@ -641,14 +643,16 @@ function initInterestDeepDives() {
     header.dataset.aedInterestBound = '1';
     header.style.cursor = 'pointer';
 
-    header.addEventListener('click', function() {
+header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       var subItem = header.closest('.sub-item');
       if (!subItem) return;
       var body = subItem.querySelector('.sub-body');
       var chevron = subItem.querySelector('.sub-chevron');
       if (!body) return;
 
-      var isOpen = body.style.maxHeight === 'none' || body.style.opacity === '1';
+      var isOpen = body.style.maxHeight === 'none';
       if (isOpen) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
@@ -660,7 +664,7 @@ function initInterestDeepDives() {
         body.style.overflow = 'visible';
         if (chevron) chevron.style.transform = 'rotate(180deg)';
       }
-    });
+    }, true);
   });
 
   // 5. Auto-populate hidden primary interests grid from sub-interest selections
