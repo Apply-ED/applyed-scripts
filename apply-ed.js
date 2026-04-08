@@ -642,7 +642,7 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
       }
     }, true);
   });
@@ -672,7 +672,7 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
       }
     }, true);
   });
