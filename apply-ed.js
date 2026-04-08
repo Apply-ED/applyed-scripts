@@ -642,7 +642,7 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.transform = 'rotate(90deg)';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
       }
     }, true);
   });
@@ -672,7 +672,7 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.transform = 'rotate(90deg)';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
       }
     }, true);
   });
@@ -811,10 +811,47 @@ function initGoalDirectedDeepDives() {
   // Expose a no-op for the old deep-dive dispatch (no longer needed)
   window.__aed_updateGoalDeepDives = function() {};
 
-  // Bind click handlers on goal sub-headers to toggle pill-wrap visibility
   var goalContainer = document.getElementById('container-3b-goaldirected');
   if (!goalContainer) return;
 
+  // Bind click handlers on goal CAT-HEADERS (top-level accordion)
+  // This overrides any other handler by using stopImmediatePropagation
+  goalContainer.querySelectorAll('.cat-item > .cat-header').forEach(function(header) {
+    if (header.dataset.aedGoalBound === '1') return;
+    header.dataset.aedGoalBound = '1';
+    header.style.cursor = 'pointer';
+
+    header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      var catItem = header.closest('.cat-item');
+      if (!catItem) return;
+      var body = catItem.querySelector('.cat-body');
+      var chevron = header.querySelector('.cat-chevron');
+      if (!body) return;
+
+      var isOpen = body.style.maxHeight === 'none';
+      if (isOpen) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      } else {
+        body.style.maxHeight = 'none';
+        body.style.opacity = '1';
+        body.style.overflow = 'visible';
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
+      }
+
+      // After opening, run auto-expand for sub-groups on desktop
+      if (!isOpen && typeof window.__aed_autoExpandGoalSubGroups === 'function') {
+        setTimeout(window.__aed_autoExpandGoalSubGroups, 50);
+      }
+    }, true);
+  });
+
+  // Bind click handlers on goal SUB-HEADERS to toggle pill-wrap visibility
   goalContainer.querySelectorAll('.sub-header').forEach(function(header) {
     if (header.dataset.aedGoalSubBound === '1') return;
     header.dataset.aedGoalSubBound = '1';
