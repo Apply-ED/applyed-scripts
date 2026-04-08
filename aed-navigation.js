@@ -193,13 +193,16 @@ window.Webflow.push(function () {
       // State picker lock/unlock (all steps)
       if (typeof window.__aed_updateStateLock === 'function') window.__aed_updateStateLock();
 
-      // Goal counter (all steps)
+      // Goal counter and cap enforcement (all steps)
       if (typeof window.__aed_updateGoalCounter === 'function') window.__aed_updateGoalCounter();
+
+      // Goal sub-group auto-expand (Step 5 only — desktop expands all, mobile expands selected)
+      if (stepNum === 5 && typeof window.__aed_autoExpandGoalSubGroups === 'function') window.__aed_autoExpandGoalSubGroups();
 
       // Interest deep dives (all steps)
       if (typeof window.__aed_updateDeepDives === 'function') window.__aed_updateDeepDives();
 
-      // Goal-directed deep dives (all steps)
+      // Goal-directed deep dives (no-op in redesign, kept for compatibility)
       if (typeof window.__aed_updateGoalDeepDives === 'function') window.__aed_updateGoalDeepDives();
 
       // Y1 step heading (Step 3 only)

@@ -315,11 +315,12 @@ function resetChildFields() {
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
 
-  // Path 2: Collapse 3B goal accordion sections on child switch.
+  // Collapse goal and interest accordion sections on child switch.
   // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
   setTimeout(function() {
     var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (goalContainer3B) {
+      // Collapse top-level category accordions
       goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
@@ -328,16 +329,27 @@ function resetChildFields() {
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
       });
-      ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
-       'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
-       'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
-       'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
-      ].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.setProperty('display', 'none', 'important');
+      // Collapse sub-group accordions inside goals
+      goalContainer3B.querySelectorAll('.sub-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      // Hide cap messages
+      goalContainer3B.querySelectorAll('.cap-message').forEach(function(msg) {
+        msg.style.display = 'none';
+      });
+      // Remove disabled state from all goal pills
+      goalContainer3B.querySelectorAll('.ms-option.is-disabled').forEach(function(pill) {
+        pill.classList.remove('is-disabled');
+        pill.style.removeProperty('opacity');
+        pill.style.removeProperty('pointer-events');
       });
     }
-    // Path 2: Also collapse interest accordion sections
+    // Also collapse interest accordion sections
     var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
     if (interestWrap) {
       interestWrap.querySelectorAll('.cat-body').forEach(function(body) {
@@ -364,9 +376,9 @@ function resetChildFields() {
     if (inp) inp.value = '[]';
   });
 
-  const customFields = ["short_term_custom", "long_term_custom"];
-  customFields.forEach(fieldName => {
-    const el = document.querySelector(`textarea[name="${fieldName}"]`);
+  var customFields = ["short_term_custom"];
+  customFields.forEach(function(fieldName) {
+    var el = document.querySelector('textarea[name="' + fieldName + '"]');
     if (el) {
       el.value = "";
       el.style.height = "auto";
@@ -657,11 +669,12 @@ function loadChildData(idx) {
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
 
-  // Path 2: Collapse 3B goal accordions when loading a child.
+  // Collapse goal and interest accordions when loading a child.
   // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
   setTimeout(function() {
     var goalContainer3B = document.getElementById('container-3b-goaldirected') || document.querySelector('.step3b-goal-container');
     if (goalContainer3B) {
+      // Collapse top-level category accordions
       goalContainer3B.querySelectorAll('.cat-body').forEach(function(body) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
@@ -670,16 +683,27 @@ function loadChildData(idx) {
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
       });
-      ['deep-dive-gd-reading', 'deep-dive-gd-numeracy', 'deep-dive-gd-digital',
-       'deep-dive-gd-creative', 'deep-dive-gd-emotional', 'deep-dive-gd-social',
-       'deep-dive-gd-communication', 'deep-dive-gd-resilience', 'deep-dive-gd-lifeskills',
-       'deep-dive-gd-organisation', 'deep-dive-gd-financial', 'deep-dive-gd-pathways'
-      ].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.setProperty('display', 'none', 'important');
+      // Collapse sub-group accordions
+      goalContainer3B.querySelectorAll('.sub-body').forEach(function(body) {
+        body.style.maxHeight = '0px';
+        body.style.opacity = '0';
+        body.style.overflow = 'hidden';
+      });
+      goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
+        chev.style.transform = 'rotate(0deg)';
+      });
+      // Hide cap messages
+      goalContainer3B.querySelectorAll('.cap-message').forEach(function(msg) {
+        msg.style.display = 'none';
+      });
+      // Remove disabled state from all goal pills (will be re-applied by updateGoalCaps)
+      goalContainer3B.querySelectorAll('.ms-option.is-disabled').forEach(function(pill) {
+        pill.classList.remove('is-disabled');
+        pill.style.removeProperty('opacity');
+        pill.style.removeProperty('pointer-events');
       });
     }
-    // Path 2: Also collapse interest accordion sections
+    // Also collapse interest accordion sections
     var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
     if (interestWrap) {
       interestWrap.querySelectorAll('.cat-body').forEach(function(body) {
@@ -702,6 +726,10 @@ function loadChildData(idx) {
     // Re-trigger interest badge counts after pill restore
     if (typeof window.__aed_updateDeepDives === 'function') {
       window.__aed_updateDeepDives();
+    }
+    // Re-run goal cap enforcement for the loaded child's selections
+    if (typeof window.__aed_updateGoalCaps === 'function') {
+      setTimeout(window.__aed_updateGoalCaps, 50);
     }
   }, 300);
 

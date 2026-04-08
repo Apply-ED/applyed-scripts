@@ -361,12 +361,11 @@ window.validateInterestLedStep4 = function() {
   return true;
 };
 
-// 3. Goal-Directed Validation
+// 3. Goal Validation (REDESIGNED — goals are now optional, caps enforced by UI)
 window.validateGoalDirectedStep4 = function() {
-  // Path 2: Everyone uses the detailed goals (3B). Validate them.
   showGoalError(null);
 
-  // Enforce at least 1 Interest (check sub-interest pills inside the accordion groups)
+  // Interests validation stays — at least 1 sub-interest required
   var interestWrap = document.querySelector('.interest-deep-dive-wrap') || document.getElementById('interest-deep-dive-wrap');
   if (interestWrap) {
     var interestCount = interestWrap.querySelectorAll('.ms-option.is-selected').length;
@@ -376,104 +375,115 @@ window.validateGoalDirectedStep4 = function() {
     }
   }
 
-  let shortCount = 0;
-  let longCount = 0;
-  let socialShortCount = 0;
-  let coreShortCount = 0;
-
-var valContainer3B = document.getElementById('container-3b-goaldirected');
-  (valContainer3B || document).querySelectorAll('.ms-option.is-selected').forEach(pill => {
-    // Path 2: Count all selected pills in 3B, even inside collapsed accordions
-    if (pill.getAttribute('data-goal-type') || pill.getAttribute('data-category')) {
-      const type = pill.getAttribute('data-goal-type');
-      const isSocial = pill.getAttribute('data-category') === 'social';
-
-      if (type === 'short') {
-         shortCount++;
-         if (isSocial) socialShortCount++;
-         else coreShortCount++;
-      }
-      if (type === 'long') longCount++;
-    }
-  });
-
-  // Count custom text fields (short-term)
-  ['other_goal_1', 'other_goal_2', 'other_goal_3', 'short_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') shortCount++;
-  });
-  
-  // Count custom text fields (long-term)
-  ['long_term_custom'].forEach(name => {
-      const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"]`);
-      if (el && el.offsetParent !== null && el.value.trim() !== '') longCount++;
-  });
-
-  if (shortCount < 4 || shortCount > 8) {
-    showGoalError('Please select between 4 and 8 short-term goals. You currently have ' + shortCount + ' selected.', 'container-3b-goaldirected');
-    return false;
-  }
-  if (socialShortCount > coreShortCount) {
-    showGoalError('Please select mostly Academic or Independence goals. You currently have too many Social & Emotional goals selected.', 'container-3b-goaldirected');
-    return false;
-  }
-  if (longCount < 1 || longCount > 2) {
-    showGoalError('Please select 1 or 2 long-term goals. You currently have ' + longCount + ' selected.', 'container-3b-goaldirected');
-    return false;
-  }
-
+  // Goals are optional — no minimum enforcement.
+  // Caps (3 academic / 2 independence / 1 social) are enforced
+  // by pill disabling in updateGoalCaps(), not by validation.
   return true;
 };
-// 4. Sticky Counter
-// 4. Accordion Category Counters
-// 4. Accordion Category Counters
+
+/* =========================================
+   GOAL COUNTER & CAP ENFORCEMENT (REDESIGNED)
+   ========================================= */
 function bindGoalCounter() {
-  // 1. Kill the old ugly banner if it exists in the DOM
-  const uglyBanner = document.getElementById('aed-goal-counter');
+  // Remove old sticky banner if it exists
+  var uglyBanner = document.getElementById('aed-goal-counter');
   if (uglyBanner) uglyBanner.remove();
 
-  function updateCounter() {
-    // 2. Find every accordion category wrapper on the page
-    document.querySelectorAll('.cat-item').forEach(item => {
-      let count = 0;
+  // Category caps
+  var GOAL_CAPS = { academic: 3, independence: 2, social: 1 };
 
-      // Count selected pills within this specific category
-      count += item.querySelectorAll('.ms-option.is-selected').length;
+  function updateGoalCaps() {
+    var counts = { academic: 0, independence: 0, social: 0 };
 
-      // Count filled custom text fields within this specific category
-      item.querySelectorAll('input[type="text"], textarea').forEach(input => {
-        if (input.offsetParent !== null && input.value.trim() !== '') {
-          count++;
+    // 1. Count selected pills per category
+    var goalContainer = document.getElementById('container-3b-goaldirected');
+    if (!goalContainer) return;
+
+    goalContainer.querySelectorAll('.ms-option.is-selected').forEach(function(pill) {
+      var cat = pill.getAttribute('data-category');
+      if (cat && counts[cat] !== undefined) counts[cat]++;
+    });
+
+    // 2. Update each category's UI
+    goalContainer.querySelectorAll('.cat-item').forEach(function(catItem) {
+      // Determine which category this .cat-item belongs to
+      var firstPill = catItem.querySelector('.ms-option[data-category]');
+      if (!firstPill) return;
+      var cat = firstPill.getAttribute('data-category');
+      if (!cat || counts[cat] === undefined) return;
+
+      var ct = counts[cat];
+      var cap = GOAL_CAPS[cat];
+
+      // Badge text: show "N selected" only when N > 0
+      var badgeText = catItem.querySelector('.cat-badge-text');
+      if (badgeText) {
+        if (ct > 0) {
+          badgeText.textContent = ct + ' selected';
+          badgeText.style.display = '';
+          // Style the badge when at cap
+          var badge = catItem.querySelector('.cat-badge');
+          if (badge) {
+            if (ct >= cap) {
+              badge.style.backgroundColor = '#EEEDFE';
+              badge.style.borderColor = '#AFA9EC';
+              badgeText.style.color = '#3C3489';
+            } else {
+              badge.style.setProperty('background-color', 'transparent', 'important');
+              badge.style.borderColor = '';
+              badgeText.style.color = '';
+            }
+          }
+        } else {
+          badgeText.textContent = '0 selected';
+          badgeText.style.display = 'none';
+          var badge2 = catItem.querySelector('.cat-badge');
+          if (badge2) {
+            badge2.style.setProperty('background-color', 'transparent', 'important');
+          }
+        }
+      }
+
+      // Cap message: show only when at cap
+      var capMsg = catItem.querySelector('.cap-message');
+      if (capMsg) {
+        capMsg.style.display = (ct >= cap) ? 'block' : 'none';
+      }
+
+      // Disable/enable pills based on cap
+      catItem.querySelectorAll('.ms-option[data-category="' + cat + '"]').forEach(function(pill) {
+        var isSelected = pill.classList.contains('is-selected');
+        if (ct >= cap && !isSelected) {
+          pill.classList.add('is-disabled');
+          pill.style.setProperty('opacity', '0.28', 'important');
+          pill.style.setProperty('pointer-events', 'none', 'important');
+        } else {
+          pill.classList.remove('is-disabled');
+          pill.style.removeProperty('opacity');
+          pill.style.removeProperty('pointer-events');
         }
       });
-
-      // 3. Update your Webflow badge text!
-      const badgeText = item.querySelector('.cat-badge-text');
-      if (badgeText) {
-        badgeText.textContent = count > 0 ? count + ' selected' : '0 selected';
-      }
-      // Path 2: Clear the green background that Webflow IX2 sets on the badge
-      const badge = item.querySelector('.cat-badge');
-    if (badge) badge.style.setProperty('background-color', 'transparent', 'important');
     });
   }
 
   // Expose for centralised dispatch from setActive()
-  window.__aed_updateGoalCounter = updateCounter;
+  window.__aed_updateGoalCounter = updateGoalCaps;
+  window.__aed_updateGoalCaps = updateGoalCaps;
 
-  // Listeners to update instantly on click or type
+  // Listen for pill clicks
   document.addEventListener('click', function(e) {
-    if (e.target.closest('.ms-option')) setTimeout(updateCounter, 50);
+    if (e.target.closest('.ms-option')) setTimeout(updateGoalCaps, 50);
   }, true);
 
+  // Listen for custom text field changes
   document.addEventListener('input', function(e) {
-    const n = e.target.name || "";
-    if (n.includes('other_goal') || n.includes('custom')) {
-      setTimeout(updateCounter, 50);
+    var n = e.target.name || "";
+    if (n.indexOf('other_goal') !== -1 || n.indexOf('custom') !== -1) {
+      setTimeout(updateGoalCaps, 50);
     }
   }, true);
 
-  setTimeout(updateCounter, 100);
+  setTimeout(updateGoalCaps, 100);
 }
 
 setTimeout(bindGoalCounter, 500);
@@ -792,61 +802,67 @@ header.addEventListener('click', function(e) {
 setTimeout(initInterestDeepDives, 500);
 
 /* =========================================
-   STEP 3: GOAL-DIRECTED DEEP DIVES (CONTAINER 3B)
+   GOAL-DIRECTED DEEP DIVES (REDESIGNED — no-op)
+   Old goalDeepDiveMap removed. Deep-dive boxes no longer exist.
    ========================================= */
 function initGoalDirectedDeepDives() {
-  // 1. The Map: Links Tier 1 pill values to Tier 2 Deep Dive Box IDs
-  const goalDeepDiveMap = {
-    // Academic
-    'gd_reading_writing': 'deep-dive-gd-reading',
-    'gd_numeracy_maths': 'deep-dive-gd-numeracy',
-    'gd_digital_tech': 'deep-dive-gd-digital',
-    'gd_creative': 'deep-dive-gd-creative',
-    // Social
-    'gd_emotional': 'deep-dive-gd-emotional',
-    'gd_social': 'deep-dive-gd-social',
-    'gd_communication': 'deep-dive-gd-communication',
-    'gd_resilience': 'deep-dive-gd-resilience',
-    // Independence
-    'gd_lifeskills': 'deep-dive-gd-lifeskills',
-    'gd_organisation': 'deep-dive-gd-organisation',
-    'gd_financial': 'deep-dive-gd-financial',
-    'gd_pathways': 'deep-dive-gd-pathways'
-  };
+  // No deep-dive boxes in the simplified goal structure.
+  // Expose a no-op so the centralised dispatch in setActive() doesn't error.
+  window.__aed_updateGoalDeepDives = function() {};
+}
 
-  function updateGoalDeepDives() {
+/* =========================================
+   GOAL SUB-GROUP AUTO-EXPAND (NEW)
+   On desktop (768px+): expand all sub-groups when step 5 activates.
+   On any viewport: auto-expand sub-groups that have existing selections.
+   ========================================= */
+function autoExpandGoalSubGroups() {
+  var goalContainer = document.getElementById('container-3b-goaldirected');
+  if (!goalContainer) return;
 
-    // 2. NEW METHOD: Bypass the hidden inputs and read the live visible pills directly
-    const selectedPills = Array.from(document.querySelectorAll('.ms-option.is-selected'))
-                               .map(el => el.getAttribute('data-value'));
+  var isDesktop = window.innerWidth >= 768;
 
-    // 3. Show or Hide the corresponding deep dive boxes with Webflow overrides
-    for (const [pillValue, containerId] of Object.entries(goalDeepDiveMap)) {
-      const deepDiveDiv = document.getElementById(containerId);
-      if (deepDiveDiv) {
-        if (selectedPills.includes(pillValue)) {
-          deepDiveDiv.style.setProperty('display', 'block', 'important');
-        } else {
-          deepDiveDiv.style.setProperty('display', 'none', 'important');
-        }
+  goalContainer.querySelectorAll('.cat-item').forEach(function(catItem) {
+    var catBody = catItem.querySelector('.cat-body');
+    if (!catBody) return;
+
+    // Check if this category has any selections
+    var hasSelections = catBody.querySelectorAll('.ms-option.is-selected').length > 0;
+
+    // Handle sub-groups within this category
+    catBody.querySelectorAll('.sub-item, .ms-group').forEach(function(subItem) {
+      var subBody = subItem.querySelector('.sub-body');
+      var subChevron = subItem.querySelector('.sub-chevron');
+      if (!subBody) return;
+
+      // Check if THIS sub-group has selections
+      var subHasSelections = subBody.querySelectorAll('.ms-option.is-selected').length > 0;
+
+      // Expand if: desktop OR this sub-group has selections
+      if (isDesktop || subHasSelections) {
+        subBody.style.maxHeight = 'none';
+        subBody.style.opacity = '1';
+        subBody.style.overflow = 'visible';
+        if (subChevron) subChevron.style.transform = 'rotate(90deg)';
+      }
+    });
+
+    // If the category has selections, also expand the category itself
+    if (hasSelections) {
+      if (catBody.style.maxHeight === '0px' || catBody.style.display === 'none') {
+        catBody.style.maxHeight = 'none';
+        catBody.style.opacity = '1';
+        catBody.style.overflow = 'visible';
+        var catChevron = catItem.querySelector('.cat-chevron');
+        if (catChevron) catChevron.style.transform = 'rotate(90deg)';
       }
     }
-  }
-
-  // Change 3: Expose for centralised dispatch from setActive()
-  window.__aed_updateGoalDeepDives = updateGoalDeepDives;
-
-  // 4. Listeners to trigger the reveal instantly
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.ms-option')) {
-      setTimeout(updateGoalDeepDives, 50);
-    }
-  }, true);
-
-  // Change 3: MutationObserver REMOVED — updateGoalDeepDives is now called from setActive()
-
-  setTimeout(updateGoalDeepDives, 100);
+  });
 }
+
+// Expose for centralised dispatch from setActive()
+window.__aed_autoExpandGoalSubGroups = autoExpandGoalSubGroups;
+
 /* =========================
    STEP 3: DYNAMIC HEADING (Y1)
    ========================= */
