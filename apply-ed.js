@@ -802,19 +802,50 @@ header.addEventListener('click', function(e) {
 setTimeout(initInterestDeepDives, 500);
 
 /* =========================================
-   GOAL-DIRECTED DEEP DIVES (REDESIGNED — no-op)
-   Old goalDeepDiveMap removed. Deep-dive boxes no longer exist.
+   GOAL SUB-GROUP ACCORDIONS & DEEP DIVES (REDESIGNED)
+   Binds click handlers on .sub-header inside the goal container
+   to toggle the adjacent .pill-wrap visibility.
+   Also handles auto-expand on desktop.
    ========================================= */
 function initGoalDirectedDeepDives() {
-  // No deep-dive boxes in the simplified goal structure.
-  // Expose a no-op so the centralised dispatch in setActive() doesn't error.
+  // Expose a no-op for the old deep-dive dispatch (no longer needed)
   window.__aed_updateGoalDeepDives = function() {};
+
+  // Bind click handlers on goal sub-headers to toggle pill-wrap visibility
+  var goalContainer = document.getElementById('container-3b-goaldirected');
+  if (!goalContainer) return;
+
+  goalContainer.querySelectorAll('.sub-header').forEach(function(header) {
+    if (header.dataset.aedGoalSubBound === '1') return;
+    header.dataset.aedGoalSubBound = '1';
+    header.style.cursor = 'pointer';
+
+    header.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      // The pill-wrap is the next sibling of the sub-header
+      var pillWrap = header.nextElementSibling;
+      if (!pillWrap || !pillWrap.classList.contains('pill-wrap')) return;
+
+      var chevron = header.querySelector('.sub-chevron');
+      var isOpen = pillWrap.style.display !== 'none';
+
+      if (isOpen) {
+        pillWrap.style.display = 'none';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      } else {
+        pillWrap.style.display = '';
+        if (chevron) chevron.style.transform = 'rotate(90deg)';
+      }
+    }, true);
+  });
 }
 
 /* =========================================
    GOAL SUB-GROUP AUTO-EXPAND (NEW)
    On desktop (768px+): expand all sub-groups when step 5 activates.
-   On any viewport: auto-expand sub-groups that have existing selections.
+   On mobile: collapse sub-groups, but auto-expand any with selections.
    ========================================= */
 function autoExpandGoalSubGroups() {
   var goalContainer = document.getElementById('container-3b-goaldirected');
@@ -823,33 +854,37 @@ function autoExpandGoalSubGroups() {
   var isDesktop = window.innerWidth >= 768;
 
   goalContainer.querySelectorAll('.cat-item').forEach(function(catItem) {
-    var catBody = catItem.querySelector('.cat-body');
+    var catBody = catItem.querySelector(':scope > .cat-body');
+    if (!catBody) catBody = catItem.querySelector('.cat-body');
     if (!catBody) return;
 
     // Check if this category has any selections
     var hasSelections = catBody.querySelectorAll('.ms-option.is-selected').length > 0;
 
-    // Handle sub-groups within this category
-    catBody.querySelectorAll('.sub-item, .ms-group').forEach(function(subItem) {
-      var subBody = subItem.querySelector('.sub-body');
-      var subChevron = subItem.querySelector('.sub-chevron');
-      if (!subBody) return;
+    // Handle sub-groups: each sub-header + pill-wrap pair
+    catBody.querySelectorAll('.sub-header').forEach(function(subHeader) {
+      var pillWrap = subHeader.nextElementSibling;
+      if (!pillWrap || !pillWrap.classList.contains('pill-wrap')) return;
+
+      var subChevron = subHeader.querySelector('.sub-chevron');
 
       // Check if THIS sub-group has selections
-      var subHasSelections = subBody.querySelectorAll('.ms-option.is-selected').length > 0;
+      var subHasSelections = pillWrap.querySelectorAll('.ms-option.is-selected').length > 0;
 
-      // Expand if: desktop OR this sub-group has selections
       if (isDesktop || subHasSelections) {
-        subBody.style.maxHeight = 'none';
-        subBody.style.opacity = '1';
-        subBody.style.overflow = 'visible';
+        // Expand
+        pillWrap.style.display = '';
         if (subChevron) subChevron.style.transform = 'rotate(90deg)';
+      } else {
+        // Collapse on mobile when no selections
+        pillWrap.style.display = 'none';
+        if (subChevron) subChevron.style.transform = 'rotate(0deg)';
       }
     });
 
     // If the category has selections, also expand the category itself
     if (hasSelections) {
-      if (catBody.style.maxHeight === '0px' || catBody.style.display === 'none') {
+      if (catBody.style.maxHeight === '0px' || catBody.style.opacity === '0') {
         catBody.style.maxHeight = 'none';
         catBody.style.opacity = '1';
         catBody.style.overflow = 'visible';

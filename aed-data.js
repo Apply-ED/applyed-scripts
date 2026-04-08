@@ -329,11 +329,13 @@ function resetChildFields() {
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
       });
-      // Collapse sub-group accordions inside goals
-      goalContainer3B.querySelectorAll('.sub-body').forEach(function(body) {
-        body.style.maxHeight = '0px';
-        body.style.opacity = '0';
-        body.style.overflow = 'hidden';
+      // Collapse sub-group accordions inside goals (pill-wrap is the toggle target)
+      goalContainer3B.querySelectorAll('.pill-wrap').forEach(function(pw) {
+        // Only collapse pill-wraps that are inside a sub-header structure
+        var prevSibling = pw.previousElementSibling;
+        if (prevSibling && prevSibling.classList.contains('sub-header')) {
+          pw.style.display = 'none';
+        }
       });
       goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
@@ -683,11 +685,12 @@ function loadChildData(idx) {
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
       });
-      // Collapse sub-group accordions
-      goalContainer3B.querySelectorAll('.sub-body').forEach(function(body) {
-        body.style.maxHeight = '0px';
-        body.style.opacity = '0';
-        body.style.overflow = 'hidden';
+      // Collapse sub-group accordions (pill-wrap is the toggle target)
+      goalContainer3B.querySelectorAll('.pill-wrap').forEach(function(pw) {
+        var prevSibling = pw.previousElementSibling;
+        if (prevSibling && prevSibling.classList.contains('sub-header')) {
+          pw.style.display = 'none';
+        }
       });
       goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
         chev.style.transform = 'rotate(0deg)';
