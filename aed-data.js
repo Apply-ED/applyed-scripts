@@ -327,7 +327,7 @@ function resetChildFields() {
         body.style.overflow = 'hidden';
       });
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       // Collapse sub-group accordions inside goals (pill-wrap is the toggle target)
       goalContainer3B.querySelectorAll('.pill-wrap').forEach(function(pw) {
@@ -338,7 +338,7 @@ function resetChildFields() {
         }
       });
       goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       // Hide cap messages
       goalContainer3B.querySelectorAll('.cap-message').forEach(function(msg) {
@@ -360,7 +360,7 @@ function resetChildFields() {
         body.style.overflow = 'hidden';
       });
       interestWrap.querySelectorAll('.cat-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       interestWrap.querySelectorAll('.sub-body').forEach(function(body) {
         body.style.maxHeight = '0px';
@@ -368,7 +368,7 @@ function resetChildFields() {
         body.style.overflow = 'hidden';
       });
       interestWrap.querySelectorAll('.sub-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
     }
   }, 300);
@@ -683,7 +683,7 @@ function loadChildData(idx) {
         body.style.overflow = 'hidden';
       });
       goalContainer3B.querySelectorAll('.cat-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       // Collapse sub-group accordions (pill-wrap is the toggle target)
       goalContainer3B.querySelectorAll('.pill-wrap').forEach(function(pw) {
@@ -693,7 +693,7 @@ function loadChildData(idx) {
         }
       });
       goalContainer3B.querySelectorAll('.sub-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       // Hide cap messages
       goalContainer3B.querySelectorAll('.cap-message').forEach(function(msg) {
@@ -715,7 +715,7 @@ function loadChildData(idx) {
         body.style.overflow = 'hidden';
       });
       interestWrap.querySelectorAll('.cat-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
       interestWrap.querySelectorAll('.sub-body').forEach(function(body) {
         body.style.maxHeight = '0px';
@@ -723,7 +723,7 @@ function loadChildData(idx) {
         body.style.overflow = 'hidden';
       });
       interestWrap.querySelectorAll('.sub-chevron').forEach(function(chev) {
-        chev.style.transform = 'rotate(-90deg)';
+        chev.style.transform = 'rotate(0deg)';
       });
     }
     // Re-trigger interest badge counts after pill restore

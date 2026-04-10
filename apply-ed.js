@@ -637,12 +637,12 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
         body.style.overflow = 'hidden';
-        if (chevron) chevron.style.rotate = '-90deg';
+        if (chevron) chevron.style.rotate = '0deg';
       } else {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.rotate = '0deg';
+        if (chevron) chevron.style.rotate = '180deg';
       }
     }, true);
   });
@@ -667,12 +667,12 @@ header.addEventListener('click', function(e) {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
         body.style.overflow = 'hidden';
-        if (chevron) chevron.style.rotate = '-90deg';
+        if (chevron) chevron.style.rotate = '0deg';
       } else {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.rotate = '0deg';
+        if (chevron) chevron.style.rotate = '180deg';
       }
     }, true);
   });
@@ -836,12 +836,12 @@ function initGoalDirectedDeepDives() {
         body.style.maxHeight = '0px';
         body.style.opacity = '0';
         body.style.overflow = 'hidden';
-        if (chevron) chevron.style.rotate = '-90deg';
+        if (chevron) chevron.style.rotate = '0deg';
       } else {
         body.style.maxHeight = 'none';
         body.style.opacity = '1';
         body.style.overflow = 'visible';
-        if (chevron) chevron.style.rotate = '0deg';
+        if (chevron) chevron.style.rotate = '180deg';
       }
 
       // After opening, run auto-expand for sub-groups on desktop
@@ -870,10 +870,10 @@ function initGoalDirectedDeepDives() {
 
       if (isOpen) {
         pillWrap.style.display = 'none';
-        if (chevron) chevron.style.rotate = '-90deg';
+        if (chevron) chevron.style.rotate = '0deg';
       } else {
         pillWrap.style.display = '';
-        if (chevron) chevron.style.rotate = '0deg';
+        if (chevron) chevron.style.rotate = '180deg';
       }
     }, true);
   });
@@ -911,11 +911,11 @@ function autoExpandGoalSubGroups() {
       if (isDesktop || subHasSelections) {
         // Expand
         pillWrap.style.display = '';
-        if (subChevron) subChevron.style.rotate = '0deg';
+        if (subChevron) subChevron.style.rotate = '180deg';
       } else {
         // Collapse on mobile when no selections
         pillWrap.style.display = 'none';
-        if (subChevron) subChevron.style.rotate = '-90deg';
+        if (subChevron) subChevron.style.rotate = '0deg';
       }
     });
 
@@ -926,7 +926,7 @@ function autoExpandGoalSubGroups() {
         catBody.style.opacity = '1';
         catBody.style.overflow = 'visible';
         var catChevron = catItem.querySelector('.cat-chevron');
-        if (catChevron) catChevron.style.rotate = '0deg';
+        if (catChevron) catChevron.style.rotate = '180deg';
       }
     }
   });
