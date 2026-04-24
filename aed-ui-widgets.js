@@ -385,6 +385,55 @@ const TOP_LEVEL_BLOCKLIST = new Set([
     return obj;
   }
 
+  /* =========================
+     SAVE STATE BEFORE STRIPE REDIRECT
+     Persists all form data to sessionStorage so it survives
+     the page reload when the user returns from Stripe.
+     ========================= */
+  function saveFormStateBeforeCheckout() {
+    try {
+      // 1. Make sure current child data is saved to the in-memory store
+      if (typeof window.saveProgressSilently === 'function') {
+        window.saveProgressSilently();
+      }
+
+      // 2. Collect all family-level fields (Step 0 + Step 6 + Step 7)
+      var familyData = {};
+      var FAMILY_FIELDS = window.AED.FAMILY_FIELDS || [];
+      FAMILY_FIELDS.forEach(function(name) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (!el) return;
+        var type = (el.getAttribute("type") || "").toLowerCase();
+        if (type === "checkbox") {
+          familyData[name] = el.checked;
+        } else {
+          familyData[name] = el.value || "";
+        }
+      });
+
+      // Also capture contact fields that aren't in FAMILY_FIELDS
+      ["contact_first_name", "contact_email", "plan_start_date", "plan_end_date"].forEach(function(name) {
+        if (familyData[name] !== undefined) return;
+        var el = document.querySelector('[name="' + name + '"]');
+        if (el) familyData[name] = el.value || "";
+      });
+
+      // 3. Bundle everything into one object
+      var snapshot = {
+        childApplications: window.__aed_child_applications || [],
+        childIndex: (typeof getChildIndex === 'function') ? getChildIndex() : 0,
+        childrenCount: (typeof getChildrenCount === 'function') ? getChildrenCount() : 1,
+        familyData: familyData,
+        savedAt: new Date().toISOString()
+      };
+
+      sessionStorage.setItem('aed_checkout_state', JSON.stringify(snapshot));
+      console.log("✅ AED: Form state saved to sessionStorage before Stripe redirect");
+    } catch (err) {
+      console.warn("⚠️ AED: Could not save form state:", err);
+    }
+  }
+
   function makeRequestId() {
     return "req_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
   }
@@ -488,6 +537,9 @@ const result = await postToMakeCreateCheckout(payload);
       if (result.submission_id) {
         try { sessionStorage.setItem("aed_submission_id", result.submission_id); } catch (_) {}
       }
+
+      // Save form state before leaving for Stripe
+      saveFormStateBeforeCheckout();
 
       window.location.href = result.checkout_url;
     } catch (err) {

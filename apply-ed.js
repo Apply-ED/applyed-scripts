@@ -218,22 +218,73 @@ bindOrderSummarySync();
 applyDefaultCheckedGroups();
 
 /* =========================
-   STRIPE CANCEL / PAYMENT FAILED HANDLING (Step 6)
+   STRIPE CANCEL / PAYMENT FAILED HANDLING
    ========================= */
 
 const urlParams = new URLSearchParams(window.location.search);
 const paymentStatus = urlParams.get("payment");
 
-if (paymentStatus === "failed") {
-  // Force Step 6 (Payment / Review)
+if (paymentStatus === "cancelled" || paymentStatus === "failed") {
+
+  // --- 1. Try to restore saved form state from sessionStorage ---
+  var savedState = sessionStorage.getItem('aed_checkout_state');
+  if (savedState) {
+    try {
+      var state = JSON.parse(savedState);
+
+      // Restore all child application data
+      if (state.childApplications && Array.isArray(state.childApplications)) {
+        window.__aed_child_applications = state.childApplications;
+      }
+
+      // Restore child count and index
+      if (state.childrenCount) setChildrenCount(state.childrenCount);
+      if (state.childIndex !== undefined) setChildIndex(state.childIndex);
+
+      // Restore family-level fields (Step 0 + Step 6) back into the DOM
+      if (state.familyData) {
+        Object.keys(state.familyData).forEach(function(name) {
+          var el = document.querySelector('[name="' + name + '"]');
+          if (!el) return;
+          var type = (el.getAttribute("type") || "").toLowerCase();
+          if (type === "checkbox") {
+            el.checked = !!state.familyData[name];
+          } else {
+            el.value = state.familyData[name] || "";
+          }
+          // Fire events so other scripts pick up the values
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      }
+
+      // Recalculate the order summary so pricing displays correctly
+      if (typeof recalcOrderSummaryUIAndHidden === 'function') {
+        recalcOrderSummaryUIAndHidden();
+      }
+
+      console.log("✅ AED: Form state restored from sessionStorage");
+
+    } catch (err) {
+      console.error("⚠️ AED: Could not restore form state:", err);
+    }
+  }
+
+  // --- 2. Jump straight to Step 7 (Review & Payment) ---
   setActive(STEP_PAYMENT);
 
-  // Show the payment error banner (your Step 6 container)
-  const payErrorBanner = document.querySelector(".payment-error");
+  // --- 3. Show the friendly error banner ---
+  var payErrorBanner = document.querySelector(".payment-error");
   if (payErrorBanner) payErrorBanner.style.display = "block";
 
-  // Optional: scroll to top
+  // --- 4. Clean the URL (remove ?payment=cancelled) without reloading ---
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
+  // --- 5. Scroll to top ---
   window.scrollTo({ top: 0, behavior: "smooth" });
+
 } else {
   setActive(0);
 }
