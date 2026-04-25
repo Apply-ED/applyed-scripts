@@ -7,22 +7,22 @@
    Runtime calls: functions from apply-ed.js via window.* bridges
    ========================================================= */
 window.AED = window.AED || {};
-
+ 
 window.Webflow ||= [];
 window.Webflow.push(function () {
   "use strict";
-
+ 
   // --- Alias helpers from Module 1 ---
   var toInt      = window.AED.helpers.toInt;
   var writeHidden = window.AED.helpers.writeHidden;
-
+ 
   // --- Alias state functions from Module 3 ---
   var getChildIndex    = window.getChildIndex;
   var setChildIndex    = window.setChildIndex;
   var getChildrenCount = window.getChildrenCount;
   var captureFirstChildStateIfNeeded   = window.captureFirstChildStateIfNeeded;
   var applyStateDefaultForCurrentChild = window.applyStateDefaultForCurrentChild;
-
+ 
   // --- Alias navigation functions from Module 4 ---
   var STEP_FIRST_CHILD = window.STEP_FIRST_CHILD;
   var STEP_LAST_CHILD  = window.STEP_LAST_CHILD;
@@ -36,41 +36,41 @@ window.Webflow.push(function () {
   var renderChildNavBar                     = window.renderChildNavBar;
   var updateCurrentChildHeading             = window.updateCurrentChildHeading;
   var ensureDefaultProgramTypeForCurrentChild = window.ensureDefaultProgramTypeForCurrentChild;
-
+ 
 /* =========================
    NEW: CARRY OVER SPECIFIC FIELDS (ENVIRONMENT & RESOURCES)
    ========================= */
 function applyCarryOverDataForCurrentChild() {
   const idx = getChildIndex();
   if (idx === 0) return; // Child 1 has no previous child to copy from
-
+ 
   // Grab the data from the IMMEDIATELY PRECEDING child
   const prevData = window.__aed_child_applications[idx - 1];
   if (!prevData) return;
-
+ 
   console.log("➡️ RUNNING CARRY-OVER. Child 1's saved data looks like this:", prevData);
-
+ 
   // Read from aed-config.js (Module 1)
   const CARRY_OVER_FIELDS = window.AED.CARRY_OVER_FIELDS;
-
+ 
   let pillsNeedSync = false;
-
+ 
   CARRY_OVER_FIELDS.forEach(fieldName => {
     let val = prevData[fieldName];
     console.log(`Checking field [${fieldName}]...`);
-
+ 
     // If the previous child left it blank, ignore it
     if (val === undefined || val === "" || (Array.isArray(val) && val.length === 0)) {
        console.log(`   ❌ Skipped: Child 1 left [${fieldName}] blank, or the field name is spelled wrong in the code.`);
        return;
     }
-
+ 
     const el = document.querySelector(`[name="${fieldName}"]`);
     if (!el) {
        console.warn(`   ⚠️ WARNING: Could not find an input named "${fieldName}" on the page. Check Webflow settings!`);
        return;
     }
-
+ 
     // Handle Pill Groups (JSON arrays)
     if (el.classList.contains("ms-input")) {
       el.value = typeof val === "string" ? val : JSON.stringify(val);
@@ -82,11 +82,11 @@ function applyCarryOverDataForCurrentChild() {
       el.value = val;
       console.log(`   ✅ Successfully copied text for [${fieldName}]`);
     }
-
+ 
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
   });
-
+ 
   // Visually highlight the pills that were just carried over
   if (pillsNeedSync) {
     document.querySelectorAll(".ms-input").forEach(input => {
@@ -95,17 +95,17 @@ function applyCarryOverDataForCurrentChild() {
     console.log("   🎨 Visual pills synced.");
   }
 }
-
+ 
 function collectValueFromField(fieldEl) {
   const tag = (fieldEl.tagName || "").toLowerCase();
   const type = (fieldEl.getAttribute("type") || "").toLowerCase();
-
+ 
   if (type === "checkbox") return fieldEl.checked ? (fieldEl.value || "true") : null;
   if (type === "radio") return fieldEl.checked ? (fieldEl.value || "") : null;
   if (tag === "select") return (fieldEl.value || "").trim();
   return (fieldEl.value || "").trim();
 }
-
+ 
 window.saveProgressSilently = function() {
   // Only run this if we are currently looking at a Child Step (Steps 1–5)
   if (window.currentStepNum >= STEP_FIRST_CHILD && window.currentStepNum <= STEP_LAST_CHILD) {
@@ -118,39 +118,39 @@ window.saveProgressSilently = function() {
     for (const key of Object.keys(currentDOMData)) {
       const newVal = currentDOMData[key];
       const oldVal = merged[key];
-
+ 
       // Protect non-empty arrays from being wiped by empty arrays
       if (Array.isArray(newVal) && newVal.length === 0
           && Array.isArray(oldVal) && oldVal.length > 0) {
         continue; 
       }
-
+ 
       // Protect non-empty strings from being blanked by invisible fields
       if ((newVal === '' || newVal === undefined || newVal === null)
           && oldVal && oldVal !== '' && oldVal !== undefined) {
         continue; 
       }
-
+ 
       // Protect pill arrays from being overwritten by checkbox "on" values
       if (Array.isArray(oldVal) && oldVal.length > 0 && !Array.isArray(newVal)) {
         continue;
       }
-
+ 
       merged[key] = newVal;
     }
     window.__aed_child_applications[idx] = merged;
   }
 };
-
+ 
 function collectChildData() {
   const data = {};
-
+ 
   // FORCE SYNC: These pill groups don't auto-write their ms-input on click.
   const FORCE_SYNC_GROUPS = [
     "learning_approaches", "academic_strengths", "learning_needs", 
     "improvement_areas", "social_community_connections"
   ];
-
+ 
   FORCE_SYNC_GROUPS.forEach(fieldName => {
     const input = document.querySelector(`.ms-input[name="${fieldName}"]`);
     if (!input) return;
@@ -161,36 +161,36 @@ function collectChildData() {
       .filter(Boolean);
     input.value = JSON.stringify(selected);
   });
-
+ 
   const ALWAYS_CAPTURE = window.AED.ALWAYS_CAPTURE;
-
+ 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
-
+ 
     const isStepVisible = stepEl.offsetParent !== null;
     const fields = Array.from(stepEl.querySelectorAll("input, select, textarea"));
-
+ 
     for (const el of fields) {
       const name = el.getAttribute("name");
       if (!name) continue;
-
+ 
       const type = (el.getAttribute("type") || "").toLowerCase();
       const isAlwaysCapture = ALWAYS_CAPTURE.includes(name);
-
+ 
       let isVisible = isStepVisible;
       const containerObj = el.closest(".ms-group") || el.closest(".aed-elective-card") || el.closest(".aed-pathway-card") || el.closest(".field-group") || el.closest(".w-checkbox");
       if (containerObj && (containerObj.offsetWidth === 0 || containerObj.offsetHeight === 0)) {
           isVisible = false;
       }
-
+ 
       if (!isAlwaysCapture && !isVisible) continue;
-
+ 
       if (type === "radio") {
         if (el.checked) data[name] = el.value;
         continue;
       }
-
+ 
       if (type === "checkbox") {
         if (el.checked) {
           if (!Array.isArray(data[name])) data[name] = (el.value || "on");
@@ -199,7 +199,7 @@ function collectChildData() {
         }
         continue;
       }
-
+ 
       let parsed = null;
       if (el.classList.contains("ms-input")) {
         try { parsed = JSON.parse(el.value || "[]"); } catch (e) { parsed = []; }
@@ -211,7 +211,7 @@ function collectChildData() {
           parsed = val;
         }
       }
-
+ 
       if (Array.isArray(parsed)) {
         if (parsed.length > 0) {
             data[name] = parsed; 
@@ -227,26 +227,90 @@ function collectChildData() {
       }
     }
   }
-
+ 
   data.program_type = 'curriculum_aligned';
-
+ 
+  // ─── ELECTIVE SANITISATION (Y9-10) ──────────────────────────────────────
+  // For learning areas that have elective subject pickers at Y9-10, the form
+  // must never send "LA toggled on, zero subjects chosen".  If the checkbox
+  // is checked ("on" / true) but the corresponding dynamic-pill array is
+  // empty, treat the LA as deselected → set to false.
+  // Y7-8 is unaffected: HASS and Technologies are integrated (all subjects
+  // taught together) so boolean true is correct.  Only the_arts takes
+  // electives in Y7-8 and is already covered by the syncMap/validation.
+  //
+  // Also applies to _y2 variants for split-year students.
+  (function sanitiseElectives() {
+    var yearVal = data.student_year_level || '';
+    var yearMatch = yearVal.match(/\d+/);
+    var yearNum = yearMatch ? parseInt(yearMatch[0], 10) : null;
+    if (yearNum === null) return;
+ 
+    // Map: checkbox field → array field written by dynamic pills
+    // For Y9-10, these LAs require at least one pill selected or be false.
+    var electiveLAs = [
+      { checkbox: 'the_arts',     subjects: 'the_arts' },
+      { checkbox: 'technologies', subjects: 'technologies' },
+      { checkbox: 'hass',         subjects: 'hass' }
+    ];
+ 
+    // Also sanitise NSW/VIC/other variant keys
+    var variantLAs = [
+      { checkbox: 'creative_arts',                  subjects: 'creative_arts' },
+      { checkbox: 'technological_and_applied_studies', subjects: 'technological_and_applied_studies' },
+      { checkbox: 'hsie',                           subjects: 'hsie' },
+      { checkbox: 'pdhpe',                          subjects: 'pdhpe' },
+      { checkbox: 'humanities',                     subjects: 'humanities' },
+      { checkbox: 'hpe',                            subjects: 'hpe' }
+    ];
+ 
+    var allLAs = electiveLAs.concat(variantLAs);
+ 
+    function sanitiseForYear(yNum, suffix) {
+      if (yNum < 9) return; // Only Y9-10 need this guard
+ 
+      allLAs.forEach(function(la) {
+        var cbKey  = la.checkbox + suffix;
+        var subKey = la.subjects + suffix;
+        var cbVal  = data[cbKey];
+ 
+        // Only act if checkbox is truthy but NOT an array (i.e. boolean / "on")
+        if (cbVal && !Array.isArray(cbVal)) {
+          var subjects = data[subKey];
+          var hasSubjects = Array.isArray(subjects) && subjects.length > 0;
+ 
+          if (!hasSubjects) {
+            data[cbKey] = false;
+            console.log("🧹 AED: Sanitised " + cbKey + " → false (no subjects selected for Y" + yNum + ")");
+          }
+        }
+      });
+    }
+ 
+    // Sanitise Y1 fields
+    sanitiseForYear(yearNum, '');
+ 
+    // Sanitise Y2 fields (next year level)
+    sanitiseForYear(yearNum + 1, '_y2');
+  })();
+ 
   console.log("✅ Child Data Captured:", data);
   return data;
 }
-
+ 
 function resetChildFields() {
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     clearStepError(s);
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
-
+ 
     stepEl.querySelectorAll("input, select, textarea").forEach(el => {
       const type = (el.getAttribute("type") || "").toLowerCase();
       const tagName = el.tagName.toLowerCase();
       const name = el.getAttribute("name") || "";
-
+ 
       if (name === "state" || el.hasAttribute("data-state-key") || type === "hidden") return;
-
+ 
       if (type === "checkbox" && el.getAttribute("data-default-checked-group") === "curriculum") {
         el.checked = true;
       } else if (type === "checkbox" || type === "radio") {
@@ -267,12 +331,12 @@ function resetChildFields() {
       }
     });
   }
-
+ 
   if (window.__aed_clearCurriculumCacheForChild) {
     var newChildIdx = (typeof getChildIndex === 'function') ? getChildIndex() : 0;
     window.__aed_clearCurriculumCacheForChild(newChildIdx);
   }
-
+ 
   ["f6-curriculum-container", "y9-curriculum-container", "y10-curriculum-container",
    "f6-curriculum-container_y2", "y9-curriculum-container_y2", "y10-curriculum-container_y2"].forEach(function(id) {
     var ctr = document.getElementById(id);
@@ -281,11 +345,11 @@ function resetChildFields() {
       if (wrap) ctr.removeChild(wrap);
     }
   });
-
+ 
   document.querySelectorAll(".ms-option:not(.aed-dynamic-pill)").forEach(p => {
     p.classList.remove("is-selected");
   });
-
+ 
   const step1 = getStepEl(STEP_FIRST_CHILD);
   if (step1) {
     const radios = Array.from(step1.querySelectorAll('input[type="radio"][name="program_type"]'));
@@ -296,25 +360,25 @@ function resetChildFields() {
       target.dispatchEvent(new Event("change", { bubbles: true }));
     }
   }
-
+ 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
     if (stepEl) window.resyncAllMultiSelectGroups(stepEl);
   }
-
+ 
   window.__aed_activeYearTab = 'y1';
   if (typeof window.__aed_syncYearTabs === 'function') {
     window.__aed_syncYearTabs();
   }
-
+ 
   window.applyDefaultCheckedGroups();
   applyStateDefaultForCurrentChild(); 
   applyCarryOverDataForCurrentChild();
   updateCurrentChildHeading();
-
+ 
   document.querySelectorAll('[data-show]').forEach(div => { div.style.display = "none"; });
   document.querySelectorAll('[data-target]').forEach(btn => { btn.textContent = "[+ Add Other]"; });
-
+ 
   // Collapse goal and interest accordion sections on child switch.
   // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
   setTimeout(function() {
@@ -377,7 +441,7 @@ function resetChildFields() {
     var inp = document.getElementById(id);
     if (inp) inp.value = '[]';
   });
-
+ 
   var customFields = ["short_term_custom"];
   customFields.forEach(function(fieldName) {
     var el = document.querySelector('textarea[name="' + fieldName + '"]');
@@ -387,70 +451,70 @@ function resetChildFields() {
     }
   });
 }
-
+ 
 function saveCurrentChildAndAdvance() {
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     if (!validateStep(s)) { setActive(s); return; }
   }
-
+ 
   const idx = getChildIndex();
   const finalScrape = collectChildData();
   const existing = window.__aed_child_applications[idx] || {};
-
+ 
   for (const key of Object.keys(finalScrape)) {
     const newVal = finalScrape[key];
     const oldVal = existing[key];
-
+ 
     if (Array.isArray(newVal) && newVal.length === 0 && Array.isArray(oldVal) && oldVal.length > 0) continue;
     if ((newVal === '' || newVal === undefined || newVal === null) && oldVal && oldVal !== '') continue;
     if (Array.isArray(oldVal) && oldVal.length > 0 && !Array.isArray(newVal)) continue;
-
+ 
     existing[key] = newVal;
   }
-
+ 
   existing.__saved = true;
   window.__aed_child_applications[idx] = existing;
-
+ 
   console.log("✅ SAVED CHILD " + idx + " (live-save + final scrape):", JSON.stringify(existing));
   captureFirstChildStateIfNeeded();
-
+ 
   const total = getChildrenCount();
   const nextIdx = idx + 1;
-
+ 
   if (nextIdx >= total) {
     setChildIndex(nextIdx - 1);
     setActive(STEP_ENVIRONMENT);
     return;
   }
-
+ 
   setChildIndex(nextIdx);
-
+ 
   const nextChildData = window.__aed_child_applications[nextIdx];
   if (nextChildData && nextChildData.__saved) {
     loadChildData(nextIdx);
   } else {
     resetChildFields();
   }
-
+ 
   setActive(STEP_FIRST_CHILD);
   setTimeout(ensureDefaultProgramTypeForCurrentChild, 0);
   renderChildNavBar();
 }
-
+ 
 function renderChildSummary() {
   const container = document.getElementById('child-summary-display');
   if (!container) return;
-
+ 
   container.innerHTML = "";
-
+ 
   const allChildren = window.__aed_child_applications || [];
   const children = allChildren.slice(0, getChildrenCount());
-
+ 
   if (children.length === 0) {
     container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No child data found.</p>';
     return;
   }
-
+ 
   const programMap = {
     "acara_aligned": "Personalised Program",
     "goal_directed": "Personalised Program",
@@ -458,12 +522,12 @@ function renderChildSummary() {
     "curriculum_based": "Personalised Program",
     "curriculum_aligned": "Personalised Program"
   };
-
+ 
   let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 10px;">';
-
+ 
   children.forEach((child, idx) => {
     const name = child.student_first_name || `Child ${idx + 1}`;
-
+ 
     const formatPills = (val) => {
       let list = [];
       if (Array.isArray(val)) {
@@ -480,7 +544,7 @@ function renderChildSummary() {
         item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       ).join(", ");
     };
-
+ 
     const yearLevel = child.student_year_level || "Not Specified";
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -494,7 +558,7 @@ function renderChildSummary() {
     if (child.technologies === "on") currArray.push("Technologies");
     if (child.the_arts === "on") currArray.push("The Arts");
     if (child.languages === "on") currArray.push("Languages");
-
+ 
     const electiveItems = [
       formatPills(child.hass_electives),
       formatPills(child.arts_electives),
@@ -505,14 +569,14 @@ function renderChildSummary() {
       formatPills(child.science_electives),
       child.Language_of_study || child.language_of_study
     ].filter(Boolean);
-
+ 
     if (electiveItems.length > 0) {
        currArray = currArray.concat(electiveItems);
     }
     
     let curriculum = currArray.length > 0 ? currArray.join(", ") : formatPills(child.curriculum_coverage);
     if (!curriculum || curriculum === "[]" || curriculum === "") curriculum = "Australian Curriculum";
-
+ 
     const interestItems = [
       formatPills(child.curiosities),
       formatPills(child.interests),
@@ -532,7 +596,7 @@ function renderChildSummary() {
       child.curiosities_custom,
       child.interests_custom
     ].filter(Boolean).join(", ");
-
+ 
     const goalItems = [
       formatPills(child.general_academic_goals),
       formatPills(child.general_independence_goals),
@@ -549,14 +613,14 @@ function renderChildSummary() {
       child.other_goal_2,
       child.other_goal_3
     ].filter(Boolean).join(", ");
-
+ 
     const renderRow = (label, value) => `
       <div style="margin-bottom: 1px; line-height: 1.2;">
         <span style="font-weight: 600; color: #263358; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">${label}:</span>
         <span style="color: #7a7f87; font-weight: 400; font-size: 13px;">${value}</span>
       </div>
     `;
-
+ 
     html += `
       <div style="padding: 16px; border: 1px solid #DDe4dd; border-radius: 16px; background: #fff; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
         
@@ -568,7 +632,7 @@ function renderChildSummary() {
             ✎ Edit
           </button>
         </div>
-
+ 
         <div style="padding-right: 10px;">
           ${renderRow("Year Level", yearLevel)}
           ${renderRow("Program Type", programType)}
@@ -579,11 +643,11 @@ function renderChildSummary() {
       </div>
     `;
   });
-
+ 
   html += '</div>';
   container.innerHTML = html;
 }
-
+ 
 function waitForCurriculumThenRestore(stepNum) {
   let handled = false;
   function doRestore() {
@@ -597,11 +661,11 @@ function waitForCurriculumThenRestore(stepNum) {
   });
   setTimeout(doRestore, 600);
 }
-
+ 
 function syncPillsFromInput(inputEl) {
   const group = inputEl.closest(".ms-group");
   if (!group) return;
-
+ 
   const raw = (inputEl.value || "[]").trim();
   let selectedValues = [];
   try {
@@ -609,7 +673,7 @@ function syncPillsFromInput(inputEl) {
   } catch (e) {
     selectedValues = [];
   }
-
+ 
   const options = group.querySelectorAll(".ms-option");
   options.forEach(opt => {
     const val = opt.getAttribute("data-value");
@@ -620,29 +684,29 @@ function syncPillsFromInput(inputEl) {
     }
   });
 }
-
+ 
 function loadChildData(idx) {
   const data = window.__aed_child_applications[idx];
-
+ 
   if (!data) {
     resetChildFields();
     return;
   }
-
+ 
   window.__aed_is_loading_data = true;
-
+ 
   for (let s = STEP_FIRST_CHILD; s <= STEP_LAST_CHILD; s++) {
     const stepEl = getStepEl(s);
     if (!stepEl) continue;
-
+ 
     stepEl.querySelectorAll("input, select, textarea").forEach(el => {
       const name = el.getAttribute("name");
       if (!name || name === "state") return;
-
+ 
       const val = data[name];
       const type = (el.getAttribute("type") || "").toLowerCase();
       const tag = (el.tagName || "").toLowerCase();
-
+ 
       if (type === "radio") {
         el.checked = (String(el.value) === String(val));
         if (el.checked) {
@@ -651,7 +715,7 @@ function loadChildData(idx) {
         }
         return;
       }
-
+ 
       if (type === "checkbox") {
         el.checked = (val === el.value || val === "on" || val === "true" || val === true);
       } else if (el.classList.contains("ms-input")) {
@@ -662,15 +726,15 @@ function loadChildData(idx) {
       } else {
         el.value = val || "";
       }
-
+ 
       el.dispatchEvent(new Event("change", { bubbles: true }));
       el.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
-
+ 
   const allPillInputs = document.querySelectorAll(".ms-input");
   allPillInputs.forEach(input => syncPillsFromInput(input));
-
+ 
   // Collapse goal and interest accordions when loading a child.
   // Delayed to run AFTER Webflow IX2 animations that may re-open the first accordion.
   setTimeout(function() {
@@ -735,7 +799,7 @@ function loadChildData(idx) {
       setTimeout(window.__aed_updateGoalCaps, 50);
     }
   }, 300);
-
+ 
   ['aed-tracking-needs_attention', 'aed-tracking-excelling'].forEach(function(id) {
     var inp = document.getElementById(id);
     if (inp) {
@@ -743,22 +807,22 @@ function loadChildData(idx) {
       inp.value = childTracking ? JSON.stringify(childTracking) : '[]';
     }
   });
-
+ 
   if (data.study_span) {
     const pillSection = document.getElementById('year-level-pills');
     if (pillSection) pillSection.style.display = '';
   }
-
+ 
   ["other_goal_1", "other_goal_2", "other_goal_3"].forEach((fieldName, i) => {
     const val = data[fieldName];
     if (!val) return; 
-
+ 
     const textarea = document.querySelector(`textarea[name="${fieldName}"], input[name="${fieldName}"]`);
     if (!textarea) return;
-
+ 
     const wrapper = textarea.closest('[data-show]') || textarea.parentElement;
     if (wrapper) wrapper.style.display = "block";
-
+ 
     const btnLabel = `[+ Add Other ${i + 1}]`;
     const allAddOtherLinks = document.querySelectorAll('.add-other-link');
     allAddOtherLinks.forEach(link => {
@@ -767,14 +831,14 @@ function loadChildData(idx) {
       }
     });
   });
-
+ 
   updateCurrentChildHeading();
   window.updateFoundationOptionLabel();
   setTimeout(function() { if (typeof window.setupAutoExpandingTextareas === 'function') window.setupAutoExpandingTextareas(); }, 50);
   setTimeout(function() { if (typeof window.refreshAllSelectColours === 'function') window.refreshAllSelectColours(); }, 50);
-
+ 
   window.__aed_activeYearTab = 'y1';
-
+ 
   if (window.__aed_clearCurriculumCacheForChild) {
     window.__aed_clearCurriculumCacheForChild(idx);
   }
@@ -787,11 +851,11 @@ function loadChildData(idx) {
       if (wrap) ctr.removeChild(wrap);
     }
   });
-
+ 
   if (typeof window.__aed_syncYearTabs === 'function') {
     setTimeout(window.__aed_syncYearTabs, 150);
   }
-
+ 
  setTimeout(function() {
     window.__aed_is_loading_data = false;
     var dropdownNow = document.querySelector('select[name="student_year_level"]');
@@ -805,7 +869,7 @@ function loadChildData(idx) {
       window.__aed_syncLanguageToggle();
     }
   }, 100);
-
+ 
   setTimeout(function() {
     if (typeof window.__aed_updateGoalCounter === 'function') {
       window.__aed_updateGoalCounter();
@@ -815,12 +879,12 @@ function loadChildData(idx) {
     }
   }, 200);
 }
-
+ 
 function restoreDynamicPillsForStep(stepNum) {
   const idx = getChildIndex();
   const data = window.__aed_child_applications[idx];
   if (!data) return;
-
+ 
   const DYNAMIC_PILL_FIELDS_Y1 = [
     "english_pathway", "mathematics_pathway", "science_pathway",
     "the_arts", "technologies", "hass",
@@ -831,26 +895,26 @@ function restoreDynamicPillsForStep(stepNum) {
     "the_arts_y2", "technologies_y2", "hass_y2",
     "creative_arts_y2", "technological_and_applied_studies_y2", "hsie_y2", "pdhpe_y2", "humanities_y2", "hpe_y2"
   ];
-
+ 
   const TRACKING_FIELDS = [
     "aed-tracking-needs_attention",
     "aed-tracking-excelling"
   ];
-
+ 
   const fields = stepNum === STEP_Y2 ? DYNAMIC_PILL_FIELDS_Y2 : DYNAMIC_PILL_FIELDS_Y1;
   const stepEl = getStepEl(stepNum === STEP_Y2 ? 3 : stepNum);
   if (!stepEl) return;
-
+ 
   fields.forEach(function(fieldName) {
     const savedValues = data[fieldName];
     if (!savedValues || !savedValues.length) return;
-
+ 
     const hiddenInput = stepEl.querySelector('input[name="' + fieldName + '"].aed-hidden-input');
     if (!hiddenInput) return;
-
+ 
     const card = hiddenInput.closest('[data-learning-area]');
     if (!card) return;
-
+ 
     card.querySelectorAll('.aed-dynamic-pill').forEach(function(pill) {
       const isLocked = pill.getAttribute('data-locked') === 'true';
       if (!isLocked) {
@@ -861,17 +925,17 @@ function restoreDynamicPillsForStep(stepNum) {
         );
       }
     });
-
+ 
     hiddenInput.value = JSON.stringify(savedValues);
     hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-
+ 
     const countEl = card.querySelector('.aed-elective-card-count');
     if (countEl) {
       const selected = card.querySelectorAll('.aed-dynamic-pill.is-selected').length;
       countEl.textContent = selected > 0 ? selected + ' selected' : '';
     }
   });
-
+ 
   const langKey = stepNum === STEP_Y2 ? 'language_of_study_y2' : 'language_of_study';
   const savedLang = data[langKey] || (stepNum === STEP_Y2 ? data['language_of_study'] : '');
   if (savedLang) {
@@ -900,15 +964,15 @@ function restoreDynamicPillsForStep(stepNum) {
       }
     }
   }
-
+ 
   if (stepNum === 3) {
     TRACKING_FIELDS.forEach(function(fieldName) {
       const savedValues = data[fieldName];
       if (!savedValues || !savedValues.length) return;
-
+ 
       const trackingInput = document.getElementById(fieldName);
       if (!trackingInput) return;
-
+ 
       const type = fieldName.replace('aed-tracking-', '');
       stepEl.querySelectorAll('.aed-tracking-pill[data-type="' + type + '"]').forEach(function(pill) {
         const area = pill.getAttribute('data-area');
@@ -916,120 +980,120 @@ function restoreDynamicPillsForStep(stepNum) {
           pill.classList.add(type); 
         }
       });
-
+ 
       trackingInput.value = JSON.stringify(savedValues);
     });
   }
-
+ 
   console.log('✅ AED: Dynamic pills restored for Step ' + stepNum);
 }
-
+ 
 function setupLiveNameSync() {
   const nameInput = document.querySelector('input[name="student_first_name"]');
   if (!nameInput) return;
-
+ 
   nameInput.addEventListener('input', (e) => {
     const newName = e.target.value.trim();
     const currentIdx = getChildIndex();
     const displayNum = currentIdx + 1;
-
+ 
     updateCurrentChildHeading();
-
+ 
     const activeStep = document.querySelector(".step.is-active");
     if (!activeStep) return;
-
+ 
     const navButtons = activeStep.querySelectorAll('.child-nav-btn');
     const targetBtn = navButtons[currentIdx + 1]; 
-
+ 
     if (targetBtn) {
       targetBtn.textContent = newName || `Child ${displayNum}`;
     }
   });
 }
-
+ 
 function liveWriteToChildStore(fieldName, value) {
   if (window.__aed_is_loading_data) return;
-
+ 
   if (window.currentStepNum < STEP_FIRST_CHILD || window.currentStepNum > STEP_LAST_CHILD) return;
-
+ 
   var idx = getChildIndex();
-
+ 
   if (!window.__aed_child_applications) window.__aed_child_applications = [];
   if (!window.__aed_child_applications[idx]) window.__aed_child_applications[idx] = {};
-
+ 
   var existing = window.__aed_child_applications[idx][fieldName];
   if (Array.isArray(existing) && existing.length > 0 && !Array.isArray(value)) {
     return;
   }
-
+ 
   window.__aed_child_applications[idx][fieldName] = value;
 }
-
+ 
 function initLiveSave() {
   document.addEventListener("input", function(e) {
     var el = e.target;
     if (!el) return;
-
+ 
     var name = el.getAttribute("name");
     if (!name) return;
-
+ 
     var familyFields = window.AED.FAMILY_FIELDS; 
     if (familyFields.indexOf(name) !== -1) return;
-
+ 
     if (el.hasAttribute("data-state-key")) return;
     var type = (el.getAttribute("type") || "").toLowerCase();
     if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
-
+ 
     var value;
     if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
       try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }
     } else {
       value = (el.value || "").trim();
     }
-
+ 
     liveWriteToChildStore(name, value);
   }, true);
-
+ 
   document.addEventListener("change", function(e) {
     var el = e.target;
     if (!el) return;
-
+ 
     var name = el.getAttribute("name");
     if (!name) return;
-
+ 
     var familyFields = window.AED.FAMILY_FIELDS;
     if (familyFields.indexOf(name) !== -1) return;
     if (el.hasAttribute("data-state-key")) return;
-
+ 
     var type = (el.getAttribute("type") || "").toLowerCase();
-
+ 
     if (type === "radio") {
       if (el.checked) {
         liveWriteToChildStore(name, el.value);
       }
       return;
     }
-
+ 
     if (type === "checkbox") {
       liveWriteToChildStore(name, el.checked ? (el.value || "on") : "");
       return;
     }
-
+ 
     if (type === "hidden" && !el.classList.contains("ms-input") && !el.classList.contains("aed-hidden-input")) return;
-
+ 
     var value;
     if (el.classList.contains("ms-input") || el.classList.contains("aed-hidden-input")) {
       try { value = JSON.parse(el.value || "[]"); } catch(ex) { value = el.value; }
     } else {
       value = (el.value || "").trim();
     }
-
+ 
     liveWriteToChildStore(name, value);
   }, true);
-
+ 
   console.log("✅ AED: Live-save system initialised");
 }
-
+ 
   /* =======================
      Expose on window.AED (clean namespace)
      ========================= */
@@ -1048,7 +1112,7 @@ function initLiveSave() {
     initLiveSave: initLiveSave,
     setupLiveNameSync: setupLiveNameSync
   };
-
+ 
   /* =========================
      Backward-compatible window.* aliases
      ========================= */
@@ -1066,6 +1130,6 @@ function initLiveSave() {
   window.initLiveSave                  = initLiveSave;
   window.setupLiveNameSync             = setupLiveNameSync;
   window.saveProgressSilently          = saveProgressSilently;
-
+ 
   console.log("✅ aed-data.js (Module 5) loaded");
 });
