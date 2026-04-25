@@ -347,6 +347,41 @@ function sanitizeDataForMake(data) {
     });
   }
 
+  // ─── ELECTIVE SANITISATION (Y9-10) ──────────────────────────────────────
+  // For learning areas that have elective subject pickers at Y9-10, the
+  // payload must never send "LA toggled on, zero subjects chosen".
+  // If a field is boolean true / "on" but should contain an array of
+  // selected subjects, set it to false.
+  // Y7-8 is unaffected: HASS and Tech are integrated (boolean true is valid).
+  var yearRaw = cleanData.student_year_level || '';
+  var yearM = yearRaw.match(/\d+/);
+  var yearN = yearM ? parseInt(yearM[0], 10) : null;
+
+  if (yearN !== null) {
+    // Keys that must be arrays (not boolean) when the student is in Y9-10
+    var electiveKeys = [
+      'the_arts', 'technologies', 'hass',
+      'creative_arts', 'technological_and_applied_studies',
+      'hsie', 'pdhpe', 'humanities', 'hpe'
+    ];
+
+    function sanitiseYearKeys(yNum, suffix) {
+      if (yNum < 9) return;
+      electiveKeys.forEach(function(key) {
+        var fullKey = key + suffix;
+        var val = cleanData[fullKey];
+        // If it's boolean true or string "on" (not already an array), it's invalid
+        if (val === true || val === 'on') {
+          cleanData[fullKey] = false;
+          console.log('🧹 AED: sanitizeDataForMake — ' + fullKey + ' → false (no subjects for Y' + yNum + ')');
+        }
+      });
+    }
+
+    sanitiseYearKeys(yearN, '');
+    sanitiseYearKeys(yearN + 1, '_y2');
+  }
+
   return cleanData;
 }
 
