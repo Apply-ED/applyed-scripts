@@ -549,31 +549,50 @@ function renderChildSummary() {
     let rawProgram = programMap[child.program_type] || child.program_type || "Standard Program";
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
+    // --- Build curriculum display from actual child data ---
+    // Helper: returns true if a field is truthy — covers "on", true, or
+    // a non-empty array (pathway selections / elective pill arrays).
+    const hasLA = (val) => {
+      if (!val) return false;
+      if (val === "on" || val === true) return true;
+      if (Array.isArray(val) && val.length > 0) return true;
+      // JSON-stringified arrays stored as strings
+      if (typeof val === "string" && val.startsWith("[")) {
+        try { const p = JSON.parse(val); return Array.isArray(p) && p.length > 0; } catch(e) {}
+      }
+      return false;
+    };
+
     let currArray = [];
-    if (child.english === "on") currArray.push("English");
-    if (child.mathematics === "on") currArray.push("Mathematics");
-    if (child.science === "on") currArray.push("Science");
-    if (child.health_physical_ed === "on") currArray.push("HPE");
-    if (child.hass === "on") currArray.push("HASS");
-    if (child.technologies === "on") currArray.push("Technologies");
-    if (child.the_arts === "on") currArray.push("The Arts");
-    if (child.languages === "on") currArray.push("Languages");
 
-    const electiveItems = [
-      formatPills(child.hass_electives),
-      formatPills(child.arts_electives),
-      formatPills(child.tech_electives),
-      formatPills(child.english_electives),
-      formatPills(child.hpe_electives),
-      formatPills(child.maths_electives),
-      formatPills(child.science_electives),
-      child.Language_of_study || child.language_of_study
-    ].filter(Boolean);
+    // English — F-8 uses checkbox ("on"), Y9-10 uses english_pathway array
+    if (hasLA(child.english) || hasLA(child.english_pathway)) currArray.push("English");
 
-    if (electiveItems.length > 0) {
-       currArray = currArray.concat(electiveItems);
-    }
-    
+    // Mathematics — F-8 uses checkbox, Y9-10 uses mathematics_pathway array
+    if (hasLA(child.mathematics) || hasLA(child.mathematics_pathway)) currArray.push("Mathematics");
+
+    // Science — F-8 uses checkbox, Y9-10 uses science_pathway array
+    if (hasLA(child.science) || hasLA(child.science_pathway)) currArray.push("Science");
+
+    // HASS — F-8 uses checkbox ("on"), Y9-10 uses hass array of elective subjects
+    // Also check state-variant keys (hsie for NSW, humanities for VIC)
+    if (hasLA(child.hass) || hasLA(child.hsie) || hasLA(child.humanities) ||
+        hasLA(child.humanities_and_social_sciences)) currArray.push("HASS");
+
+    // Technologies — F-8 uses checkbox ("on"), Y9-10 uses technologies array
+    // Also check state-variant key (technological_and_applied_studies for NSW)
+    if (hasLA(child.technologies) || hasLA(child.technological_and_applied_studies)) currArray.push("Technologies");
+
+    // The Arts — F-8 uses checkbox ("on"), Y9-10 uses the_arts array
+    // Also check state-variant key (creative_arts for NSW)
+    if (hasLA(child.the_arts) || hasLA(child.creative_arts)) currArray.push("The Arts");
+
+    // HPE — check both field name variants
+    if (hasLA(child.health_physical_ed) || hasLA(child.hpe) || hasLA(child.pdhpe)) currArray.push("HPE");
+
+    // Languages
+    if (hasLA(child.languages) || hasLA(child.language_of_study)) currArray.push("Languages");
+
     let curriculum = currArray.length > 0 ? currArray.join(", ") : formatPills(child.curriculum_coverage);
     if (!curriculum || curriculum === "[]" || curriculum === "") curriculum = "Australian Curriculum";
 
