@@ -550,16 +550,35 @@ function renderChildSummary() {
     const programType = rawProgram.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
     // --- Build curriculum display from actual child data ---
-    // Helper: returns true if a field is truthy — covers "on", true, or
-    // a non-empty array (pathway selections / elective pill arrays).
+    // Determine if this child is Y9+ (where elective areas need subject arrays,
+    // not just a bare "on" checkbox value)
+    const yearMatch = (child.student_year_level || '').match(/\d+/);
+    const yearNum = yearMatch ? parseInt(yearMatch[0], 10) : null;
+    const isY9Plus = yearNum !== null && yearNum >= 9;
+
+    // Helper: returns true if a field has a real selection.
+    // For Y9-10 elective areas, bare "on"/true is NOT valid — the LA needs
+    // actual subjects selected. Use hasLA for core areas and hasElective for
+    // learning areas that use subject pickers at Y9-10.
     const hasLA = (val) => {
       if (!val) return false;
       if (val === "on" || val === true) return true;
       if (Array.isArray(val) && val.length > 0) return true;
-      // JSON-stringified arrays stored as strings
       if (typeof val === "string" && val.startsWith("[")) {
         try { const p = JSON.parse(val); return Array.isArray(p) && p.length > 0; } catch(e) {}
       }
+      return false;
+    };
+
+    // For Y9-10 elective areas: only arrays with subjects count, bare "on" is ignored
+    const hasElective = (val) => {
+      if (!val) return false;
+      if (Array.isArray(val) && val.length > 0) return true;
+      if (typeof val === "string" && val.startsWith("[")) {
+        try { const p = JSON.parse(val); return Array.isArray(p) && p.length > 0; } catch(e) {}
+      }
+      // For F-8, "on"/true is valid (integrated learning areas, no elective picker)
+      if (!isY9Plus && (val === "on" || val === true)) return true;
       return false;
     };
 
@@ -576,19 +595,19 @@ function renderChildSummary() {
 
     // HASS — F-8 uses checkbox ("on"), Y9-10 uses hass array of elective subjects
     // Also check state-variant keys (hsie for NSW, humanities for VIC)
-    if (hasLA(child.hass) || hasLA(child.hsie) || hasLA(child.humanities) ||
+    if (hasElective(child.hass) || hasElective(child.hsie) || hasElective(child.humanities) ||
         hasLA(child.humanities_and_social_sciences)) currArray.push("HASS");
 
     // Technologies — F-8 uses checkbox ("on"), Y9-10 uses technologies array
     // Also check state-variant key (technological_and_applied_studies for NSW)
-    if (hasLA(child.technologies) || hasLA(child.technological_and_applied_studies)) currArray.push("Technologies");
+    if (hasElective(child.technologies) || hasElective(child.technological_and_applied_studies)) currArray.push("Technologies");
 
     // The Arts — F-8 uses checkbox ("on"), Y9-10 uses the_arts array
     // Also check state-variant key (creative_arts for NSW)
-    if (hasLA(child.the_arts) || hasLA(child.creative_arts)) currArray.push("The Arts");
+    if (hasElective(child.the_arts) || hasElective(child.creative_arts)) currArray.push("The Arts");
 
     // HPE — check both field name variants
-    if (hasLA(child.health_physical_ed) || hasLA(child.hpe) || hasLA(child.pdhpe)) currArray.push("HPE");
+    if (hasLA(child.health_physical_ed) || hasElective(child.hpe) || hasElective(child.pdhpe)) currArray.push("HPE");
 
     // Languages
     if (hasLA(child.languages) || hasLA(child.language_of_study)) currArray.push("Languages");
